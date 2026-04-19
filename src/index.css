@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: all;
+}
+
+@layer components {
+  .nav-btn {
+    @apply btn btn-ghost;
+  }
+
+  .paddingx-1 {
+    @apply px-5 md:px-[10%];
+  }
+  
+}
+
+html{
+  scroll-behavior: smooth;
+}
