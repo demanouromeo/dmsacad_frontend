@@ -6,4 +6,13 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), 
     tailwindcss()],
+  // server: {
+  //   proxy: {
+  //     '/api': {
+  //       target: 'https://dmsacad.com',
+  //       changeOrigin: true,
+  //       secure: false, // Set to false if the backend has self-signed certificates
+  //     }
+  //   }
+  // },
 });
