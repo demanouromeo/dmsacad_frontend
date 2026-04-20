@@ -3,6 +3,7 @@ import img from "../../assets/medium/login_img1.png";
 import Title from "../Title";
 import React, { useEffect, useState } from "react";
 import { MyReader } from "../../dbmanger/MyReader";
+import { useCookies } from "react-cookie";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
@@ -10,6 +11,10 @@ const LoginForm = () => {
   const [selectedSchool, setSelectedSchool] = useState("");
   const [schoolList, setSchoolList] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
+  // 'user' is the name of the cookie we want to access
+  const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
+  const vGap1 = 5;
+  //const vGap2 = 4;
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -18,6 +23,7 @@ const LoginForm = () => {
     // const list = await MyReader.fetchSchools();
     // setSchoolList(list);
     // alert(list.length);
+    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
   };
   useEffect(() => {
     const loadSchools = async () => {
@@ -40,7 +46,7 @@ const LoginForm = () => {
         </div>
 
         <form onSubmit={handleLogin}>
-          <div className="flex items-center md:h-120 bg-base-10 border-base-500  rounded-xl md:rounded-tr-xl md:rounded-br-xl md:md:rounded-bl-none md:md:rounded-tl-none w-xs border p-4">
+          <div className="flex items-center md:h-120 bg-base-10 border-base-500  rounded-xl md:rounded-tr-xl md:rounded-br-xl md:md:rounded-bl-none md:md:rounded-tl-none w-sm md:w-95 border p-4">
             <div className="w-full">
               <label className="label" htmlFor="login">
                 Login
@@ -48,7 +54,7 @@ const LoginForm = () => {
               <div className="relative">
                 <input
                   type="text"
-                  className="input"
+                  className="input w-full"
                   placeholder="Login ou code utilisateur"
                   id="login"
                   value={loginVal}
@@ -57,13 +63,13 @@ const LoginForm = () => {
                 <UsersRound className="absolute w-5 h-5 top-2.5 right-2.5 text-slate-600" />
               </div>
 
-              <label className="label mt-4" htmlFor="password">
+              <label className={`label mt-${vGap1}`} htmlFor="password">
                 Mot de passe
               </label>
               <div className="relative">
                 <input
                   type="password"
-                  className="input"
+                  className="input w-full"
                   placeholder="Mot de passe"
                   id="password"
                   value={passwordVal}
@@ -72,18 +78,12 @@ const LoginForm = () => {
                 <KeySquare className="absolute w-5 h-5 top-2.5 right-2.5 text-slate-600" />
               </div>
 
-              <div id="mylist" className="">
-                {/* {schoolList.map((school: any, index) => (
-                  <div key={index}>{school}</div>
-                ))} */}
-              </div>
-
-              <label htmlFor="schoolList" className="label mt-4">
+              <label htmlFor="schoolList" className={`label mt-${vGap1}`}>
                 Veuillez sélectionner votre école
               </label>
               <select
                 id="schoolList"
-                className="select"
+                className="select mb-2 w-full"
                 onChange={(e) => setSelectedSchool(e.target.value)}
               >
                 <option defaultValue="">
@@ -95,9 +95,16 @@ const LoginForm = () => {
                   </option>
                 ))}
               </select>
+              <label className="label mt-2 mb-3">
+                {cookies.schoolName
+                  ? "Ecole actuelle: " + cookies.schoolName
+                  : selectedSchool
+                    ? "Ecole actuelle: " + selectedSchool
+                    : "Aucune école sélectionnée"}
+              </label>
 
               <button
-                className="btn btn-neutral mt-5 mb-4 w-full"
+                className={`btn btn-neutral mb-4 w-full mt-${vGap1}`}
                 type="submit"
               >
                 Se connecter
