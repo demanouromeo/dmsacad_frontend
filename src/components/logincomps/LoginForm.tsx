@@ -2,20 +2,34 @@ import { KeySquare, UsersRound } from "lucide-react";
 import img from "../../assets/medium/login_img1.png";
 import Title from "../Title";
 import React, { useEffect, useState } from "react";
+import { MyReader } from "../../dbmanger/MyReader";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
   const [passwordVal, setPasswordVal] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState("");
+  const [schoolList, setSchoolList] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     //console.log("Login form submitted");
-    alert(loginVal);
+    alert(selectedSchool);
+    // const list = await MyReader.fetchSchools();
+    // setSchoolList(list);
+    // alert(list.length);
   };
+  useEffect(() => {
+    const loadSchools = async () => {
+      const list = await MyReader.fetchSchools();
+      setSchoolList(list);
+      //alert(schoolList.length);
+    };
+    loadSchools();
+  }, []);
   return (
     <div className=" md:h-screen bg-base-300 p-10 mb-10 md:mb-32" id="About">
-      <Title title="LOGIN" />
+      <Title title="Connexion" />
       <div className="flex justify-center items-center ">
         <div className="hidden md:block md:h-120 w-96">
           <img
@@ -57,6 +71,30 @@ const LoginForm = () => {
                 />
                 <KeySquare className="absolute w-5 h-5 top-2.5 right-2.5 text-slate-600" />
               </div>
+
+              <div id="mylist" className="">
+                {/* {schoolList.map((school: any, index) => (
+                  <div key={index}>{school}</div>
+                ))} */}
+              </div>
+
+              <label htmlFor="schoolList" className="label mt-4">
+                Veuillez sélectionner votre école
+              </label>
+              <select
+                id="schoolList"
+                className="select"
+                onChange={(e) => setSelectedSchool(e.target.value)}
+              >
+                <option defaultValue="">
+                  Veuillez sélectionner votre école
+                </option>
+                {schoolList.map((school: any, index) => (
+                  <option key={index} value={school}>
+                    {school}
+                  </option>
+                ))}
+              </select>
 
               <button
                 className="btn btn-neutral mt-5 mb-4 w-full"
