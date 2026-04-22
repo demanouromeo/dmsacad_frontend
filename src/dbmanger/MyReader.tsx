@@ -56,6 +56,35 @@ export class MyReader {
         );
         return [];
       }
+      return data;
+    } catch (error) {
+      console.error(
+        `MyReader.fetchAccounts(): Error fetching accounts: ${error}`,
+      );
+      alert(
+        "MyReader.fetchAccounts(): Failed to fetch accounts. Please try again later.<br/>" +
+          targetUrl,
+      );
+      return [];
+    } finally {
+    }
+  };
+
+  public static fetchJsonFromAPI = async (targetUrl = "") => {
+    try {
+      const response = await fetch(targetUrl, API_OPTIONS);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.Response === "False") {
+        alert(
+          data.Error ||
+            "MyReader.fetchJsonFromAPI(): Failed to fetch data From API\n" +
+              targetUrl,
+        );
+        return [];
+      }
       //console.log(data.results);
       //console.log(data);
       //return data.results;
@@ -63,11 +92,10 @@ export class MyReader {
     } catch (error) {
       //console.error("Error fetching movies:", error);
       console.error(
-        `MyReader.fetchAccounts(): Error fetching accounts: ${error}`,
+        `MyReader.fetchJsonFromAPI(): Error fetching data from API\n[${targetUrl}]: \n${error}`,
       );
       alert(
-        "MyReader.fetchAccounts(): Failed to fetch accounts. Please try again later.<br/>" +
-          targetUrl,
+        `MyReader.fetchJsonFromAPI(): Failed to fetch data from API\n[${targetUrl}]. \nPlease try again later.<br/>`,
       );
       return [];
     } finally {

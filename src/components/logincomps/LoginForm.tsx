@@ -5,75 +5,73 @@ import React, { useEffect, useState } from "react";
 import { MyReader } from "../../dbmanger/MyReader";
 import { useCookies } from "react-cookie";
 import Loading from "../sharedcomp/Loading";
-import { MyConstants } from "../../dbmanger/MyConstants";
 import { useNavigate } from "react-router-dom";
+import type { Account } from "../../interfaces/Account";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
   const [passwordVal, setPasswordVal] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [schoolList, setSchoolList] = useState([]);
-  const [accountList, setAccountList] = useState([]);
-  //const [errorMsg, setErrorMsg] = useState("");
+  const [accountList, setAccountList] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   // 'user' is the name of the cookie we want to access
   //const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
-  const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
-  //const vGap1 = 4;
-  //const vGap2 = 4;
+  const [cookies, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    //console.log("Login form submitted");
-    //alert(selectedSchool);
-    // const list = await MyReader.fetchSchools();
-    // setSchoolList(list);
-    // alert(list.length);
-    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 }); //Duration of 7 days (7 days * 24 hours/day * 60 minutes/hour * 60 seconds/minute). "/" means the cookie is accessible on all pages of the site.
-    //const list = await MyReader.fetchAccounts(selectedSchool);
-    const accountsUrl = `${MyConstants.gBaserUrl}api/accounts/${selectedSchool}`;
-    console.log("Fetching accounts from: " + accountsUrl);
-    navigate("/dashboard-teacher");
-  };
-  useEffect(() => {
-    setIsLoading(true);
-    const loadSchools = async () => {
-      const list = await MyReader.fetchSchools();
-      setSchoolList(list);
-      //console.log(schoolList);
-      setIsLoading(false);
-    };
-    loadSchools();
 
-    const loadAccounts = async () => {
-      setIsLoading(true);
-      const list = await MyReader.fetchAccounts(cookies.schoolName);
-      setAccountList(list);
-      //alert(accountList.length);
-      console.log("accountList: " + accountList);
-      //console.log(list);
-      setIsLoading(false);
-      // for (let i = 0; i < list.length; i++) {
-      //   console.log(list[i]);
-      // }
-    };
-    loadAccounts();
-  }, []);
   const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSchool(e.target.value);
-    // if (cookies.schoolName != "" && selectedSchool == "") {
-    //   setSelectedSchool(cookies.schoolName);
-    // }
     console.log("Selected school is now: " + e.target.value);
-    removeCookie("schoolName");
-    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
-    console.log("cookies.schoolName is now: " + cookies.schoolName);
+    loadAccounts();
   };
 
-  const deleteCookie = (name: string, path: string = "/") => {
-    // Overwrite the cookie with an expired date
-    document.cookie = `${name}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
+
+    if (!cookies.schoolName) {
+      alert(`Veuillez sélectionner une école [${cookies.schoolName}]`);
+      return;
+    }
+
+    const account = accountList.find(
+      (acc) =>
+        (acc.login === loginVal || acc.pwd === passwordVal) &&
+        acc.pwd === passwordVal,
+    );
+
+    if (!account) {
+      alert(`Login ou mot de passe incorrect \nECOLE:[${cookies.schoolName}]`);
+      return;
+    } else {
+      navigate("/dashboard-teacher");
+    }
   };
+
+  useEffect(() => {
+    setIsLoading(true);
+    loadSchools();
+    loadAccounts();
+  }, []);
+
+  const loadSchools = async () => {
+    const list = await MyReader.fetchSchools();
+    setSchoolList(list);
+    setIsLoading(false);
+  };
+
+  const loadAccounts = async () => {
+    setIsLoading(true);
+    const list = await MyReader.fetchAccounts(cookies.schoolName);
+    setAccountList(list);
+    setIsLoading(false);
+  };
+
+  // const deleteCookie = (name: string, path: string = "/") => {
+  //   // Overwrite the cookie with an expired date
+  //   document.cookie = `${name}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+  // };
 
   return (
     <div className=" md:h-screen bg-base-300 p-10 mb-10 md:mb-32" id="About">
@@ -98,6 +96,7 @@ const LoginForm = () => {
                   type="text"
                   className="input w-full"
                   placeholder="Login ou code utilisateur"
+                  required
                   id="login"
                   value={loginVal}
                   onChange={(e) => setLoginVal(e.target.value)}
@@ -113,6 +112,7 @@ const LoginForm = () => {
                   type="password"
                   className="input w-full"
                   placeholder="Mot de passe"
+                  required
                   id="password"
                   value={passwordVal}
                   onChange={(e) => setPasswordVal(e.target.value)}
