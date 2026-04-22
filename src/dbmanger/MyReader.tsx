@@ -56,9 +56,10 @@ export class MyReader {
         );
         return [];
       }
-      console.log(data);
-      return data.results;
-      //return data;
+      //console.log(data.results);
+      //console.log(data);
+      //return data.results;
+      return data;
     } catch (error) {
       //console.error("Error fetching movies:", error);
       console.error(

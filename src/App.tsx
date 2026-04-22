@@ -1,38 +1,25 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
-import About from "./components/About";
-import Experiences from "./components/Experiences";
 import Footer from "./components/Footer";
-import Home from "./components/Home";
 import LoginForm from "./components/logincomps/LoginForm";
-import Navbar from "./components/Navbar";
-import Projects from "./components/Projects";
+import TeacherIndex from "./components/dashboard/TeacherIndex";
+import { useCookies } from "react-cookie";
 
 function App() {
   //const [count, setCount] = useState(0)
+  const [cookies] = useCookies(["schoolName"]);
   return (
-    <div className=" ">
-      <div className="">
-        <LoginForm />
+    <BrowserRouter>
+      <div className=" ">
+        <Routes>
+          <Route path="/" element={<LoginForm />} />
+          <Route path="/dashboard-teacher" element={<TeacherIndex />} />
+        </Routes>
+        { cookies.schoolName
+        ?<Footer />
+        :null}
       </div>
-      {/* <div className="paddingx-1">
-        <Navbar />
-      </div>
-      <div className="paddingx-1">
-        <Home />
-      </div>
-
-      <div className="">
-        <About />
-      </div>
-      <div className="paddingx-1 min-h-screen">
-        <Experiences />
-      </div>
-
-      <div className="paddingx-1">
-        <Projects />
-      </div> */}
-      <Footer />
-    </div>
+    </BrowserRouter>
   );
 }
 

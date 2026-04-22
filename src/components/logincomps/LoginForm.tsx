@@ -4,7 +4,9 @@ import Title from "../Title";
 import React, { useEffect, useState } from "react";
 import { MyReader } from "../../dbmanger/MyReader";
 import { useCookies } from "react-cookie";
-import Loading from "../sharedcomp/loading";
+import Loading from "../sharedcomp/Loading";
+import { MyConstants } from "../../dbmanger/MyConstants";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
@@ -12,29 +14,33 @@ const LoginForm = () => {
   const [selectedSchool, setSelectedSchool] = useState("");
   const [schoolList, setSchoolList] = useState([]);
   const [accountList, setAccountList] = useState([]);
-  const [errorMsg, setErrorMsg] = useState("");
+  //const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   // 'user' is the name of the cookie we want to access
+  //const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
   const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
   //const vGap1 = 4;
   //const vGap2 = 4;
-
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const navigate = useNavigate();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     //console.log("Login form submitted");
-    alert(selectedSchool);
+    //alert(selectedSchool);
     // const list = await MyReader.fetchSchools();
     // setSchoolList(list);
     // alert(list.length);
-    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
+    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 }); //Duration of 7 days (7 days * 24 hours/day * 60 minutes/hour * 60 seconds/minute). "/" means the cookie is accessible on all pages of the site.
     //const list = await MyReader.fetchAccounts(selectedSchool);
+    const accountsUrl = `${MyConstants.gBaserUrl}api/accounts/${selectedSchool}`;
+    console.log("Fetching accounts from: " + accountsUrl);
+    navigate("/dashboard-teacher");
   };
   useEffect(() => {
     setIsLoading(true);
     const loadSchools = async () => {
       const list = await MyReader.fetchSchools();
       setSchoolList(list);
-      //alert(schoolList.length);
+      //console.log(schoolList);
       setIsLoading(false);
     };
     loadSchools();
@@ -44,7 +50,12 @@ const LoginForm = () => {
       const list = await MyReader.fetchAccounts(cookies.schoolName);
       setAccountList(list);
       //alert(accountList.length);
+      console.log("accountList: " + accountList);
+      //console.log(list);
       setIsLoading(false);
+      // for (let i = 0; i < list.length; i++) {
+      //   console.log(list[i]);
+      // }
     };
     loadAccounts();
   }, []);
@@ -53,6 +64,15 @@ const LoginForm = () => {
     // if (cookies.schoolName != "" && selectedSchool == "") {
     //   setSelectedSchool(cookies.schoolName);
     // }
+    console.log("Selected school is now: " + e.target.value);
+    removeCookie("schoolName");
+    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
+    console.log("cookies.schoolName is now: " + cookies.schoolName);
+  };
+
+  const deleteCookie = (name: string, path: string = "/") => {
+    // Overwrite the cookie with an expired date
+    document.cookie = `${name}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
   };
 
   return (
@@ -67,7 +87,7 @@ const LoginForm = () => {
           />
         </div>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <div className="flex items-center md:h-120 bg-base-10 border-base-500  rounded-xl md:rounded-tr-xl md:rounded-br-xl md:md:rounded-bl-none md:md:rounded-tl-none w-sm md:w-95 border p-4">
             <div className="w-full">
               <label className="label" htmlFor="login">
