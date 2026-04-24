@@ -3,10 +3,11 @@ import img from "../../assets/medium/login_img1.png";
 import Title from "../Title";
 import React, { useEffect, useState } from "react";
 import { MyReader } from "../../dbmanger/MyReader";
-import { useCookies } from "react-cookie";
+//import { useCookies } from "react-cookie";
 import Loading from "../sharedcomp/Loading";
 import { useNavigate } from "react-router-dom";
 import type { Account } from "../../interfaces/Account";
+import { MyConstants } from "../../dbmanger/MyConstants";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
@@ -17,21 +18,26 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   // 'user' is the name of the cookie we want to access
   //const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
-  const [cookies, setCookie] = useCookies(["schoolName"]);
+  //const [cookies, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
 
-  const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSchoolChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
     setSelectedSchool(e.target.value);
-    console.log("Selected school is now: " + e.target.value);
-    loadAccounts();
+    //console.log("Selected school is now: " + e.target.value);
+    console.log("Selected school is now: " + selectedSchool);
+    //setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });//NOT WORKING HERE
+    //sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
+    await loadAccounts(selectedSchool);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
-
-    if (!cookies.schoolName) {
-      alert(`Veuillez sélectionner une école [${cookies.schoolName}]`);
+    //setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
+    sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
+    if (selectedSchool === "") {
+      alert(`Veuillez sélectionner une école [${selectedSchool}]`);
       return;
     }
 
@@ -42,7 +48,7 @@ const LoginForm = () => {
     );
 
     if (!account) {
-      alert(`Login ou mot de passe incorrect \nECOLE:[${cookies.schoolName}]`);
+      alert(`Login ou mot de passe incorrect \nECOLE:[${selectedSchool}]`);
       return;
     } else {
       navigate("/dashboard-teacher");
@@ -52,7 +58,11 @@ const LoginForm = () => {
   useEffect(() => {
     setIsLoading(true);
     loadSchools();
-    loadAccounts();
+    var school = sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY);
+    if (school) {
+      setSelectedSchool(school);
+      loadAccounts(school);
+    }
   }, []);
 
   const loadSchools = async () => {
@@ -61,9 +71,15 @@ const LoginForm = () => {
     setIsLoading(false);
   };
 
-  const loadAccounts = async () => {
+  const loadAccounts = async (school = "") => {
     setIsLoading(true);
-    const list = await MyReader.fetchAccounts(cookies.schoolName);
+    const list = await MyReader.fetchAccounts(school);
+    console.log(
+      "LoginForm.loadAccounts()\nAccounts list loaded for school " +
+        school +
+        ": ",
+      list,
+    );
     setAccountList(list);
     setIsLoading(false);
   };
@@ -140,8 +156,8 @@ const LoginForm = () => {
               <label className="label mt-1 mb-3">
                 {selectedSchool
                   ? "Ecole actuelle: " + selectedSchool
-                  : cookies.schoolName
-                    ? "Ecole actuelle: " + cookies.schoolName
+                  : selectedSchool
+                    ? "Ecole actuelle: " + selectedSchool
                     : "Aucune école sélectionnée"}
               </label>
 
