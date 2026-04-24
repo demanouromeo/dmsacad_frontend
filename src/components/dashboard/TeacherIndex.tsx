@@ -1,4 +1,4 @@
-import { useCookies } from "react-cookie";
+//import { useCookies } from "react-cookie";
 import { MyConstants } from "../../dbmanger/MyConstants";
 
 function AccessDenied() {

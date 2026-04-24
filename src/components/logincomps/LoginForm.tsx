@@ -21,15 +21,17 @@ const LoginForm = () => {
   //const [cookies, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
 
-  const handleSchoolChange = async (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
+  const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSchool(e.target.value);
-    //console.log("Selected school is now: " + e.target.value);
-    console.log("Selected school is now: " + selectedSchool);
-    //setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });//NOT WORKING HERE
-    //sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
-    await loadAccounts(selectedSchool);
+    console.log("Selected school is now: " + e.target.value);
+    //console.log("Selected school is now: " + selectedSchool);
+
+    // if (selectedSchool && selectedSchool !== "") {
+    //   loadAccounts(selectedSchool);
+    // }
+    if (e.target.value && e.target.value !== "") {
+      loadAccounts(e.target.value);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,7 +61,7 @@ const LoginForm = () => {
     setIsLoading(true);
     loadSchools();
     var school = sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY);
-    if (school) {
+    if (school && school !== "") {
       setSelectedSchool(school);
       loadAccounts(school);
     }
@@ -75,10 +77,9 @@ const LoginForm = () => {
     setIsLoading(true);
     const list = await MyReader.fetchAccounts(school);
     console.log(
-      "LoginForm.loadAccounts()\nAccounts list loaded for school " +
-        school +
-        ": ",
-      list,
+      "LoginForm.loadAccounts()\nAccounts list loaded for school " + school,
+      //   +": ",
+      // list,
     );
     setAccountList(list);
     setIsLoading(false);
