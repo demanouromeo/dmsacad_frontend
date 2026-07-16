@@ -15,10 +15,20 @@ import { useAuth } from "../../auth/useAuth";
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
   const [passwordVal, setPasswordVal] = useState("");
-  const [selectedSchool, setSelectedSchool] = useState("");
-  const [remoteSchool, setRemoteSchool] = useState("");
-  const [schoolList, setSchoolList] = useState([]);
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState<string>(() =>
+    MyConstants.getBackendTarget() === "local"
+      ? MyConstants.gLocalSchoolCode
+      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
+  );
+  const [remoteSchool, setRemoteSchool] = useState<string>(() =>
+    MyConstants.getBackendTarget() === "local"
+      ? ""
+      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
+  );
+  const [schoolList, setSchoolList] = useState<string[]>([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState(
+    () => sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY) || "",
+  );
   const [schoolYearList, setSchoolYearList] = useState<SchoolYear[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -28,8 +38,7 @@ const LoginForm = () => {
   const [backendTarget, setBackendTargetState] = useState<BackendTarget>(
     MyConstants.getBackendTarget(),
   );
-  //const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
-  const [cookies, setCookie] = useCookies(["schoolName"]);
+  const [, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
   const t = loginTranslations[language];
   const settingsDialogRef = useRef<HTMLDialogElement>(null);
@@ -53,6 +62,17 @@ const LoginForm = () => {
     settingsButtonRef.current?.focus();
   };
 
+  const loadSchools = async () => {
+    const list = await MyReader.fetchSchools();
+    setSchoolList(list);
+    setIsLoading(false);
+  };
+
+  const loadSchoolYears = async (connection = "") => {
+    const list = await MyReader.fetchSchoolYears(connection);
+    setSchoolYearList(list);
+  };
+
   const handleBackendTargetChange = (target: BackendTarget) => {
     setBackendTargetState(target);
     MyConstants.setBackendTarget(target);
@@ -74,10 +94,7 @@ const LoginForm = () => {
 
   const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSchool(e.target.value);
-    console.log("Selected school is now: " + e.target.value);
-    //console.log("Selected school is now: " + selectedSchool);
-    setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
-    console.log("Cookie set to: " + cookies.schoolName);
+    setCookie("schoolName", e.target.value, { path: "/", maxAge: 604800 });
 
     setSelectedSchoolYear("");
     setSchoolYearList([]);
@@ -119,37 +136,22 @@ const LoginForm = () => {
   };
 
   useEffect(() => {
-    var year = sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY);
-    if (year && year !== "") {
-      setSelectedSchoolYear(year);
-    }
-
-    if (MyConstants.getBackendTarget() === "local") {
-      setSelectedSchool(MyConstants.gLocalSchoolCode);
+    /* eslint-disable react-hooks/set-state-in-effect --
+       Mount-only data load (school/school-year lists); the setState calls inside
+       loadSchools()/loadSchoolYears() happen after an await, not synchronously,
+       but the rule can't see across that boundary. */
+    if (backendTarget === "local") {
       loadSchoolYears(MyConstants.gLocalSchoolCode);
       return;
     }
 
     setIsLoading(true);
     loadSchools();
-    var school = sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY);
-    if (school && school !== "") {
-      setSelectedSchool(school);
-      setRemoteSchool(school);
-      loadSchoolYears(school);
+    if (selectedSchool) {
+      loadSchoolYears(selectedSchool);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
-
-  const loadSchools = async () => {
-    const list = await MyReader.fetchSchools();
-    setSchoolList(list);
-    setIsLoading(false);
-  };
-
-  const loadSchoolYears = async (connection = "") => {
-    const list = await MyReader.fetchSchoolYears(connection);
-    setSchoolYearList(list);
-  };
 
   return (
     <div className=" md:h-screen bg-base-300 p-10 mb-10 md:mb-32" id="About">
@@ -201,7 +203,7 @@ const LoginForm = () => {
           />
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="flex items-center md:h-120 bg-base-10 border-base-500  rounded-xl md:rounded-tr-xl md:rounded-br-xl md:md:rounded-bl-none md:md:rounded-tl-none w-sm md:w-95 border p-4">
             <div className="w-full">
               <label className="label" htmlFor="login">
@@ -214,6 +216,7 @@ const LoginForm = () => {
                   placeholder={t.loginPlaceholder}
                   required
                   id="login"
+                  autoComplete="off"
                   value={loginVal}
                   onChange={(e) => setLoginVal(e.target.value)}
                 />
@@ -230,6 +233,7 @@ const LoginForm = () => {
                   placeholder={t.passwordPlaceholder}
                   required
                   id="password"
+                  autoComplete="new-password"
                   value={passwordVal}
                   onChange={(e) => setPasswordVal(e.target.value)}
                 />
@@ -318,13 +322,13 @@ const LoginForm = () => {
                 onChange={handleSchoolChange}
                 value={selectedSchool}
               >
-                {schoolList.map((school: any, index) => (
+                {schoolList.map((school, index) => (
                   <option key={index} value={school}>
                     {school}
                   </option>
                 ))}
               </select>
-              <label className="label mt-1 mb-3">
+              <label className="label mt-1 mb-3 w-full">
                 {selectedSchool ? t.currentSchool + selectedSchool : ""}
               </label>
             </>

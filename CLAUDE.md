@@ -113,14 +113,24 @@ assume REST conventions here):
 - Subsequent authenticated requests need `Authorization: Bearer {access_token}` — `MyReader`'s shared
   `API_OPTIONS` object still has this commented out (`//Authorization: ...`); nothing consumes it yet since
   there's no protected CRUD call wired up from this app yet.
-- No backend logout endpoint exists — `AuthContext.logout()` is necessarily client-side-only (clears
-  in-memory state).
+- `POST {baseUrl}api/accounts/logout` (added after the initial contract survey above — backend
+  `AccountController::logout`) revokes both tokens server-side: it decodes the `Authorization: Bearer` access
+  token (if present) and the `refresh_token` cookie, and blacklists each by `jti` via
+  `MyHelper::blacklistToken()` so neither can be replayed before its natural expiry, then clears the
+  `refresh_token` cookie. `AuthContext.logout()` calls `MyReader.logout(accessToken)` fire-and-forget (it
+  never throws or returns a value the caller must check) purely as a best-effort server-side revoke, then
+  always clears in-memory state regardless of whether that call succeeds — a network failure here must never
+  block the user from logging out client-side.
 - Implemented: the access token lives in memory only (`src/auth/AuthContext.tsx`, `AuthProvider`), never in
   `localStorage`/`sessionStorage`; on app load, it silently calls `MyReader.refreshToken()` to restore the
   session from the httpOnly cookie, using whatever `connection` is already in `sessionStorage`. `useAuth()`
   (`src/auth/useAuth.ts`) is the consumer hook — split into its own file, along with the raw context object
   (`src/auth/authContext.ts`), because ESLint's `react-refresh/only-export-components` errors on a file
   mixing a component and a hook.
+- `src/components/routing/RequireAuth.tsx` is the route guard: while `AuthContext.isRestoring` is true (the
+  silent-refresh call above hasn't resolved yet) it renders `Loading`; once resolved, it renders its child
+  routes via `<Outlet />` if `accessToken` is set, otherwise redirects to `/`. It gates only routes nested
+  under it in `App.tsx` — currently just `/dashboard`.
 - Local dev's cross-origin credentialed requests (Vite dev server vs. Apache are different ports) were
   verified working end-to-end against the real backend (`curl`-simulated login → refresh round trip with
   `Origin: http://localhost:5173` + cookies, re-verified again after the GET→POST change) —
@@ -139,13 +149,16 @@ pulling in an i18n library, unless asked.
 
 ### Routing and state
 
-`src/App.tsx` (React Router v7, `BrowserRouter`) currently defines two routes: `/` → `LoginForm`, and
-`/dashboard-teacher` → `TeacherIndex`. `Footer` renders only when the `schoolName` cookie is present. There's
-no route-guard component/HOC — `TeacherIndex` (`src/components/dashboard/TeacherIndex.tsx`) does its own
-inline check of `sessionStorage[SCHOOL_NAME_KEY]` and renders `AccessDenied`/`AccessGranted` placeholders.
+`src/App.tsx` (React Router v7, `BrowserRouter`) defines `/` → `LoginForm`, and `/dashboard` → `Dashboard`
+nested under the `RequireAuth` guard route (see Auth section above). `Footer` renders only when the
+`schoolName` cookie is present. `src/components/dashboard/Dashboard.tsx` renders
+`useAuth().authPayload?.name` and a logout button (`useAuth().logout()` then `navigate("/")`); it replaced
+the old `TeacherIndex.tsx` placeholder, which did its own inline `sessionStorage[SCHOOL_NAME_KEY]` check and
+is gone. Role-specific dashboard variants (teacher vs. admin vs. other roles from `authPayload.role`) are
+explicitly deferred past v1.
 No global state library is used — `react-cookie` (`CookiesProvider` in `main.tsx`) plus plain
-`useState`/`sessionStorage`/`localStorage` is the existing pattern; keep using it rather than introducing
-Redux/Zustand/Context unless the user asks.
+`useState`/`sessionStorage`/`localStorage`/the one `AuthContext` is the existing pattern; keep using it
+rather than introducing Redux/Zustand unless the user asks.
 
 ### Data fetching
 
@@ -153,10 +166,10 @@ Redux/Zustand/Context unless the user asks.
 `fetchSchools()` and `fetchSchoolYears(connection)` so far. Each method follows the same shape: build the URL
 off `MyConstants.getBaseUrl()`, check `response.ok`, check `data.Response === "False"` for an API-level
 error, `alert()` and return `[]` on any failure, log to console. Follow this same shape for new read-only
-fetch methods. The planned `login()`/`refreshToken()` methods (see Auth section and
-`IMPLEMENTATION_PLAN.md`) are an intentional exception — they should return `null`/`false` on failure instead
-of `alert()` + `[]`, since `LoginForm` needs to distinguish "bad credentials" from "network error" for inline
-UI feedback rather than a blind alert.
+fetch methods. `login()`/`refreshToken()`/`logout()` (see Auth section) are an intentional exception — the
+first two return `null`/`false` on failure instead of `alert()` + `[]`, since `LoginForm` needs to
+distinguish "bad credentials" from "network error" for inline UI feedback rather than a blind alert;
+`logout()` swallows errors entirely and returns `void`, since it's a best-effort fire-and-forget call.
 
 ## Current state vs MVP scope
 
@@ -171,11 +184,12 @@ and explicit requirements) and their current status:
 | Choose remote vs local backend server | Done — `MyConstants.getBaseUrl()`/`setBackendTarget()`, toggle in `LoginForm`; Local also special-cases the school picker (see Architecture) |
 | Real login against backend (`connection`/`login`/`pwd`/`year` → JWT) | Done — `LoginForm.connectUser()` calls `useAuth().login()`, which calls `MyReader.login()` → `POST api/accounts/connect` |
 | Store access token + refresh token, attach to requests | Done (storage/restore side) — `AuthContext` holds the access token in memory and silently restores it via `MyReader.refreshToken()` on app load. Attaching `Authorization: Bearer` to CRUD calls is still unaddressed since no protected CRUD endpoint is wired up from this app yet |
-| Navigate to and gate app functionality behind auth | **Partial** — routing exists (`react-router-dom`) but there's no real auth guard; `TeacherIndex`'s check is a placeholder tied to school selection, not to having a valid token |
-| Dashboard showing the connected user's name (v1) | **Missing** — `TeacherIndex` is a static placeholder (`<h1>Teacher Index Page</h1>`); needs to read the user's name (from the decoded JWT payload, see Auth section above) and render it |
+| Navigate to and gate app functionality behind auth | Done — `RequireAuth` gates `/dashboard` on `AuthContext.accessToken`, redirecting to `/` once the silent-refresh restore (`isRestoring`) resolves with no valid session |
+| Dashboard showing the connected user's name (v1) | Done — `Dashboard.tsx` renders `useAuth().authPayload?.name` plus a logout button; role-specific variants are deferred past v1 |
 
-When implementing these, prefer extending the existing files (`MyConstants`, `MyReader`, `LoginForm`,
-`TeacherIndex`) over introducing new architectural layers (e.g. no need for a full state-management library
-or a routing guard framework) — this app is small and the existing patterns (react-cookie + plain state +
-static utility classes) are intentional for now. `IMPLEMENTATION_PLAN.md` has the phased breakdown for the
-remaining "Missing"/"Partial" rows — check it before re-planning this from scratch.
+This closes out the MVP scope from `IMPLEMENTATION_PLAN.md`'s phased breakdown (Phases 1-5; Phase 6 was this
+doc/cleanup pass). When extending the app past v1 (role-specific dashboards, protected CRUD calls attaching
+`Authorization: Bearer`, etc.), prefer extending the existing files (`MyConstants`, `MyReader`, `LoginForm`,
+`Dashboard`, `AuthContext`) over introducing new architectural layers — this app is small and the existing
+patterns (react-cookie + plain state + static utility classes + the one `AuthContext`) are intentional for
+now.
