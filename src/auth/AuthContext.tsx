@@ -53,6 +53,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    // Fire-and-forget: revoking server-side shouldn't block clearing local state/navigating away.
+    MyReader.logout(accessToken);
     setAccessToken(null);
     setAuthPayload(null);
   };

@@ -129,4 +129,23 @@ export class MyReader {
       return null;
     }
   };
+
+  // Best-effort: logging out client-side must always succeed even if this call fails
+  // (network error, already-expired token, etc.), so this never throws or returns a
+  // value callers need to check - it just tries to revoke the token server-side too.
+  public static logout = async (accessToken: string | null): Promise<void> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/accounts/logout`;
+    try {
+      await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error(`MyReader.logout(): Error logging out: ${error}`);
+    }
+  };
 }

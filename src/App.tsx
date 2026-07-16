@@ -2,7 +2,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
 import Footer from "./components/Footer";
 import LoginForm from "./components/logincomps/LoginForm";
-import TeacherIndex from "./components/dashboard/TeacherIndex";
+import Dashboard from "./components/dashboard/Dashboard";
+import RequireAuth from "./components/routing/RequireAuth";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -13,7 +14,9 @@ function App() {
       <div className=" ">
         <Routes>
           <Route path="/" element={<LoginForm />} />
-          <Route path="/dashboard-teacher" element={<TeacherIndex />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
         </Routes>
         {cookies.schoolName ? <Footer /> : null}
       </div>
