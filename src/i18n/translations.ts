@@ -81,12 +81,89 @@ export const bannerTranslations = {
   },
 };
 
+export const confirmTranslations = {
+  fr: {
+    defaultTitle: "Confirmation",
+    confirmBtn: "Confirmer",
+    cancelBtn: "Annuler",
+  },
+  en: {
+    defaultTitle: "Confirmation",
+    confirmBtn: "Confirm",
+    cancelBtn: "Cancel",
+  },
+};
+
 export const dashboardTranslations = {
   fr: {
     logoutBtn: "Déconnexion",
   },
   en: {
     logoutBtn: "Logout",
+  },
+};
+
+export const filiereManagerTranslations = {
+  fr: {
+    nameTooShort: (min: number) =>
+      `Le nom de la filière doit contenir au moins ${min} caractères.`,
+    addSuccess: "Filière ajoutée avec succès.",
+    addDuplicate: (name: string) =>
+      `Une filière portant le nom [${name}] existe déjà.`,
+    addFailure: "Échec de l'ajout de la filière.",
+    renameSuccess: (oldName: string, newName: string) =>
+      `Filière renommée de [${oldName}] à [${newName}].`,
+    renameDuplicate: (name: string) =>
+      `Une filière portant le nom [${name}] existe déjà.`,
+    renameFailure: "Échec du renommage de la filière.",
+    deleteSuccess: "Filière(s) supprimée(s) avec succès.",
+    deleteFailure: "Échec de la suppression d'au moins une filière.",
+  },
+  en: {
+    nameTooShort: (min: number) =>
+      `The filiere name must contain at least ${min} characters.`,
+    addSuccess: "Filiere added successfully.",
+    addDuplicate: (name: string) =>
+      `A filiere with the name [${name}] already exists.`,
+    addFailure: "Failed to add the filiere.",
+    renameSuccess: (oldName: string, newName: string) =>
+      `Filiere renamed from [${oldName}] to [${newName}].`,
+    renameDuplicate: (name: string) =>
+      `A filiere with the name [${name}] already exists.`,
+    renameFailure: "Failed to rename the filiere.",
+    deleteSuccess: "Filiere(s) successfully deleted.",
+    deleteFailure: "Failed to delete at least one filiere.",
+  },
+};
+
+export const specialityManagerTranslations = {
+  fr: {
+    nameTooShort: (min: number) =>
+      `Le nom de la spécialité doit contenir au moins ${min} caractères.`,
+    addSuccess: "Spécialité ajoutée avec succès.",
+    addDuplicate: (name: string) =>
+      `Une spécialité portant le nom [${name}] existe déjà.`,
+    addFailure: "Échec de l'ajout de la spécialité.",
+    updateSuccess: "Spécialité modifiée avec succès.",
+    updateDuplicate: (name: string) =>
+      `Une spécialité portant le nom [${name}] existe déjà.`,
+    updateFailure: "Échec de la modification de la spécialité.",
+    deleteSuccess: "Spécialité(s) supprimée(s) avec succès.",
+    deleteFailure: "Échec de la suppression d'au moins une spécialité.",
+  },
+  en: {
+    nameTooShort: (min: number) =>
+      `The speciality name must contain at least ${min} characters.`,
+    addSuccess: "Speciality added successfully.",
+    addDuplicate: (name: string) =>
+      `A speciality with the name [${name}] already exists.`,
+    addFailure: "Failed to add the speciality.",
+    updateSuccess: "Speciality updated successfully.",
+    updateDuplicate: (name: string) =>
+      `A speciality with the name [${name}] already exists.`,
+    updateFailure: "Failed to update the speciality.",
+    deleteSuccess: "Speciality(ies) successfully deleted.",
+    deleteFailure: "Failed to delete at least one speciality.",
   },
 };
 

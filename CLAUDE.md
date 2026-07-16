@@ -139,13 +139,68 @@ assume REST conventions here):
 
 ### i18n
 
-`src/i18n/translations.ts` is a hand-rolled, login-screen-only translation table (`Language = "fr" | "en"`,
-`loginTranslations`), not a general-purpose i18n library. `src/components/sharedcomp/Flags.tsx` provides the
-FR/EN flag icon toggle. Selected language persists in `localStorage[MyConstants.LANGUAGE_KEY]`. Every
-login-screen field needs an entry here (school, school year, credentials, alerts, etc.) — when adding a field
-to `LoginForm`, add its FR/EN strings to both `loginTranslations.fr` and `.en` in the same change. If more
-screens need translation, extend this same pattern (a typed dictionary keyed by `Language`) rather than
-pulling in an i18n library, unless asked.
+`src/i18n/translations.ts` is a hand-rolled translation table (`Language = "fr" | "en"`), not a general-purpose
+i18n library — no longer login-screen-only: it now exports one dictionary per feature area
+(`loginTranslations`, `confirmTranslations`, `dashboardTranslations`, ...) rather than one monolithic object.
+`src/components/sharedcomp/Flags.tsx` provides the FR/EN flag icon toggle. Selected language persists in
+`localStorage[MyConstants.LANGUAGE_KEY]`. Every translatable field needs an entry here — when adding one, add
+its FR/EN strings to both `.fr` and `.en` of the relevant dictionary in the same change. If a new screen or
+feature needs translation, add a new dictionary following this same pattern (a typed object keyed by
+`Language`) rather than pulling in an i18n library, unless asked.
+
+### Toast notifications (`src/toast/`)
+
+App-wide, non-blocking feedback for "what happened after an action" (save succeeded, delete failed, validation
+warning), replacing ad hoc inline `<p>`/`FeedbackMessage` state that used to live in individual components.
+Same 3-file Context split as `AuthContext`/`LanguageContext`:
+
+- `toastContext.ts` — `createContext` + types only: `ToastType = "info" | "warning" | "danger"`,
+  `ToastOptions { type?, durationMs? }`.
+- `ToastProvider.tsx` (mounted once in `main.tsx`, outermost provider) — holds the live `ToastItem[]` list,
+  exposes `showToast(message, options?)`. Each type has its own default duration
+  (`DEFAULT_DURATION_MS: Record<ToastType, number>`, currently 60s for all three, independently tunable per
+  type without an API change) unless overridden per-call via `options.durationMs`. Renders
+  `ToastViewport` (a fixed `toast toast-end toast-bottom` daisyUI stack) alongside `children`.
+- `Toast.tsx` — single toast item; daisyUI `alert`/`alert-info`/`alert-warning`/`alert-error` styling per type
+  (`danger` → `alert-error`, since daisyUI has no `alert-danger`) plus a matching lucide icon
+  (`Info`/`AlertTriangle`/`AlertCircle`). Self-dismisses via `setTimeout(toast.durationMs)`; also has a manual
+  `X` close button so the user can dismiss early — closing (either way) just removes it from the provider's
+  list, it doesn't cancel other live toasts.
+- `useToast.ts` — consumer hook, throws outside `ToastProvider`; returns `showToast` directly (call sites do
+  `const showToast = useToast();`, not destructuring a context object).
+
+Usage convention (see `FiliereManager.tsx`'s `handleAdd`/`saveEdit`/`handleDeleteSelected`): call
+`showToast(message, { type })` right after an API call resolves — `"info"` for success, `"danger"` for a
+failed/error API result, `"warning"` for client-side validation failures caught before the request is even
+sent. `SpecialityManager.tsx` has **not** been converted yet and still uses its own local
+`message`/`setMessage`/`FeedbackMessage` inline pattern — this was a deliberate scope decision (only the file
+in the original request was touched), not an oversight; convert it the same way if asked.
+
+### Confirmation dialogs (`src/confirm/`)
+
+Replaces every `window.confirm(...)` in the app with a custom, styled, Promise-based dialog — there should be
+no native `confirm()`/`alert()` calls left anywhere in the app; if you add a new destructive action, use this
+instead of reaching for `window.confirm`. Same 3-file Context split again:
+
+- `confirmContext.ts` — `createContext` + types: `ConfirmOptions { title?, confirmLabel?, cancelLabel?,
+  danger? }`, `ConfirmContextValue { confirm: (message, options?) => Promise<boolean> }`.
+- `ConfirmProvider.tsx` (mounted once in `main.tsx`) — holds at most one pending `ConfirmRequest` and a
+  `resolveRef` (`useRef`) for its resolver. `confirm(message, options?)` returns
+  `new Promise<boolean>((resolve) => { resolveRef.current = resolve; setRequest(...); })`, so call sites await
+  it exactly like `window.confirm`: `if (!(await confirm(message))) return;`. Renders one shared native
+  `<dialog>` (same ref + `showModal()`/`close()`, `modal`/`modal-box`/`modal-action`/`modal-backdrop` daisyUI
+  pattern already used by `LoginForm`'s settings dialog and `TopBanner`'s year/section dialogs — reuse this
+  pattern for any future dialog rather than inventing a new one). Escape/backdrop dismissal
+  (`handleDialogClose`, wired to the `<dialog>`'s native `close` event) resolves `false`, same as Cancel.
+  `options.danger: true` renders the confirm button `btn-error` (red) instead of `btn-primary` — pass this for
+  destructive actions like deletes. Default title/button labels come from `confirmTranslations[language]`
+  (`src/i18n/translations.ts`), overridable per-call via `options`.
+- `useConfirm.ts` — consumer hook, throws outside `ConfirmProvider`; returns `confirm` directly
+  (`const confirm = useConfirm();`).
+
+Both `ToastProvider` and `ConfirmProvider` are mounted in `main.tsx`, wrapping `CookiesProvider`/`AuthProvider`
+(inside `LanguageProvider`, outside everything auth-related) — since neither depends on auth state, and both
+need to be available to `LoginForm` itself as well as authenticated screens.
 
 ### Routing and state
 

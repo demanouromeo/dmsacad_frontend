@@ -1,21 +1,34 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../auth/useAuth";
+import { useConfirm } from "../../../confirm/useConfirm";
+import { useToast } from "../../../toast/useToast";
+import { useLanguage } from "../../../i18n/useLanguage";
+import { specialityManagerTranslations } from "../../../i18n/translations";
 import { FiliereReader } from "../../../dbmanger/FiliereReader";
 import { SpecialityReader } from "../../../dbmanger/SpecialityReader";
 import type { Filiere } from "../../../interfaces/Filiere";
 import type { Speciality } from "../../../interfaces/Speciality";
 import Loading from "../../sharedcomp/Loading";
-
-type FeedbackMessage = { type: "error" | "success"; text: string };
+import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import {
+  MAX_SPECIALITY_DESCRIPTION_LENGTH,
+  MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
+  sanitizeFiliereOrSpecialityName,
+} from "../../../utils/textValidation";
+import { isDuplicateNameError } from "../../../utils/apiErrors";
 
 const SpecialityManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
+  const confirm = useConfirm();
+  const showToast = useToast();
+  const [language] = useLanguage();
+  const t = specialityManagerTranslations[language];
 
   const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [selectedFiliere, setSelectedFiliere] = useState("");
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<FeedbackMessage | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [newSpecialityName, setNewSpecialityName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -50,7 +63,6 @@ const SpecialityManager = () => {
   };
 
   useEffect(() => {
-    setMessage(null);
     loadSpecialities();
     loadFilieresForSection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -58,27 +70,39 @@ const SpecialityManager = () => {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSpecialityName.trim() || !selectedFiliere) {
+    const trimmedName = newSpecialityName.trim();
+    if (!trimmedName || !selectedFiliere) {
       return;
     }
-    setMessage(null);
+    if (trimmedName.length < MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH) {
+      showToast(t.nameTooShort(MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH), {
+        type: "warning",
+      });
+      return;
+    }
+    setIsSaving(true);
     const result = await SpecialityReader.saveSpeciality(
       accessToken,
       connection,
       schoolYear,
       section,
       selectedFiliere,
-      newSpecialityName.trim(),
+      trimmedName,
       newDescription.trim(),
     );
-    setMessage({
-      type: result.status ? "success" : "error",
-      text: result.message,
-    });
+    setIsSaving(false);
     if (result.status) {
+      showToast(t.addSuccess, { type: "info" });
       setNewSpecialityName("");
       setNewDescription("");
       loadSpecialities();
+    } else {
+      showToast(
+        isDuplicateNameError(result.message)
+          ? t.addDuplicate(trimmedName)
+          : t.addFailure,
+        { type: "danger" },
+      );
     }
   };
 
@@ -97,19 +121,27 @@ const SpecialityManager = () => {
   };
 
   const saveEdit = async (speciality: Speciality) => {
-    if (!editingName.trim() || !editingFiliere) {
+    const trimmedName = editingName.trim();
+    const trimmedDescription = editingDescription.trim();
+    if (!trimmedName || !editingFiliere) {
       cancelEdit();
       return;
     }
     if (
-      editingName.trim() === speciality.speciality_name &&
-      editingDescription.trim() === (speciality.description ?? "") &&
+      trimmedName === speciality.speciality_name &&
+      trimmedDescription === (speciality.description ?? "") &&
       editingFiliere === speciality.nom_filiere
     ) {
       cancelEdit();
       return;
     }
-    setMessage(null);
+    if (trimmedName.length < MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH) {
+      showToast(t.nameTooShort(MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH), {
+        type: "warning",
+      });
+      return;
+    }
+    setIsSaving(true);
     const result = await SpecialityReader.updateManySpecialities(
       accessToken,
       connection,
@@ -118,16 +150,23 @@ const SpecialityManager = () => {
       [
         {
           speciality_id: speciality.speciality_id,
-          speciality_name: editingName.trim(),
-          description: editingDescription.trim(),
+          speciality_name: trimmedName,
+          description: trimmedDescription,
           nom_filiere: editingFiliere,
         },
       ],
     );
-    setMessage({
-      type: result.status ? "success" : "error",
-      text: result.message,
-    });
+    setIsSaving(false);
+    if (result.status) {
+      showToast(t.updateSuccess, { type: "info" });
+    } else {
+      showToast(
+        isDuplicateNameError(result.message)
+          ? t.updateDuplicate(trimmedName)
+          : t.updateFailure,
+        { type: "danger" },
+      );
+    }
     cancelEdit();
     if (result.status) {
       loadSpecialities();
@@ -158,19 +197,23 @@ const SpecialityManager = () => {
     if (selectedIds.size === 0) {
       return;
     }
-    if (!window.confirm(`Supprimer ${selectedIds.size} spécialité(s) ?`)) {
+    const confirmed = await confirm(
+      `Supprimer ${selectedIds.size} spécialité(s) ?`,
+      { danger: true },
+    );
+    if (!confirmed) {
       return;
     }
-    setMessage(null);
+    setIsSaving(true);
     const result = await SpecialityReader.deleteSpecialities(
       accessToken,
       connection,
       schoolYear,
       Array.from(selectedIds),
     );
-    setMessage({
-      type: result.status ? "success" : "error",
-      text: result.message,
+    setIsSaving(false);
+    showToast(result.status ? t.deleteSuccess : t.deleteFailure, {
+      type: result.status ? "info" : "danger",
     });
     if (result.status) {
       loadSpecialities();
@@ -179,19 +222,12 @@ const SpecialityManager = () => {
 
   return (
     <div className="p-10">
+      {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">Spécialités</h1>
       <p className="mb-6 opacity-70 text-sm">
         Section : <span className="font-semibold">{section}</span> — utilisez
         l'icône section dans la barre du haut pour changer de section.
       </p>
-
-      {message && (
-        <p
-          className={`mb-4 ${message.type === "error" ? "text-error" : "text-success"}`}
-        >
-          {message.text}
-        </p>
-      )}
 
       {isLoading ? (
         <Loading />
@@ -237,7 +273,11 @@ const SpecialityManager = () => {
                         className="input input-sm w-full"
                         value={editingName}
                         autoFocus
-                        onChange={(e) => setEditingName(e.target.value)}
+                        onChange={(e) =>
+                          setEditingName(
+                            sanitizeFiliereOrSpecialityName(e.target.value),
+                          )
+                        }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveEdit(speciality);
                           if (e.key === "Escape") cancelEdit();
@@ -273,8 +313,13 @@ const SpecialityManager = () => {
                         type="text"
                         className="input input-sm w-full"
                         value={editingDescription}
+                        maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
                         onChange={(e) =>
-                          setEditingDescription(e.target.value)
+                          setEditingDescription(
+                            sanitizeFiliereOrSpecialityName(
+                              e.target.value,
+                            ).slice(0, MAX_SPECIALITY_DESCRIPTION_LENGTH),
+                          )
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveEdit(speciality);
@@ -358,14 +403,24 @@ const SpecialityManager = () => {
           className="input"
           placeholder="Nouvelle spécialité"
           value={newSpecialityName}
-          onChange={(e) => setNewSpecialityName(e.target.value)}
+          onChange={(e) =>
+            setNewSpecialityName(sanitizeFiliereOrSpecialityName(e.target.value))
+          }
         />
         <input
           type="text"
           className="input"
           placeholder="Description (optionnel)"
           value={newDescription}
-          onChange={(e) => setNewDescription(e.target.value)}
+          maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
+          onChange={(e) =>
+            setNewDescription(
+              sanitizeFiliereOrSpecialityName(e.target.value).slice(
+                0,
+                MAX_SPECIALITY_DESCRIPTION_LENGTH,
+              ),
+            )
+          }
         />
         <button
           type="submit"
