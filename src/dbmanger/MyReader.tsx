@@ -1,4 +1,5 @@
 import { MyConstants } from "./MyConstants";
+import type { LoginResponse } from "../interfaces/LoginResponse";
 
 //const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const API_OPTIONS = {
@@ -38,7 +39,6 @@ export class MyReader {
         "MyReader.fetchSchools(): Failed to fetch schools. Please try again later.",
       );
       return [];
-    } finally {
     }
   };
 
@@ -66,7 +66,67 @@ export class MyReader {
         "MyReader.fetchSchoolYears(): Failed to fetch school years. Please try again later.",
       );
       return [];
-    } finally {
+    }
+  };
+
+  // Unlike the fetch* methods above, login/refreshToken return null on failure instead of
+  // alert()ing, so LoginForm can distinguish "bad credentials" from "network error" for
+  // inline UI feedback. The backend's login/refresh responses also use a `status` boolean,
+  // not the `Response: "False"` convention the other endpoints use.
+  public static login = async (
+    login: string,
+    pwd: string,
+    connection: string,
+  ): Promise<LoginResponse | null> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/accounts/connect`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ login, pwd, connection }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.status === false) {
+        console.error(
+          `MyReader.login(): Login failed: ${data.message || response.status}`,
+        );
+        return null;
+      }
+      return data as LoginResponse;
+    } catch (error) {
+      console.error(`MyReader.login(): Error logging in: ${error}`);
+      return null;
+    }
+  };
+
+  public static refreshToken = async (
+    connection: string,
+  ): Promise<string | null> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/accounts/refresh`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ connection }),
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      return data.access_token || null;
+    } catch (error) {
+      console.error(
+        `MyReader.refreshToken(): Error refreshing token: ${error}`,
+      );
+      return null;
     }
   };
 }

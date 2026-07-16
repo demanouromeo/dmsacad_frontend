@@ -80,38 +80,52 @@ actually expect. Both selections are written to `sessionStorage` on submit
 connected user's session" going forward — any future `AuthContext`/CRUD work needs to read `SCHOOL_YEAR_KEY`
 the same way it reads the school, not just at login time.
 
-### Auth: not yet wired to the real backend contract
+### Auth: wired to the real backend contract
 
 The old client-side-only auth (fetching the whole school's account list and matching `login`/`pwd` against
-it in the browser) has been removed from `LoginForm.tsx` along with the `MyReader.fetchAccounts()` and
-`MyReader.fetchJsonFromAPI()` methods it depended on — `MyReader` currently has `fetchSchools()` and
-`fetchSchoolYears()` only, no login/token methods yet. `LoginForm.handleSubmit` now calls an empty stub,
-`connectUser()` (bottom of `src/components/logincomps/LoginForm.tsx`), which is the intended integration
-point for the real login call described below — implement it there rather than inline in `handleSubmit`.
+it in the browser) is gone, along with the `MyReader.fetchAccounts()`/`fetchJsonFromAPI()` methods it
+depended on. `LoginForm`'s `connectUser()` now calls `useAuth().login(loginVal, passwordVal,
+selectedSchool)` (`src/auth/useAuth.ts`) and navigates to `/dashboard` on success, showing the existing
+`t.alertBadCredentials(selectedSchool)` alert on failure.
 
-The backend's actual contract (`AccountController::login`/`refresh`, confirmed by reading
-`routes/api.php`/`AccountController.php` directly — don't assume REST conventions here):
+The backend's actual contract (`AccountController::connect`/`refresh`, confirmed by reading
+`routes/api.php`/`AccountController.php` directly, and by exercising the live endpoints with `curl` — don't
+assume REST conventions here):
 
-- `GET {baseUrl}api/accounts/connect?login=...&pwd=...&connection=...` — yes, **GET**, with the password as a
-  query param; that's the backend's existing design, not something to fix from this repo. Returns
-  `{ status, message, access_token, token_type: "Bearer", expires_in, user }` on success, plus a
+- `POST {baseUrl}api/accounts/connect` with a JSON body `{ login, pwd, connection }` — login. This endpoint
+  was originally `GET .../accounts/connect?login=...&pwd=...&connection=...` (password in the query string,
+  method named `login()`); it was changed to `POST` + JSON body and the method renamed to `connect()`
+  (both `routes/api.php` and `AccountController.php` in the backend repo, alongside `MyReader.login()` here)
+  specifically so the password no longer sits in a URL/server log. If you see stray references to `GET
+  .../connect` anywhere, they're stale — the route is POST-only now (`php artisan route:list` is the source
+  of truth if in doubt; there's also an unrelated `GET api/accounts/{connection}` wildcard route
+  (`allAccounts`) that can confusingly match the literal string `"connect"` if you probe it with GET,
+  producing a misleading response that isn't the old login handler).
+  Returns `{ status, message, access_token, token_type: "Bearer", expires_in, user }` on success, plus a
   `refresh_token` set as an **httpOnly, `SameSite=Strict` cookie** (JS cannot and should not read it
   directly — the browser sends it automatically on requests to the refresh endpoint).
 - `POST {baseUrl}api/accounts/refresh` with body `{ connection }`, `credentials: "include"` — mints a new
   `access_token` from the `refresh_token` cookie.
 - The connected user's display name is **not** in the top-level `user` object — it's embedded in the JWT
-  access token's payload (`name`, along with `role`, `user_id`, `email`, `exp`). To show the name on the
-  dashboard (MVP requirement), decode the JWT payload client-side (base64url-decode the middle segment — no
-  secret needed/available client-side) rather than expecting a `/me` endpoint that doesn't exist yet.
+  access token's payload (`name`, along with `role`, `user_id`, `email`, `exp`), decoded client-side via
+  `src/dbmanger/jwt.ts`'s `decodeJwtPayload()` (base64url-decode the middle segment, no secret
+  needed/available client-side) rather than a `/me` endpoint, which doesn't exist.
 - Subsequent authenticated requests need `Authorization: Bearer {access_token}` — `MyReader`'s shared
-  `API_OPTIONS` object currently has this commented out (`//Authorization: ...`) and needs a real
-  implementation that reads the stored access token.
-- No backend logout endpoint exists — logout is necessarily client-side-only (clear in-memory state).
-- Decided (see `IMPLEMENTATION_PLAN.md`): the access token lives in memory only (React context), never in
-  `localStorage`/`sessionStorage`; on app load, silently call the refresh endpoint to restore the session from
-  the httpOnly cookie. Local dev needs the backend's CORS config to allow credentialed cross-origin requests
-  (Vite dev server vs. Apache are different ports) for that cookie to round-trip — flagged as a
-  backend-repo dependency, not something to patch from here.
+  `API_OPTIONS` object still has this commented out (`//Authorization: ...`); nothing consumes it yet since
+  there's no protected CRUD call wired up from this app yet.
+- No backend logout endpoint exists — `AuthContext.logout()` is necessarily client-side-only (clears
+  in-memory state).
+- Implemented: the access token lives in memory only (`src/auth/AuthContext.tsx`, `AuthProvider`), never in
+  `localStorage`/`sessionStorage`; on app load, it silently calls `MyReader.refreshToken()` to restore the
+  session from the httpOnly cookie, using whatever `connection` is already in `sessionStorage`. `useAuth()`
+  (`src/auth/useAuth.ts`) is the consumer hook — split into its own file, along with the raw context object
+  (`src/auth/authContext.ts`), because ESLint's `react-refresh/only-export-components` errors on a file
+  mixing a component and a hook.
+- Local dev's cross-origin credentialed requests (Vite dev server vs. Apache are different ports) were
+  verified working end-to-end against the real backend (`curl`-simulated login → refresh round trip with
+  `Origin: http://localhost:5173` + cookies, re-verified again after the GET→POST change) —
+  `config/cors.php` in the backend repo already lists the Vite dev ports in `allowed_origins` with
+  `supports_credentials => true`. No CORS changes were needed.
 
 ### i18n
 
@@ -155,8 +169,8 @@ and explicit requirements) and their current status:
 | Choose a school year before logging in | Done — `LoginForm` school-year `<select>`, populated from `fetchSchoolYears(connection)`, persisted alongside the school |
 | Display language toggle (en/fr) | Done — `Flags.tsx` + `translations.ts`, persisted to `localStorage` |
 | Choose remote vs local backend server | Done — `MyConstants.getBaseUrl()`/`setBackendTarget()`, toggle in `LoginForm`; Local also special-cases the school picker (see Architecture) |
-| Real login against backend (`connection`/`login`/`pwd`/`year` → JWT) | **Missing** — old client-side list match was removed; `LoginForm.handleSubmit` now calls an empty `connectUser()` stub, the intended place to add the `GET api/accounts/connect` request |
-| Store access token + refresh token, attach to requests | **Missing** — no token storage exists yet; decided approach is in-memory only + silent refresh via the httpOnly cookie on app load (see Auth section, `IMPLEMENTATION_PLAN.md`) |
+| Real login against backend (`connection`/`login`/`pwd`/`year` → JWT) | Done — `LoginForm.connectUser()` calls `useAuth().login()`, which calls `MyReader.login()` → `POST api/accounts/connect` |
+| Store access token + refresh token, attach to requests | Done (storage/restore side) — `AuthContext` holds the access token in memory and silently restores it via `MyReader.refreshToken()` on app load. Attaching `Authorization: Bearer` to CRUD calls is still unaddressed since no protected CRUD endpoint is wired up from this app yet |
 | Navigate to and gate app functionality behind auth | **Partial** — routing exists (`react-router-dom`) but there's no real auth guard; `TeacherIndex`'s check is a placeholder tied to school selection, not to having a valid token |
 | Dashboard showing the connected user's name (v1) | **Missing** — `TeacherIndex` is a static placeholder (`<h1>Teacher Index Page</h1>`); needs to read the user's name (from the decoded JWT payload, see Auth section above) and render it |
 

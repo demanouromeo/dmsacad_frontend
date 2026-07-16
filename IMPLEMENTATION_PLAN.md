@@ -15,8 +15,10 @@ MVP: pick a school, pick a language, pick remote vs. local backend, log in for r
 v1 dashboard with the connected user's name.
 
 **Confirmed backend contract** (do not deviate without re-checking the backend):
-- `GET {baseUrl}api/accounts/connect?login=...&pwd=...&connection=...` — login. Yes, GET, with the password
-  as a query param; that's the backend's existing design, not something to fix from this repo.
+- `POST {baseUrl}api/accounts/connect` body `{ login, pwd, connection }` — login
+  (`AccountController::connect`, formerly `login()` — renamed and switched from `GET` with query-string
+  credentials to `POST` with a JSON body, since a GET query string leaks the password into URLs/server logs;
+  both the route in `routes/api.php` and the frontend's `MyReader.login()` were updated together).
   Returns `{ status, message, access_token, token_type: "Bearer", expires_in, user }` on success (200) or
   `{status:false, message}` on failure (401/422). Also sets an **httpOnly**, `SameSite=Strict` `refresh_token`
   cookie — the browser handles sending it back automatically; JS never reads it directly.
@@ -38,11 +40,34 @@ v1 dashboard with the connected user's name.
 - Backend/CORS changes are **out of scope** for this plan — flagged below as a dependency to verify, not a
   task to implement here.
 
-**Known dependency (not implemented here):** for local dev, the Vite dev server and Apache/XAMPP run on
-different ports, so the login/refresh calls are cross-origin. The httpOnly `refresh_token` cookie will only
-round-trip if the backend's CORS config allows credentialed requests from that origin (`supports_credentials
-: true` + an explicit allowed origin, not `*`). Verify this against the backend before testing Phase 3
-end-to-end; if it's not configured, that's a backend-repo fix, not something to patch here.
+**Known dependency (not implemented here) — VERIFIED, already resolved on the backend:** for local dev, the
+Vite dev server and Apache/XAMPP run on different ports, so the login/refresh calls are cross-origin. The
+httpOnly `refresh_token` cookie only round-trips if the backend's CORS config allows credentialed requests
+from that origin. Confirmed by reading `config/cors.php` in the backend repo and exercising the real
+endpoints with `curl` (login → refresh, simulating the browser with `Origin: http://localhost:5173` +
+cookies):
+- `allowed_origins` explicitly lists `http://localhost:5173/5174/5175` (the Vite dev ports) and
+  `supports_credentials => true` — not a wildcard, which is required for credentialed CORS to work.
+- `POST api/accounts/connect` (login) returns `Access-Control-Allow-Origin: http://localhost:5173` +
+  `Access-Control-Allow-Credentials: true` and sets the `refresh_token` cookie (httpOnly, `SameSite=Strict`).
+  Re-verified again after the endpoint was switched from `GET`+query-string to `POST`+JSON body — its
+  preflight (`OPTIONS`, triggered by `Content-Type: application/json`) also returns `204` with matching
+  `Access-Control-Allow-*` headers, confirmed via `php artisan route:list` that `POST
+  api/accounts/connect → AccountController@connect` is actually the live route (not cached/stale), and a
+  real `curl` login against it succeeds.
+- The `POST api/accounts/refresh` preflight (`OPTIONS`, triggered by `Content-Type: application/json`)
+  returns `204` with matching `Access-Control-Allow-*` headers.
+- The actual `POST api/accounts/refresh`, replaying the captured cookie, returns `200` with a fresh
+  `access_token` whose decoded payload exactly matches the `AuthPayload` interface
+  (`iss, sub, email, role, name, user_id, iat, exp`) — same shape as the token `login()` issues.
+- `src/dbmanger/jwt.ts`'s `decodeJwtPayload()` was run against the real returned token and decoded it
+  correctly; it also returns `null` (doesn't throw) on malformed input.
+- Failure paths also checked: refresh with no cookie → `401 {status:false}` (→ `MyReader.refreshToken()`
+  correctly returns `null`); login with a wrong password → `401 {status:false}` (→ `MyReader.login()`
+  correctly returns `null`).
+
+No backend changes were needed — this was already configured. If CORS ever needs adjusting for a different
+dev port, it's `config/cors.php`'s `allowed_origins` in the backend repo.
 
 ---
 
@@ -84,16 +109,17 @@ login-form-local concern.
 ## Phase 2 — Auth primitives (no UI yet)
 
 1. **`src/interfaces/AuthPayload.tsx`** (new): TS interface for the decoded JWT payload —
-   `{ sub, email, role, name, user_id, iat, exp }` — matching `AccountController::login`'s
-   `$accessTokenPayload`.
+   `{ sub, email, role, name, user_id, iat, exp }` — matching `AccountController::connect`'s (formerly
+   named `login()`, renamed when the endpoint moved from `GET`+query-string to `POST`+JSON body — see the
+   "Confirmed backend contract" section above) `$accessTokenPayload`.
 2. **`src/dbmanger/jwt.ts`** (new): `decodeJwtPayload(token: string): AuthPayload | null` — base64url-decode
    the token's middle segment and `JSON.parse` it, wrapped in try/catch returning `null` on malformed input.
    No signature verification (no secret available client-side; this is purely for display).
 3. **`src/dbmanger/MyReader.tsx`**: add two methods, following the file's existing shape (check
    `response.ok`, handle failure, log to console) but returning `null`/`false` on failure instead of `alert()`
    + `[]`, since callers need to distinguish "bad credentials" from "network error" for inline UI feedback:
-   - `login({ login, pwd, connection })` → `GET api/accounts/connect` with query params
-     (`encodeURIComponent` each value), `credentials: "include"`. Returns the parsed success body or `null`.
+   - `login(login, pwd, connection)` → `POST api/accounts/connect` with a JSON body
+     `{ login, pwd, connection }`, `credentials: "include"`. Returns the parsed success body or `null`.
    - `refreshToken(connection)` → `POST api/accounts/refresh`, `credentials: "include"`, JSON body
      `{ connection }`. Returns the new `access_token` string or `null`.
 

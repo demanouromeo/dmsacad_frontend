@@ -6,11 +6,11 @@ import { MyReader } from "../../dbmanger/MyReader";
 import { useCookies } from "react-cookie";
 import Loading from "../sharedcomp/Loading";
 import { useNavigate } from "react-router-dom";
-import type { Account } from "../../interfaces/Account";
 import type { SchoolYear } from "../../interfaces/SchoolYear";
 import { MyConstants, type BackendTarget } from "../../dbmanger/MyConstants";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 import { loginTranslations, type Language } from "../../i18n/translations";
+import { useAuth } from "../../auth/useAuth";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
@@ -20,7 +20,6 @@ const LoginForm = () => {
   const [schoolList, setSchoolList] = useState([]);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState("");
   const [schoolYearList, setSchoolYearList] = useState<SchoolYear[]>([]);
-  const [accountList, setAccountList] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useState<Language>(
@@ -35,6 +34,7 @@ const LoginForm = () => {
   const t = loginTranslations[language];
   const settingsDialogRef = useRef<HTMLDialogElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const { login } = useAuth();
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
@@ -105,6 +105,17 @@ const LoginForm = () => {
     }
 
     connectUser();
+  };
+
+  const connectUser = async () => {
+    setIsLoading(true);
+    const success = await login(loginVal, passwordVal, selectedSchool);
+    setIsLoading(false);
+    if (!success) {
+      alert(t.alertBadCredentials(selectedSchool));
+      return;
+    }
+    navigate("/dashboard");
   };
 
   useEffect(() => {
@@ -354,7 +365,3 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
-function connectUser() {
-  //Implement the logic to connect the user here, such as validating credentials and navigating to the dashboard.
-  //if user is connected navigate to dashboard according to his role, if not display an error message
-}
