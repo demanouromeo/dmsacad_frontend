@@ -1,7 +1,7 @@
-import { Eye, EyeOff, UsersRound, Cloud, Server } from "lucide-react";
+import { Eye, EyeOff, UsersRound, Cloud, Server, Settings, X } from "lucide-react";
 import img from "../../assets/medium/login_img1.png";
 import Title from "../Title";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MyReader } from "../../dbmanger/MyReader";
 import { useCookies } from "react-cookie";
 import Loading from "../sharedcomp/Loading";
@@ -33,10 +33,24 @@ const LoginForm = () => {
   const [cookies, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
   const t = loginTranslations[language];
+  const settingsDialogRef = useRef<HTMLDialogElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
     localStorage.setItem(MyConstants.LANGUAGE_KEY, lang);
+  };
+
+  const openSettings = () => {
+    settingsDialogRef.current?.showModal();
+  };
+
+  const closeSettings = () => {
+    settingsDialogRef.current?.close();
+  };
+
+  const handleSettingsDialogClose = () => {
+    settingsButtonRef.current?.focus();
   };
 
   const handleBackendTargetChange = (target: BackendTarget) => {
@@ -128,33 +142,7 @@ const LoginForm = () => {
 
   return (
     <div className=" md:h-screen bg-base-300 p-10 mb-10 md:mb-32" id="About">
-      <div className="flex justify-end gap-2 mb-2">
-        <button
-          type="button"
-          aria-label="Remote server"
-          title="Remote server"
-          onClick={() => handleBackendTargetChange("remote")}
-          className={`btn btn-xs gap-1 ${
-            backendTarget === "remote" ? "btn-primary" : "btn-ghost"
-          }`}
-        >
-          <Cloud className="w-4 h-4" />
-          Remote
-        </button>
-        <button
-          type="button"
-          aria-label="Local server"
-          title="Local server"
-          onClick={() => handleBackendTargetChange("local")}
-          className={`btn btn-xs gap-1 ${
-            backendTarget === "local" ? "btn-primary" : "btn-ghost"
-          }`}
-        >
-          <Server className="w-4 h-4" />
-          Local
-        </button>
-      </div>
-      <div className="flex justify-end gap-2 mb-2">
+      <div className="flex justify-end items-center gap-2 mb-2">
         <button
           type="button"
           aria-label="Français"
@@ -180,6 +168,16 @@ const LoginForm = () => {
           }`}
         >
           <FlagGB className="w-full h-full" />
+        </button>
+        <button
+          ref={settingsButtonRef}
+          type="button"
+          aria-label={t.settingsBtn}
+          title={t.settingsBtn}
+          onClick={openSettings}
+          className="btn btn-xs btn-ghost btn-circle"
+        >
+          <Settings className="w-4 h-4" />
         </button>
       </div>
       <Title title={t.title} />
@@ -239,55 +237,6 @@ const LoginForm = () => {
                 </button>
               </div>
 
-              {backendTarget !== "local" && (
-                <>
-                  <label htmlFor="schoolList" className="label mt-5">
-                    {t.schoolLabel}
-                  </label>
-                  <select
-                    id="schoolList"
-                    className="select w-full"
-                    onChange={handleSchoolChange}
-                    value={selectedSchool}
-                  >
-                    {schoolList.map((school: any, index) => (
-                      <option key={index} value={school}>
-                        {school}
-                      </option>
-                    ))}
-                  </select>
-                  <label className="label mt-1 mb-3">
-                    {selectedSchool ? t.currentSchool + selectedSchool : ""}
-                  </label>
-                </>
-              )}
-
-              <label htmlFor="schoolYearList" className="label mt-5">
-                {t.schoolYearLabel}
-              </label>
-              <select
-                id="schoolYearList"
-                className="select w-full"
-                onChange={handleSchoolYearChange}
-                value={selectedSchoolYear}
-                disabled={schoolYearList.length === 0}
-              >
-                <option value="" disabled>
-                  {t.schoolYearLabel}
-                </option>
-                {schoolYearList.map((schoolYear) => (
-                  <option key={schoolYear.sy_id} value={schoolYear.year}>
-                    {schoolYear.year}
-                    {schoolYear.is_current ? " *" : ""}
-                  </option>
-                ))}
-              </select>
-              <label className="label mt-1 mb-3">
-                {selectedSchoolYear
-                  ? t.currentSchoolYear + selectedSchoolYear
-                  : ""}
-              </label>
-
               <div className="flex justify-center">
                 {isLoading ? <Loading /> : <p></p>}
               </div>
@@ -301,6 +250,105 @@ const LoginForm = () => {
           </div>
         </form>
       </div>
+
+      <dialog
+        ref={settingsDialogRef}
+        className="modal"
+        onClose={handleSettingsDialogClose}
+      >
+        <div className="modal-box">
+          <button
+            type="button"
+            aria-label={t.closeBtn}
+            title={t.closeBtn}
+            onClick={closeSettings}
+            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <h3 className="font-bold text-lg mb-4">{t.settingsTitle}</h3>
+
+          <div className="flex gap-2 mb-4">
+            <button
+              type="button"
+              aria-label="Remote server"
+              title="Remote server"
+              onClick={() => handleBackendTargetChange("remote")}
+              className={`btn btn-sm gap-1 ${
+                backendTarget === "remote" ? "btn-primary" : "btn-ghost"
+              }`}
+            >
+              <Cloud className="w-4 h-4" />
+              {t.remoteBtn}
+            </button>
+            <button
+              type="button"
+              aria-label="Local server"
+              title="Local server"
+              onClick={() => handleBackendTargetChange("local")}
+              className={`btn btn-sm gap-1 ${
+                backendTarget === "local" ? "btn-primary" : "btn-ghost"
+              }`}
+            >
+              <Server className="w-4 h-4" />
+              {t.localBtn}
+            </button>
+          </div>
+
+          {backendTarget !== "local" && (
+            <>
+              <label htmlFor="schoolList" className="label mt-5">
+                {t.schoolLabel}
+              </label>
+              <select
+                id="schoolList"
+                className="select w-full"
+                onChange={handleSchoolChange}
+                value={selectedSchool}
+              >
+                {schoolList.map((school: any, index) => (
+                  <option key={index} value={school}>
+                    {school}
+                  </option>
+                ))}
+              </select>
+              <label className="label mt-1 mb-3">
+                {selectedSchool ? t.currentSchool + selectedSchool : ""}
+              </label>
+            </>
+          )}
+
+          <label htmlFor="schoolYearList" className="label mt-5">
+            {t.schoolYearLabel}
+          </label>
+          <select
+            id="schoolYearList"
+            className="select w-full"
+            onChange={handleSchoolYearChange}
+            value={selectedSchoolYear}
+            disabled={schoolYearList.length === 0}
+          >
+            <option value="" disabled>
+              {t.schoolYearLabel}
+            </option>
+            {schoolYearList.map((schoolYear) => (
+              <option key={schoolYear.sy_id} value={schoolYear.year}>
+                {schoolYear.year}
+                {schoolYear.is_current ? " *" : ""}
+              </option>
+            ))}
+          </select>
+          <label className="label mt-1 mb-3">
+            {selectedSchoolYear
+              ? t.currentSchoolYear + selectedSchoolYear
+              : ""}
+          </label>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>{t.closeBtn}</button>
+        </form>
+      </dialog>
     </div>
   );
 };

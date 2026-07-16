@@ -11,6 +11,11 @@ export const loginTranslations = {
     currentSchool: "Ecole actuelle: ",
     schoolYearLabel: "Choisissez l'année scolaire",
     currentSchoolYear: "Année scolaire actuelle: ",
+    settingsBtn: "Paramètres",
+    settingsTitle: "Paramètres de connexion",
+    remoteBtn: "Distant",
+    localBtn: "Local",
+    closeBtn: "Fermer",
     submitBtn: "Se connecter",
     alertNoSchool: (school: string) =>
       `Veuillez sélectionner une école [${school}]`,
@@ -27,6 +32,11 @@ export const loginTranslations = {
     currentSchool: "Current school: ",
     schoolYearLabel: "Select the school year",
     currentSchoolYear: "Current school year: ",
+    settingsBtn: "Settings",
+    settingsTitle: "Connection settings",
+    remoteBtn: "Remote",
+    localBtn: "Local",
+    closeBtn: "Close",
     submitBtn: "Sign in",
     alertNoSchool: (school: string) => `Please select a school [${school}]`,
     alertBadCredentials: (school: string) =>
