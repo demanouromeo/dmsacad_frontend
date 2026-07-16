@@ -9,6 +9,8 @@ export const loginTranslations = {
     passwordPlaceholder: "Mot de passe",
     schoolLabel: "Choisissez l'établissement",
     currentSchool: "Ecole actuelle: ",
+    schoolYearLabel: "Choisissez l'année scolaire",
+    currentSchoolYear: "Année scolaire actuelle: ",
     submitBtn: "Se connecter",
     alertNoSchool: (school: string) =>
       `Veuillez sélectionner une école [${school}]`,
@@ -23,6 +25,8 @@ export const loginTranslations = {
     passwordPlaceholder: "Password",
     schoolLabel: "Select your school",
     currentSchool: "Current school: ",
+    schoolYearLabel: "Select the school year",
+    currentSchoolYear: "Current school year: ",
     submitBtn: "Sign in",
     alertNoSchool: (school: string) => `Please select a school [${school}]`,
     alertBadCredentials: (school: string) =>

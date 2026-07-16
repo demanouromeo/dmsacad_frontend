@@ -1,4 +1,4 @@
-import { Eye, EyeOff, UsersRound } from "lucide-react";
+import { Eye, EyeOff, UsersRound, Cloud, Server } from "lucide-react";
 import img from "../../assets/medium/login_img1.png";
 import Title from "../Title";
 import React, { useEffect, useState } from "react";
@@ -7,7 +7,8 @@ import { useCookies } from "react-cookie";
 import Loading from "../sharedcomp/Loading";
 import { useNavigate } from "react-router-dom";
 import type { Account } from "../../interfaces/Account";
-import { MyConstants } from "../../dbmanger/MyConstants";
+import type { SchoolYear } from "../../interfaces/SchoolYear";
+import { MyConstants, type BackendTarget } from "../../dbmanger/MyConstants";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 import { loginTranslations, type Language } from "../../i18n/translations";
 
@@ -15,12 +16,18 @@ const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
   const [passwordVal, setPasswordVal] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
+  const [remoteSchool, setRemoteSchool] = useState("");
   const [schoolList, setSchoolList] = useState([]);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState("");
+  const [schoolYearList, setSchoolYearList] = useState<SchoolYear[]>([]);
   const [accountList, setAccountList] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useState<Language>(
     (localStorage.getItem(MyConstants.LANGUAGE_KEY) as Language) || "fr",
+  );
+  const [backendTarget, setBackendTargetState] = useState<BackendTarget>(
+    MyConstants.getBackendTarget(),
   );
   //const [cookies, setCookie, removeCookie] = useCookies(["schoolName"]);
   const [cookies, setCookie] = useCookies(["schoolName"]);
@@ -32,6 +39,25 @@ const LoginForm = () => {
     localStorage.setItem(MyConstants.LANGUAGE_KEY, lang);
   };
 
+  const handleBackendTargetChange = (target: BackendTarget) => {
+    setBackendTargetState(target);
+    MyConstants.setBackendTarget(target);
+    setSelectedSchoolYear("");
+    setSchoolYearList([]);
+
+    if (target === "local") {
+      setRemoteSchool(selectedSchool);
+      setSelectedSchool(MyConstants.gLocalSchoolCode);
+      loadSchoolYears(MyConstants.gLocalSchoolCode);
+    } else {
+      setSelectedSchool(remoteSchool);
+      loadSchools();
+      if (remoteSchool) {
+        loadSchoolYears(remoteSchool);
+      }
+    }
+  };
+
   const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSchool(e.target.value);
     console.log("Selected school is now: " + e.target.value);
@@ -39,44 +65,53 @@ const LoginForm = () => {
     setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
     console.log("Cookie set to: " + cookies.schoolName);
 
-    // if (selectedSchool && selectedSchool !== "") {
-    //   loadAccounts(selectedSchool);  IT DOESN'T WORK WHEN THE PARAMETER IS THE STATE VARIABLE 'selectedSchool', IT WORKS WHEN IT'S THE EVENT TARGET VALUE, I DON'T KNOW WHY
-    // }
+    setSelectedSchoolYear("");
+    setSchoolYearList([]);
     if (e.target.value && e.target.value !== "") {
-      loadAccounts(e.target.value);
+      loadSchoolYears(e.target.value);
     }
+  };
+
+  const handleSchoolYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedSchoolYear(e.target.value);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     //setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
     sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
+    sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, selectedSchoolYear);
     if (selectedSchool === "") {
-      alert(t.alertNoSchool(selectedSchool));
+      //alert(t.alertNoSchool(selectedSchool));
+      //DISPLAY A BEAUTIFUL BOX RATHER THAN AN ALERT
+      return;
+    }
+    if (selectedSchoolYear === "") {
       return;
     }
 
-    const account = accountList.find(
-      (acc) =>
-        (acc.login === loginVal || acc.pwd === passwordVal) &&
-        acc.pwd === passwordVal,
-    );
-
-    if (!account) {
-      alert(t.alertBadCredentials(selectedSchool));
-      return;
-    } else {
-      navigate("/dashboard-teacher");
-    }
+    connectUser();
   };
 
   useEffect(() => {
+    var year = sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY);
+    if (year && year !== "") {
+      setSelectedSchoolYear(year);
+    }
+
+    if (MyConstants.getBackendTarget() === "local") {
+      setSelectedSchool(MyConstants.gLocalSchoolCode);
+      loadSchoolYears(MyConstants.gLocalSchoolCode);
+      return;
+    }
+
     setIsLoading(true);
     loadSchools();
     var school = sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY);
     if (school && school !== "") {
       setSelectedSchool(school);
-      loadAccounts(school);
+      setRemoteSchool(school);
+      loadSchoolYears(school);
     }
   }, []);
 
@@ -86,25 +121,39 @@ const LoginForm = () => {
     setIsLoading(false);
   };
 
-  const loadAccounts = async (school = "") => {
-    setIsLoading(true);
-    const list = await MyReader.fetchAccounts(school);
-    console.log(
-      "LoginForm.loadAccounts()\nAccounts list loaded for school " + school,
-      //   +": ",
-      // list,
-    );
-    setAccountList(list);
-    setIsLoading(false);
+  const loadSchoolYears = async (connection = "") => {
+    const list = await MyReader.fetchSchoolYears(connection);
+    setSchoolYearList(list);
   };
-
-  // const deleteCookie = (name: string, path: string = "/") => {
-  //   // Overwrite the cookie with an expired date
-  //   document.cookie = `${name}=; path=${path}; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
-  // };
 
   return (
     <div className=" md:h-screen bg-base-300 p-10 mb-10 md:mb-32" id="About">
+      <div className="flex justify-end gap-2 mb-2">
+        <button
+          type="button"
+          aria-label="Remote server"
+          title="Remote server"
+          onClick={() => handleBackendTargetChange("remote")}
+          className={`btn btn-xs gap-1 ${
+            backendTarget === "remote" ? "btn-primary" : "btn-ghost"
+          }`}
+        >
+          <Cloud className="w-4 h-4" />
+          Remote
+        </button>
+        <button
+          type="button"
+          aria-label="Local server"
+          title="Local server"
+          onClick={() => handleBackendTargetChange("local")}
+          className={`btn btn-xs gap-1 ${
+            backendTarget === "local" ? "btn-primary" : "btn-ghost"
+          }`}
+        >
+          <Server className="w-4 h-4" />
+          Local
+        </button>
+      </div>
       <div className="flex justify-end gap-2 mb-2">
         <button
           type="button"
@@ -112,7 +161,9 @@ const LoginForm = () => {
           title="Français"
           onClick={() => handleLanguageChange("fr")}
           className={`w-8 h-6 rounded overflow-hidden border-2 cursor-pointer ${
-            language === "fr" ? "border-primary" : "border-transparent opacity-60"
+            language === "fr"
+              ? "border-primary"
+              : "border-transparent opacity-60"
           }`}
         >
           <FlagFR className="w-full h-full" />
@@ -123,7 +174,9 @@ const LoginForm = () => {
           title="English"
           onClick={() => handleLanguageChange("en")}
           className={`w-8 h-6 rounded overflow-hidden border-2 cursor-pointer ${
-            language === "en" ? "border-primary" : "border-transparent opacity-60"
+            language === "en"
+              ? "border-primary"
+              : "border-transparent opacity-60"
           }`}
         >
           <FlagGB className="w-full h-full" />
@@ -186,23 +239,53 @@ const LoginForm = () => {
                 </button>
               </div>
 
-              <label htmlFor="schoolList" className="label mt-5">
-                {t.schoolLabel}
+              {backendTarget !== "local" && (
+                <>
+                  <label htmlFor="schoolList" className="label mt-5">
+                    {t.schoolLabel}
+                  </label>
+                  <select
+                    id="schoolList"
+                    className="select w-full"
+                    onChange={handleSchoolChange}
+                    value={selectedSchool}
+                  >
+                    {schoolList.map((school: any, index) => (
+                      <option key={index} value={school}>
+                        {school}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="label mt-1 mb-3">
+                    {selectedSchool ? t.currentSchool + selectedSchool : ""}
+                  </label>
+                </>
+              )}
+
+              <label htmlFor="schoolYearList" className="label mt-5">
+                {t.schoolYearLabel}
               </label>
               <select
-                id="schoolList"
+                id="schoolYearList"
                 className="select w-full"
-                onChange={handleSchoolChange}
-                value={selectedSchool}
+                onChange={handleSchoolYearChange}
+                value={selectedSchoolYear}
+                disabled={schoolYearList.length === 0}
               >
-                {schoolList.map((school: any, index) => (
-                  <option key={index} value={school}>
-                    {school}
+                <option value="" disabled>
+                  {t.schoolYearLabel}
+                </option>
+                {schoolYearList.map((schoolYear) => (
+                  <option key={schoolYear.sy_id} value={schoolYear.year}>
+                    {schoolYear.year}
+                    {schoolYear.is_current ? " *" : ""}
                   </option>
                 ))}
               </select>
               <label className="label mt-1 mb-3">
-                {selectedSchool ? t.currentSchool + selectedSchool : ""}
+                {selectedSchoolYear
+                  ? t.currentSchoolYear + selectedSchoolYear
+                  : ""}
               </label>
 
               <div className="flex justify-center">
@@ -223,3 +306,7 @@ const LoginForm = () => {
 };
 
 export default LoginForm;
+function connectUser() {
+  //Implement the logic to connect the user here, such as validating credentials and navigating to the dashboard.
+  //if user is connected navigate to dashboard according to his role, if not display an error message
+}

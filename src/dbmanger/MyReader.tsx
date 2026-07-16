@@ -13,7 +13,7 @@ export class MyReader {
   public static fetchSchools = async () => {
     try {
       const response = await fetch(
-        `${MyConstants.gBaseRemoteUrl}api/configs/allSchools`,
+        `${MyConstants.getBaseUrl()}api/configs/allSchools`,
         API_OPTIONS,
       );
       if (!response.ok) {
@@ -42,35 +42,8 @@ export class MyReader {
     }
   };
 
-  public static fetchAccounts = async (schoolCode = "") => {
-    const targetUrl = `${MyConstants.gBaseRemoteUrl}api/accounts/${schoolCode}`;
-    try {
-      const response = await fetch(targetUrl, API_OPTIONS);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.Response === "False") {
-        alert(
-          data.Error || "MyReader.fetchAccounts(): Failed to fetch accounts.",
-        );
-        return [];
-      }
-      return data;
-    } catch (error) {
-      console.error(
-        `MyReader.fetchAccounts(): Error fetching accounts: ${error}`,
-      );
-      alert(
-        "MyReader.fetchAccounts(): Failed to fetch accounts. Please try again later.<br/>" +
-          targetUrl,
-      );
-      return [];
-    } finally {
-    }
-  };
-
-  public static fetchJsonFromAPI = async (targetUrl = "") => {
+  public static fetchSchoolYears = async (connection = "") => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/configs/getSchoolYears?connection=${encodeURIComponent(connection)}`;
     try {
       const response = await fetch(targetUrl, API_OPTIONS);
       if (!response.ok) {
@@ -80,22 +53,17 @@ export class MyReader {
       if (data.Response === "False") {
         alert(
           data.Error ||
-            "MyReader.fetchJsonFromAPI(): Failed to fetch data From API\n" +
-              targetUrl,
+            "MyReader.fetchSchoolYears(): Failed to fetch school years.",
         );
         return [];
       }
-      //console.log(data.results);
-      //console.log(data);
-      //return data.results;
       return data;
     } catch (error) {
-      //console.error("Error fetching movies:", error);
       console.error(
-        `MyReader.fetchJsonFromAPI(): Error fetching data from API\n[${targetUrl}]: \n${error}`,
+        `MyReader.fetchSchoolYears(): Error fetching school years: ${error}`,
       );
       alert(
-        `MyReader.fetchJsonFromAPI(): Failed to fetch data from API\n[${targetUrl}]. \nPlease try again later.<br/>`,
+        "MyReader.fetchSchoolYears(): Failed to fetch school years. Please try again later.",
       );
       return [];
     } finally {

@@ -15,9 +15,7 @@ function App() {
           <Route path="/" element={<LoginForm />} />
           <Route path="/dashboard-teacher" element={<TeacherIndex />} />
         </Routes>
-        { cookies.schoolName
-        ?<Footer />
-        :null}
+        {cookies.schoolName ? <Footer /> : null}
       </div>
     </BrowserRouter>
   );
