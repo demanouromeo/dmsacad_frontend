@@ -169,12 +169,26 @@ Same 3-file Context split as `AuthContext`/`LanguageContext`:
 - `useToast.ts` — consumer hook, throws outside `ToastProvider`; returns `showToast` directly (call sites do
   `const showToast = useToast();`, not destructuring a context object).
 
-Usage convention (see `FiliereManager.tsx`'s `handleAdd`/`saveEdit`/`handleDeleteSelected`): call
-`showToast(message, { type })` right after an API call resolves — `"info"` for success, `"danger"` for a
-failed/error API result, `"warning"` for client-side validation failures caught before the request is even
-sent. `SpecialityManager.tsx` has **not** been converted yet and still uses its own local
-`message`/`setMessage`/`FeedbackMessage` inline pattern — this was a deliberate scope decision (only the file
-in the original request was touched), not an oversight; convert it the same way if asked.
+Usage convention (see `FiliereManager.tsx`/`SpecialityManager.tsx`'s `handleAdd`/`saveEdit`/
+`handleDeleteSelected`): call `showToast(message, { type })` right after an API call resolves — `"info"` for
+success, `"danger"` for a failed/error API result, `"warning"` for client-side validation failures caught
+before the request is even sent. Both managers also route their messages through per-file translation
+dictionaries (`filiereManagerTranslations`/`specialityManagerTranslations` in `src/i18n/translations.ts`)
+rather than hardcoded French strings, including distinguishing a duplicate-name API error
+(`src/utils/apiErrors.ts`'s `isDuplicateNameError(message)`) from a generic failure — follow this same
+per-file-dictionary + `isDuplicateNameError` pattern for new CRUD screens rather than inlining message text.
+
+### Loading overlay (`src/components/sharedcomp/LoadingOverlay.tsx`)
+
+A fixed, full-screen, semi-transparent overlay that centers the existing `Loading` spinner (the same one
+`LoginForm` and the managers' initial-load state use). Not Context-based like toast/confirm — it's a plain
+presentational component with no state of its own; each screen owns an `isSaving` boolean and renders
+`{isSaving && <LoadingOverlay />}`. Convention (see `FiliereManager.tsx`/`SpecialityManager.tsx`): set
+`isSaving` to `true` immediately before an async write call (`saveFiliere`/`renameFiliere`/`deleteFilieres`
+and their speciality equivalents) and back to `false` immediately after it resolves — a plain
+before/after pair is sufficient (no `try/finally`) because `FiliereReader`/`SpecialityReader` never throw,
+they catch internally and always resolve to an `ApiResult`. Apply this same pattern to any new
+async save/update/delete action rather than leaving the UI unblocked during the request.
 
 ### Confirmation dialogs (`src/confirm/`)
 
@@ -201,6 +215,26 @@ instead of reaching for `window.confirm`. Same 3-file Context split again:
 Both `ToastProvider` and `ConfirmProvider` are mounted in `main.tsx`, wrapping `CookiesProvider`/`AuthProvider`
 (inside `LanguageProvider`, outside everything auth-related) — since neither depends on auth state, and both
 need to be available to `LoginForm` itself as well as authenticated screens.
+
+### Connectivity monitor (`src/connectivity/ConnectivityMonitor.tsx`)
+
+A single always-mounted, render-nothing component (`main.tsx`, inside `ToastProvider` — it calls `useToast()`
+— and outside `ConfirmProvider`, which it doesn't need) that runs a background heartbeat for the whole app
+session, logged-in or not. On mount and every 15s (`CHECK_INTERVAL_MS`) it: bails out immediately with a
+`"danger"` toast (`t.offline`) if `navigator.onLine` is `false`; otherwise sends a `GET` to
+`{MyConstants.getBaseUrl()}api/configs/allSchools` (the same unauthenticated, no-params endpoint `LoginForm`
+already uses to populate the school picker — chosen because it needs no backend changes and no auth context)
+under a 5s (`CHECK_TIMEOUT_MS`) `AbortController` timeout. A thrown/aborted fetch means the backend is
+unreachable → `"danger"` toast (`t.serverUnavailable`); a resolving fetch (regardless of HTTP status — an
+error status still proves the server answered) means it's reachable. A native `window` `"offline"` event
+listener fires the same offline toast immediately rather than waiting for the next poll tick.
+
+An `isReachableRef` (`useRef<boolean>`, not `useState` — this must not cause re-renders since the component
+renders nothing) tracks the last known state so a toast only fires **on transition** (reachable → unreachable
+or back) rather than once per poll while an outage persists — a 15s outage doesn't spam ten toasts, and
+recovery gets its own `"info"` toast (`t.backOnline`). Messages come from `connectivityTranslations`
+(`src/i18n/translations.ts`). If a dedicated lightweight backend health-check route is ever added, prefer
+switching this component to call it over continuing to piggyback on `allSchools`.
 
 ### Routing and state
 

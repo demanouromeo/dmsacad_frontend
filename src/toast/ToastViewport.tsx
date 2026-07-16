@@ -12,7 +12,7 @@ const ToastViewport = ({ toasts, onDismiss }: ToastViewportProps) => {
   }
 
   return (
-    <div className="toast toast-end toast-bottom z-[100]">
+    <div className="toast toast-center toast-bottom z-100">
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}

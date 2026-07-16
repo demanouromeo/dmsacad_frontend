@@ -72,9 +72,7 @@ const FiliereManager = () => {
       loadFilieres();
     } else {
       showToast(
-        isDuplicateNameError(result.message)
-          ? t.addDuplicate(trimmed)
-          : t.addFailure,
+        isDuplicateNameError(result.message) ? t.addDuplicate : t.addFailure,
         { type: "danger" },
       );
     }
@@ -115,13 +113,11 @@ const FiliereManager = () => {
     );
     setIsSaving(false);
     if (result.status) {
-      showToast(t.renameSuccess(filiere.nom_filiere, trimmed), {
-        type: "info",
-      });
+      showToast(t.renameSuccess, { type: "info" });
     } else {
       showToast(
         isDuplicateNameError(result.message)
-          ? t.renameDuplicate(trimmed)
+          ? t.renameDuplicate
           : t.renameFailure,
         { type: "danger" },
       );
@@ -156,10 +152,9 @@ const FiliereManager = () => {
     if (selectedIds.size === 0) {
       return;
     }
-    const confirmed = await confirm(
-      `Supprimer ${selectedIds.size} filière(s) ?`,
-      { danger: true },
-    );
+    const confirmed = await confirm(t.deleteConfirm(selectedIds.size), {
+      danger: true,
+    });
     if (!confirmed) {
       return;
     }
@@ -182,17 +177,14 @@ const FiliereManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">Filières</h1>
-      <p className="mb-6 opacity-70 text-sm">
-        Section : <span className="font-semibold">{section}</span> — utilisez
-        l'icône section dans la barre du haut pour changer de section.
-      </p>
+      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+      <p className="mb-6 opacity-70 text-sm">{t.sectionHint(section)}</p>
 
       {isLoading ? (
         <Loading />
       ) : (
         <>
-          <table className="table w-full max-w-2xl mb-4">
+          <table className="table w-full max-w-2xl mb-4 mx-auto">
             <thead>
               <tr>
                 <th>
@@ -207,7 +199,7 @@ const FiliereManager = () => {
                   />
                 </th>
                 <th>#</th>
-                <th>Nom de la filière</th>
+                <th>{t.tableHeaderName}</th>
                 <th></th>
               </tr>
             </thead>
@@ -252,14 +244,14 @@ const FiliereManager = () => {
                           className="btn btn-xs btn-primary mr-2"
                           onClick={() => saveEdit(filiere)}
                         >
-                          Enregistrer
+                          {t.saveBtn}
                         </button>
                         <button
                           type="button"
                           className="btn btn-xs btn-ghost"
                           onClick={cancelEdit}
                         >
-                          Annuler
+                          {t.cancelBtn}
                         </button>
                       </>
                     ) : (
@@ -268,7 +260,7 @@ const FiliereManager = () => {
                         className="btn btn-xs btn-ghost"
                         onClick={() => startEdit(filiere)}
                       >
-                        Modifier
+                        {t.editBtn}
                       </button>
                     )}
                   </td>
@@ -277,7 +269,7 @@ const FiliereManager = () => {
               {filieres.length === 0 && (
                 <tr>
                   <td colSpan={4} className="text-center opacity-60">
-                    Aucune filière pour cette section.
+                    {t.emptySection}
                   </td>
                 </tr>
               )}
@@ -290,7 +282,7 @@ const FiliereManager = () => {
             disabled={selectedIds.size === 0}
             onClick={handleDeleteSelected}
           >
-            Supprimer la sélection ({selectedIds.size})
+            {t.deleteSelectionBtn(selectedIds.size)}
           </button>
         </>
       )}
@@ -299,14 +291,14 @@ const FiliereManager = () => {
         <input
           type="text"
           className="input w-full"
-          placeholder="Nouvelle filière"
+          placeholder={t.addPlaceholder}
           value={newFiliereName}
           onChange={(e) =>
             setNewFiliereName(sanitizeFiliereOrSpecialityName(e.target.value))
           }
         />
         <button type="submit" className="btn btn-neutral">
-          Ajouter
+          {t.addBtn}
         </button>
       </form>
     </div>

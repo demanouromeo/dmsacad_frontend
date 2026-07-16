@@ -105,65 +105,136 @@ export const dashboardTranslations = {
 
 export const filiereManagerTranslations = {
   fr: {
+    title: "Filières",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderName: "Nom de la filière",
+    emptySection: "Aucune filière pour cette section.",
+    saveBtn: "Enregistrer",
+    cancelBtn: "Annuler",
+    editBtn: "Modifier",
+    deleteSelectionBtn: (count: number) => `Supprimer la sélection (${count})`,
+    deleteConfirm: (count: number) => `Supprimer ${count} filière(s) ?`,
+    addPlaceholder: "Nouvelle filière",
+    addBtn: "Ajouter",
     nameTooShort: (min: number) =>
       `Le nom de la filière doit contenir au moins ${min} caractères.`,
-    addSuccess: "Filière ajoutée avec succès.",
-    addDuplicate: (name: string) =>
-      `Une filière portant le nom [${name}] existe déjà.`,
+    addSuccess: "Filière enregistrée avec succès.",
+    addDuplicate:
+      "Échec de l'enregistrement du nom de la filière, car une filière portant le même nom existe déjà (dans cette section ou dans une autre section).",
     addFailure: "Échec de l'ajout de la filière.",
-    renameSuccess: (oldName: string, newName: string) =>
-      `Filière renommée de [${oldName}] à [${newName}].`,
-    renameDuplicate: (name: string) =>
-      `Une filière portant le nom [${name}] existe déjà.`,
+    renameSuccess: "Filière mise à jour avec succès.",
+    renameDuplicate:
+      "Échec de la mise à jour du nom de la filière, car une filière portant le même nom existe déjà (dans cette section ou dans une autre section).",
     renameFailure: "Échec du renommage de la filière.",
-    deleteSuccess: "Filière(s) supprimée(s) avec succès.",
+    deleteSuccess: "Filière supprimée avec succès.",
     deleteFailure: "Échec de la suppression d'au moins une filière.",
   },
   en: {
+    title: "Options",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderName: "Option name",
+    emptySection: "No option for this section.",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
+    editBtn: "Edit",
+    deleteSelectionBtn: (count: number) => `Delete selection (${count})`,
+    deleteConfirm: (count: number) => `Delete ${count} option(s)?`,
+    addPlaceholder: "New option",
+    addBtn: "Add",
     nameTooShort: (min: number) =>
-      `The filiere name must contain at least ${min} characters.`,
-    addSuccess: "Filiere added successfully.",
-    addDuplicate: (name: string) =>
-      `A filiere with the name [${name}] already exists.`,
-    addFailure: "Failed to add the filiere.",
-    renameSuccess: (oldName: string, newName: string) =>
-      `Filiere renamed from [${oldName}] to [${newName}].`,
-    renameDuplicate: (name: string) =>
-      `A filiere with the name [${name}] already exists.`,
-    renameFailure: "Failed to rename the filiere.",
-    deleteSuccess: "Filiere(s) successfully deleted.",
-    deleteFailure: "Failed to delete at least one filiere.",
+      `The option name must contain at least ${min} characters.`,
+    addSuccess: "Option saved successfully.",
+    addDuplicate:
+      "Failed to save the option name, because an option with the same name already exists (within the section or in another section).",
+    addFailure: "Failed to add the option.",
+    renameSuccess: "Option successfully updated.",
+    renameDuplicate:
+      "Failed to update the option name, because an option with the same name already exists (within the section or in another section).",
+    renameFailure: "Failed to rename the option.",
+    deleteSuccess: "Option successfully deleted.",
+    deleteFailure: "Failed to delete at least one option.",
   },
 };
 
 export const specialityManagerTranslations = {
   fr: {
+    title: "Spécialités",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderName: "Nom de la spécialité",
+    tableHeaderFiliere: "Filière",
+    tableHeaderDescription: "Description",
+    emptySection: "Aucune spécialité pour cette section.",
+    saveBtn: "Enregistrer",
+    cancelBtn: "Annuler",
+    editBtn: "Modifier",
+    deleteSelectionBtn: (count: number) => `Supprimer la sélection (${count})`,
+    deleteConfirm: (count: number) => `Supprimer ${count} spécialité(s) ?`,
+    noFiliereOption: "Aucune filière",
+    addPlaceholder: "Nouvelle spécialité",
+    descriptionPlaceholder: "Description (optionnel)",
+    addBtn: "Ajouter",
+    createFiliereFirst: "Créez d'abord une filière pour cette section.",
     nameTooShort: (min: number) =>
       `Le nom de la spécialité doit contenir au moins ${min} caractères.`,
-    addSuccess: "Spécialité ajoutée avec succès.",
-    addDuplicate: (name: string) =>
-      `Une spécialité portant le nom [${name}] existe déjà.`,
+    addSuccess: "Spécialité enregistrée avec succès.",
+    addDuplicate:
+      "Échec de l'enregistrement du nom de la spécialité, car une spécialité portant le même nom existe déjà (dans cette section ou dans une autre section).",
     addFailure: "Échec de l'ajout de la spécialité.",
-    updateSuccess: "Spécialité modifiée avec succès.",
-    updateDuplicate: (name: string) =>
-      `Une spécialité portant le nom [${name}] existe déjà.`,
+    updateSuccess: "Spécialité mise à jour avec succès.",
+    updateDuplicate:
+      "Échec de la mise à jour du nom de la spécialité, car une spécialité portant le même nom existe déjà (dans cette section ou dans une autre section).",
     updateFailure: "Échec de la modification de la spécialité.",
-    deleteSuccess: "Spécialité(s) supprimée(s) avec succès.",
+    deleteSuccess: "Spécialité supprimée avec succès.",
     deleteFailure: "Échec de la suppression d'au moins une spécialité.",
   },
   en: {
+    title: "Specialities",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderName: "Speciality name",
+    tableHeaderFiliere: "Option",
+    tableHeaderDescription: "Description",
+    emptySection: "No speciality for this section.",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
+    editBtn: "Edit",
+    deleteSelectionBtn: (count: number) => `Delete selection (${count})`,
+    deleteConfirm: (count: number) => `Delete ${count} speciality(ies)?`,
+    noFiliereOption: "No option",
+    addPlaceholder: "New speciality",
+    descriptionPlaceholder: "Description (optional)",
+    addBtn: "Add",
+    createFiliereFirst: "First create an option for this section.",
     nameTooShort: (min: number) =>
       `The speciality name must contain at least ${min} characters.`,
-    addSuccess: "Speciality added successfully.",
-    addDuplicate: (name: string) =>
-      `A speciality with the name [${name}] already exists.`,
+    addSuccess: "Speciality saved successfully.",
+    addDuplicate:
+      "Failed to save the speciality name, because a speciality with the same name already exists (within the section or in another section).",
     addFailure: "Failed to add the speciality.",
-    updateSuccess: "Speciality updated successfully.",
-    updateDuplicate: (name: string) =>
-      `A speciality with the name [${name}] already exists.`,
+    updateSuccess: "Speciality successfully updated.",
+    updateDuplicate:
+      "Failed to update the speciality name, because a speciality with the same name already exists (within the section or in another section).",
     updateFailure: "Failed to update the speciality.",
-    deleteSuccess: "Speciality(ies) successfully deleted.",
+    deleteSuccess: "Speciality deleted successfully.",
     deleteFailure: "Failed to delete at least one speciality.",
+  },
+};
+
+export const connectivityTranslations = {
+  fr: {
+    offline: "Vous êtes hors ligne. Vérifiez votre connexion internet.",
+    serverUnavailable:
+      "Le serveur est actuellement injoignable. Veuillez réessayer plus tard.",
+    backOnline: "La connexion au serveur a été rétablie.",
+  },
+  en: {
+    offline: "You are offline. Please check your internet connection.",
+    serverUnavailable:
+      "The server is currently unreachable. Please try again later.",
+    backOnline: "Connection to the server has been restored.",
   },
 };
 
@@ -195,7 +266,7 @@ export const adminMenuTranslations = {
   },
   en: {
     schoolDetails: "School details",
-    filieres: "Filières",
+    filieres: "Options",
     specialities: "Speciality",
     classes: "Manage classes",
     subjects: "Manage subjects",

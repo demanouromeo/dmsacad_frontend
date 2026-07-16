@@ -98,9 +98,7 @@ const SpecialityManager = () => {
       loadSpecialities();
     } else {
       showToast(
-        isDuplicateNameError(result.message)
-          ? t.addDuplicate(trimmedName)
-          : t.addFailure,
+        isDuplicateNameError(result.message) ? t.addDuplicate : t.addFailure,
         { type: "danger" },
       );
     }
@@ -162,7 +160,7 @@ const SpecialityManager = () => {
     } else {
       showToast(
         isDuplicateNameError(result.message)
-          ? t.updateDuplicate(trimmedName)
+          ? t.updateDuplicate
           : t.updateFailure,
         { type: "danger" },
       );
@@ -197,10 +195,9 @@ const SpecialityManager = () => {
     if (selectedIds.size === 0) {
       return;
     }
-    const confirmed = await confirm(
-      `Supprimer ${selectedIds.size} spécialité(s) ?`,
-      { danger: true },
-    );
+    const confirmed = await confirm(t.deleteConfirm(selectedIds.size), {
+      danger: true,
+    });
     if (!confirmed) {
       return;
     }
@@ -223,17 +220,15 @@ const SpecialityManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">Spécialités</h1>
-      <p className="mb-6 opacity-70 text-sm">
-        Section : <span className="font-semibold">{section}</span> — utilisez
-        l'icône section dans la barre du haut pour changer de section.
-      </p>
+      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+      <p className="mb-6 opacity-70 text-sm">{t.sectionHint(section)}</p>
 
       {isLoading ? (
         <Loading />
       ) : (
         <>
-          <table className="table w-full max-w-3xl mb-4">
+          <div className="overflow-x-auto w-full max-w-3xl mx-auto mb-4">
+          <table className="table w-full">
             <thead>
               <tr>
                 <th>
@@ -248,9 +243,9 @@ const SpecialityManager = () => {
                   />
                 </th>
                 <th>N°</th>
-                <th>Nom de la spécialité</th>
-                <th>Filière</th>
-                <th>Description</th>
+                <th>{t.tableHeaderName}</th>
+                <th>{t.tableHeaderFiliere}</th>
+                <th>{t.tableHeaderDescription}</th>
                 <th></th>
               </tr>
             </thead>
@@ -338,14 +333,14 @@ const SpecialityManager = () => {
                           className="btn btn-xs btn-primary mr-2"
                           onClick={() => saveEdit(speciality)}
                         >
-                          Enregistrer
+                          {t.saveBtn}
                         </button>
                         <button
                           type="button"
                           className="btn btn-xs btn-ghost"
                           onClick={cancelEdit}
                         >
-                          Annuler
+                          {t.cancelBtn}
                         </button>
                       </>
                     ) : (
@@ -354,7 +349,7 @@ const SpecialityManager = () => {
                         className="btn btn-xs btn-ghost"
                         onClick={() => startEdit(speciality)}
                       >
-                        Modifier
+                        {t.editBtn}
                       </button>
                     )}
                   </td>
@@ -363,12 +358,13 @@ const SpecialityManager = () => {
               {specialities.length === 0 && (
                 <tr>
                   <td colSpan={6} className="text-center opacity-60">
-                    Aucune spécialité pour cette section.
+                    {t.emptySection}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
 
           <button
             type="button"
@@ -376,7 +372,7 @@ const SpecialityManager = () => {
             disabled={selectedIds.size === 0}
             onClick={handleDeleteSelected}
           >
-            Supprimer la sélection ({selectedIds.size})
+            {t.deleteSelectionBtn(selectedIds.size)}
           </button>
         </>
       )}
@@ -391,7 +387,9 @@ const SpecialityManager = () => {
           onChange={(e) => setSelectedFiliere(e.target.value)}
           disabled={filieres.length === 0}
         >
-          {filieres.length === 0 && <option value="">Aucune filière</option>}
+          {filieres.length === 0 && (
+            <option value="">{t.noFiliereOption}</option>
+          )}
           {filieres.map((filiere) => (
             <option key={filiere.filiere_id} value={filiere.nom_filiere}>
               {filiere.nom_filiere}
@@ -401,7 +399,7 @@ const SpecialityManager = () => {
         <input
           type="text"
           className="input"
-          placeholder="Nouvelle spécialité"
+          placeholder={t.addPlaceholder}
           value={newSpecialityName}
           onChange={(e) =>
             setNewSpecialityName(sanitizeFiliereOrSpecialityName(e.target.value))
@@ -410,7 +408,7 @@ const SpecialityManager = () => {
         <input
           type="text"
           className="input"
-          placeholder="Description (optionnel)"
+          placeholder={t.descriptionPlaceholder}
           value={newDescription}
           maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
           onChange={(e) =>
@@ -427,13 +425,11 @@ const SpecialityManager = () => {
           className="btn btn-neutral"
           disabled={filieres.length === 0}
         >
-          Ajouter
+          {t.addBtn}
         </button>
       </form>
       {filieres.length === 0 && (
-        <p className="text-sm opacity-60 mt-2">
-          Créez d'abord une filière pour cette section.
-        </p>
+        <p className="text-sm opacity-60 mt-2">{t.createFiliereFirst}</p>
       )}
     </div>
   );
