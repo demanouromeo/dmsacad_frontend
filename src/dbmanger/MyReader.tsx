@@ -13,7 +13,7 @@ export class MyReader {
   public static fetchSchools = async () => {
     try {
       const response = await fetch(
-        `${MyConstants.gBaserUrl}api/modules/schoolConfig/allSchools`,
+        `${MyConstants.gBaseRemoteUrl}api/configs/allSchools`,
         API_OPTIONS,
       );
       if (!response.ok) {
@@ -43,7 +43,7 @@ export class MyReader {
   };
 
   public static fetchAccounts = async (schoolCode = "") => {
-    const targetUrl = `${MyConstants.gBaserUrl}api/accounts/${schoolCode}`;
+    const targetUrl = `${MyConstants.gBaseRemoteUrl}api/accounts/${schoolCode}`;
     try {
       const response = await fetch(targetUrl, API_OPTIONS);
       if (!response.ok) {
