@@ -1,0 +1,264 @@
+import { useEffect, useState } from "react";
+import { useAuth } from "../../../auth/useAuth";
+import { FiliereReader } from "../../../dbmanger/FiliereReader";
+import type { Filiere } from "../../../interfaces/Filiere";
+import Loading from "../../sharedcomp/Loading";
+
+type FeedbackMessage = { type: "error" | "success"; text: string };
+
+const FiliereManager = () => {
+  const { connection, schoolYear, section, accessToken } = useAuth();
+
+  const [filieres, setFilieres] = useState<Filiere[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<FeedbackMessage | null>(null);
+
+  const [newFiliereName, setNewFiliereName] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const loadFilieres = async () => {
+    setIsLoading(true);
+    const list = await FiliereReader.fetchFilieres(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+    );
+    setFilieres(list);
+    setSelectedIds(new Set());
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    setMessage(null);
+    loadFilieres();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection, schoolYear, section]);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFiliereName.trim()) {
+      return;
+    }
+    setMessage(null);
+    const result = await FiliereReader.saveFiliere(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+      newFiliereName.trim(),
+    );
+    setMessage({ type: result.status ? "success" : "error", text: result.message });
+    if (result.status) {
+      setNewFiliereName("");
+      loadFilieres();
+    }
+  };
+
+  const startEdit = (filiere: Filiere) => {
+    setEditingId(filiere.filiere_id);
+    setEditingValue(filiere.nom_filiere);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const saveEdit = async (filiere: Filiere) => {
+    if (!editingValue.trim() || editingValue.trim() === filiere.nom_filiere) {
+      cancelEdit();
+      return;
+    }
+    setMessage(null);
+    const result = await FiliereReader.renameFiliere(
+      accessToken,
+      connection,
+      filiere.nom_filiere,
+      editingValue.trim(),
+    );
+    setMessage({ type: result.status ? "success" : "error", text: result.message });
+    cancelEdit();
+    if (result.status) {
+      loadFilieres();
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === filieres.length
+        ? new Set()
+        : new Set(filieres.map((f) => f.filiere_id)),
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) {
+      return;
+    }
+    if (!window.confirm(`Supprimer ${selectedIds.size} filière(s) ?`)) {
+      return;
+    }
+    setMessage(null);
+    const result = await FiliereReader.deleteFilieres(
+      accessToken,
+      connection,
+      schoolYear,
+      Array.from(selectedIds),
+    );
+    setMessage({ type: result.status ? "success" : "error", text: result.message });
+    if (result.status) {
+      loadFilieres();
+    }
+  };
+
+  return (
+    <div className="p-10">
+      <h1 className="text-2xl font-bold mb-4">Filières</h1>
+      <p className="mb-6 opacity-70 text-sm">
+        Section : <span className="font-semibold">{section}</span> — utilisez
+        l'icône section dans la barre du haut pour changer de section.
+      </p>
+
+      {message && (
+        <p
+          className={`mb-4 ${message.type === "error" ? "text-error" : "text-success"}`}
+        >
+          {message.text}
+        </p>
+      )}
+
+      {isLoading ? (
+        <Loading />
+      ) : (
+        <>
+          <table className="table w-full max-w-2xl mb-4">
+            <thead>
+              <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={
+                      filieres.length > 0 &&
+                      selectedIds.size === filieres.length
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+                <th>#</th>
+                <th>Nom de la filière</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filieres.map((filiere, index) => (
+                <tr key={filiere.filiere_id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      className="checkbox"
+                      checked={selectedIds.has(filiere.filiere_id)}
+                      onChange={() => toggleSelect(filiere.filiere_id)}
+                    />
+                  </td>
+                  <td>{index + 1}</td>
+                  <td>
+                    {editingId === filiere.filiere_id ? (
+                      <input
+                        type="text"
+                        className="input input-sm w-full"
+                        value={editingValue}
+                        autoFocus
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit(filiere);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                      />
+                    ) : (
+                      filiere.nom_filiere
+                    )}
+                  </td>
+                  <td>
+                    {editingId === filiere.filiere_id ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-primary mr-2"
+                          onClick={() => saveEdit(filiere)}
+                        >
+                          Enregistrer
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost"
+                          onClick={cancelEdit}
+                        >
+                          Annuler
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-ghost"
+                        onClick={() => startEdit(filiere)}
+                      >
+                        Modifier
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filieres.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="text-center opacity-60">
+                    Aucune filière pour cette section.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <button
+            type="button"
+            className="btn btn-error btn-sm mb-6"
+            disabled={selectedIds.size === 0}
+            onClick={handleDeleteSelected}
+          >
+            Supprimer la sélection ({selectedIds.size})
+          </button>
+        </>
+      )}
+
+      <form onSubmit={handleAdd} className="flex gap-2 max-w-xs">
+        <input
+          type="text"
+          className="input w-full"
+          placeholder="Nouvelle filière"
+          value={newFiliereName}
+          onChange={(e) => setNewFiliereName(e.target.value)}
+        />
+        <button type="submit" className="btn btn-neutral">
+          Ajouter
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default FiliereManager;

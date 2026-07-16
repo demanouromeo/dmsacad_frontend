@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import Loading from "../sharedcomp/Loading";
+import TopBanner from "../layout/TopBanner";
 
 const RequireAuth = () => {
   const { accessToken, isRestoring } = useAuth();
@@ -17,7 +18,14 @@ const RequireAuth = () => {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <TopBanner />
+      <div className="pt-16">
+        <Outlet />
+      </div>
+    </>
+  );
 };
 
 export default RequireAuth;

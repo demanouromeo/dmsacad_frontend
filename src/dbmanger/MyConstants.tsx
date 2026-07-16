@@ -7,6 +7,7 @@ export class MyConstants {
   public static gBaseLocalUrl = "http://localhost/dmsacad_backend_dev/";
   public static SCHOOL_NAME_KEY = "schoolName";
   public static SCHOOL_YEAR_KEY = "schoolYear";
+  public static SECTION_KEY = "section";
   public static LANGUAGE_KEY = "language";
   public static gLocalSchoolCode = "mysql";
   public static BACKEND_TARGET_KEY = "backendTarget";

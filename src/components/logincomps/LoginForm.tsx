@@ -9,7 +9,8 @@ import { useNavigate } from "react-router-dom";
 import type { SchoolYear } from "../../interfaces/SchoolYear";
 import { MyConstants, type BackendTarget } from "../../dbmanger/MyConstants";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
-import { loginTranslations, type Language } from "../../i18n/translations";
+import { loginTranslations } from "../../i18n/translations";
+import { useLanguage } from "../../i18n/useLanguage";
 import { useAuth } from "../../auth/useAuth";
 
 const LoginForm = () => {
@@ -29,12 +30,14 @@ const LoginForm = () => {
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(
     () => sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY) || "",
   );
+  const [selectedSection, setSelectedSection] = useState(
+    () => sessionStorage.getItem(MyConstants.SECTION_KEY) || "francophone",
+  );
   const [schoolYearList, setSchoolYearList] = useState<SchoolYear[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [language, setLanguage] = useState<Language>(
-    (localStorage.getItem(MyConstants.LANGUAGE_KEY) as Language) || "fr",
-  );
+  const [language, setLanguage] = useLanguage();
   const [backendTarget, setBackendTargetState] = useState<BackendTarget>(
     MyConstants.getBackendTarget(),
   );
@@ -44,11 +47,6 @@ const LoginForm = () => {
   const settingsDialogRef = useRef<HTMLDialogElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const { login } = useAuth();
-
-  const handleLanguageChange = (lang: Language) => {
-    setLanguage(lang);
-    localStorage.setItem(MyConstants.LANGUAGE_KEY, lang);
-  };
 
   const openSettings = () => {
     settingsDialogRef.current?.showModal();
@@ -112,6 +110,7 @@ const LoginForm = () => {
     //setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
     sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
     sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, selectedSchoolYear);
+    sessionStorage.setItem(MyConstants.SECTION_KEY, selectedSection);
     if (selectedSchool === "") {
       //alert(t.alertNoSchool(selectedSchool));
       //DISPLAY A BEAUTIFUL BOX RATHER THAN AN ALERT
@@ -125,11 +124,18 @@ const LoginForm = () => {
   };
 
   const connectUser = async () => {
+    setLoginError("");
     setIsLoading(true);
-    const success = await login(loginVal, passwordVal, selectedSchool);
+    const success = await login(
+      loginVal,
+      passwordVal,
+      selectedSchool,
+      selectedSchoolYear,
+      selectedSection,
+    );
     setIsLoading(false);
     if (!success) {
-      alert(t.alertBadCredentials(selectedSchool));
+      setLoginError(t.invalidCredentials);
       return;
     }
     navigate("/dashboard");
@@ -160,7 +166,7 @@ const LoginForm = () => {
           type="button"
           aria-label="Français"
           title="Français"
-          onClick={() => handleLanguageChange("fr")}
+          onClick={() => setLanguage("fr")}
           className={`w-8 h-6 rounded overflow-hidden border-2 cursor-pointer ${
             language === "fr"
               ? "border-primary"
@@ -173,7 +179,7 @@ const LoginForm = () => {
           type="button"
           aria-label="English"
           title="English"
-          onClick={() => handleLanguageChange("en")}
+          onClick={() => setLanguage("en")}
           className={`w-8 h-6 rounded overflow-hidden border-2 cursor-pointer ${
             language === "en"
               ? "border-primary"
@@ -252,15 +258,46 @@ const LoginForm = () => {
                 </button>
               </div>
 
+              <label className="label mt-5">{t.sectionLabel}</label>
+              <div className="flex gap-4">
+                <label className="label gap-2">
+                  <input
+                    type="radio"
+                    name="section"
+                    className="radio"
+                    value="francophone"
+                    checked={selectedSection === "francophone"}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                  />
+                  {t.francoLabel}
+                </label>
+                <label className="label gap-2">
+                  <input
+                    type="radio"
+                    name="section"
+                    className="radio"
+                    value="anglophone"
+                    checked={selectedSection === "anglophone"}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                  />
+                  {t.anglophoneLabel}
+                </label>
+              </div>
+
               <div className="flex justify-center">
                 {isLoading ? <Loading /> : <p></p>}
               </div>
               <button
-                className="btn btn-neutral mb-4 w-full mt-4"
+                className="btn btn-neutral mb-4 w-full mt-6"
                 type="submit"
               >
                 {t.submitBtn}
               </button>
+              {loginError && (
+                <p className="text-error text-sm text-center -mt-2 mb-4">
+                  {loginError}
+                </p>
+              )}
             </div>
           </div>
         </form>

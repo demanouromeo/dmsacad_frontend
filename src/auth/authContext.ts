@@ -6,8 +6,17 @@ export interface AuthContextValue {
   authPayload: AuthPayload | null;
   connection: string;
   schoolYear: string;
+  section: string;
   isRestoring: boolean;
-  login: (login: string, pwd: string, connection: string) => Promise<boolean>;
+  login: (
+    login: string,
+    pwd: string,
+    connection: string,
+    year: string,
+    section: string,
+  ) => Promise<boolean>;
+  setSchoolYear: (year: string) => void;
+  setSection: (section: string) => void;
   logout: () => void;
 }
 

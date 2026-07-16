@@ -9,7 +9,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authPayload, setAuthPayload] = useState<AuthPayload | null>(null);
   const [connection, setConnection] = useState("");
-  const [schoolYear, setSchoolYear] = useState("");
+  const [schoolYear, setSchoolYearState] = useState("");
+  const [section, setSectionState] = useState("");
   const [isRestoring, setIsRestoring] = useState(true);
 
   useEffect(() => {
@@ -18,8 +19,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         MyConstants.SCHOOL_NAME_KEY,
       );
       const storedYear = sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY);
+      const storedSection = sessionStorage.getItem(MyConstants.SECTION_KEY);
       if (storedYear) {
-        setSchoolYear(storedYear);
+        setSchoolYearState(storedYear);
+      }
+      if (storedSection) {
+        setSectionState(storedSection);
       }
       if (!storedConnection) {
         setIsRestoring(false);
@@ -40,6 +45,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loginVal: string,
     pwd: string,
     connectionVal: string,
+    yearVal: string,
+    sectionVal: string,
   ): Promise<boolean> => {
     const result = await MyReader.login(loginVal, pwd, connectionVal);
     if (!result) {
@@ -48,8 +55,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAccessToken(result.access_token);
     setAuthPayload(decodeJwtPayload(result.access_token));
     setConnection(connectionVal);
+    setSchoolYearState(yearVal);
+    setSectionState(sectionVal);
     sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, connectionVal);
+    sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, yearVal);
+    sessionStorage.setItem(MyConstants.SECTION_KEY, sectionVal);
     return true;
+  };
+
+  const setSchoolYear = (year: string) => {
+    setSchoolYearState(year);
+    sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, year);
+  };
+
+  const setSection = (sectionVal: string) => {
+    setSectionState(sectionVal);
+    sessionStorage.setItem(MyConstants.SECTION_KEY, sectionVal);
   };
 
   const logout = () => {
@@ -64,8 +85,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authPayload,
     connection,
     schoolYear,
+    section,
     isRestoring,
     login,
+    setSchoolYear,
+    setSection,
     logout,
   };
 
