@@ -266,7 +266,6 @@ const ClasseManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
       classes,
-      schoolHeader,
     );
   };
 

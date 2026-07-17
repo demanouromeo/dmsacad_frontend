@@ -1,8 +1,8 @@
-import { buildCsvLetterheadLines, drawPdfLetterhead, type SchoolHeader } from "./exportHeader";
+import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "./exportHeader";
 
 export interface ExportColumn<T> {
   header: string;
-  accessor: (row: T) => string | number;
+  accessor: (row: T, index: number) => string | number;
 }
 
 const sanitizeFilenamePart = (value: string): string =>
@@ -22,8 +22,13 @@ const downloadBlob = (blob: Blob, filename: string): void => {
   URL.revokeObjectURL(url);
 };
 
+// Accessors are typed as string | number, but real row data (straight from the API) can still
+// carry a null/undefined DB field through at runtime - render that as an empty cell, not "null".
+const formatCellValue = (value: string | number): string =>
+  value === null || value === undefined ? "" : String(value);
+
 const csvEscape = (value: string | number): string => {
-  const str = String(value);
+  const str = formatCellValue(value);
   return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 };
 
@@ -31,17 +36,17 @@ const csvEscape = (value: string | number): string => {
 // package carries open, unpatched high-severity advisories (prototype pollution, ReDoS), and our
 // export data has no formatting/multi-sheet needs that would justify pulling it in. Excel opens
 // .csv natively; the UTF-8 BOM keeps accented characters (Filière, Spécialité...) intact.
+// Unlike exportRowsToPdf, this never prepends the school letterhead - CSV/Excel is treated as raw
+// tabular data for further processing, not a document to be printed as-is.
 export const exportRowsToCsv = <T>(
   filename: string,
   columns: ExportColumn<T>[],
   rows: T[],
-  schoolHeader?: SchoolHeader,
 ): void => {
   const lines = [
-    ...(schoolHeader ? buildCsvLetterheadLines(schoolHeader) : []),
     columns.map((c) => csvEscape(c.header)).join(","),
-    ...rows.map((row) =>
-      columns.map((c) => csvEscape(c.accessor(row))).join(","),
+    ...rows.map((row, index) =>
+      columns.map((c) => csvEscape(c.accessor(row, index))).join(","),
     ),
   ];
   const BOM = "﻿";
@@ -69,7 +74,10 @@ export const exportRowsToPdf = async <T>(
   autoTable(doc, {
     startY: y + 5,
     head: [columns.map((c) => c.header)],
-    body: rows.map((row) => columns.map((c) => String(c.accessor(row)))),
+    body: rows.map((row, index) =>
+      columns.map((c) => formatCellValue(c.accessor(row, index))),
+    ),
   });
+  drawPdfFooters(doc);
   doc.save(filename);
 };

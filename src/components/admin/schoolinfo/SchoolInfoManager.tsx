@@ -100,24 +100,6 @@ const SchoolInfoManager = () => {
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // The logo is a connection-wide asset (not year-specific, unlike the rest of this form) -
-  // re-resolve it whenever the connection changes.
-  useEffect(() => {
-    let cancelled = false;
-    const resolveLogo = async () => {
-      const img = connection
-        ? await SchoolInfoReader.fetchLogoImage(connection)
-        : null;
-      if (!cancelled) {
-        setExistingLogoUrl(img ? img.src : null);
-      }
-    };
-    resolveLogo();
-    return () => {
-      cancelled = true;
-    };
-  }, [connection]);
-
   // Ensure the three session variables the rest of the app relies on exist as soon as this
   // screen loads, not only after a save - mirrors the spec's "must be created with these
   // defaults" requirement rather than leaving them unset until the first successful save.
@@ -156,6 +138,13 @@ const SchoolInfoManager = () => {
         sessionStorage.setItem(MyConstants.SCHOOL_TYPE_KEY, mapped.type);
         persistResponsable(nextResponsable);
       }
+      // Trust the backend's own recorded logo_path (from this same response) rather than
+      // guessing the file extension - see SchoolInfoReader.loadLogoImage.
+      const logoImage = await SchoolInfoReader.loadLogoImage(config?.logo_path);
+      if (cancelled) {
+        return;
+      }
+      setExistingLogoUrl(logoImage ? logoImage.src : null);
       setLogoFile(null);
       setLogoPreviewUrl((prev) => {
         if (prev) {

@@ -283,7 +283,6 @@ const StaffManager = () => {
       buildExportFilename([t.title, connection, schoolYear], "csv"),
       exportColumns,
       staffList,
-      schoolHeader,
     );
   };
 

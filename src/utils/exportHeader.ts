@@ -3,7 +3,7 @@ import type { SchoolHeaderConfig } from "../interfaces/SchoolHeaderConfig";
 
 // Bundles the two pieces useSchoolHeader() resolves in parallel - the identity/address fields
 // (from allSchoolConfigOfYear) and the logo, already loaded as an <img> element (crossOrigin
-// "anonymous", see SchoolInfoReader.fetchLogoImage) so it's ready to embed into a PDF canvas
+// "anonymous", see SchoolInfoReader.loadLogoImage) so it's ready to embed into a PDF canvas
 // without a second network round trip at export time.
 export interface SchoolHeader {
   config: SchoolHeaderConfig | null;
@@ -34,50 +34,54 @@ export const drawPdfLetterhead = (doc: jsPDF, header: SchoolHeader): number => {
   const leftX = 14;
   const rightX = pageWidth - 14;
   const centerX = pageWidth / 2;
+  // Each corner is its own text block, centered on its own midpoint - not left/right-aligned
+  // against the page margins, which left the lines within a block ragged against each other.
+  const leftBlockCenterX = pageWidth * 0.25;
+  const rightBlockCenterX = pageWidth * 0.75;
   let y = 14;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.text(REPUBLIC_FR, leftX, y);
-  doc.text(REPUBLIC_EN, rightX, y, { align: "right" });
+  doc.text(REPUBLIC_FR, leftBlockCenterX, y, { align: "center" });
+  doc.text(REPUBLIC_EN, rightBlockCenterX, y, { align: "center" });
 
   y += 5;
   doc.setFont("helvetica", "italic");
-  doc.text(MOTTO_FR, leftX, y);
-  doc.text(MOTTO_EN, rightX, y, { align: "right" });
+  doc.text(MOTTO_FR, leftBlockCenterX, y, { align: "center" });
+  doc.text(MOTTO_EN, rightBlockCenterX, y, { align: "center" });
 
   y += 5;
   doc.setFont("helvetica", "normal");
   if (config?.del_regionale_fr) {
-    doc.text(config.del_regionale_fr, leftX, y);
+    doc.text(config.del_regionale_fr, leftBlockCenterX, y, { align: "center" });
   }
   if (config?.del_regionale_en) {
-    doc.text(config.del_regionale_en, rightX, y, { align: "right" });
+    doc.text(config.del_regionale_en, rightBlockCenterX, y, { align: "center" });
   }
 
   y += 5;
   if (config?.del_dept_fr) {
-    doc.text(config.del_dept_fr, leftX, y);
+    doc.text(config.del_dept_fr, leftBlockCenterX, y, { align: "center" });
   }
   if (config?.del_dept_en) {
-    doc.text(config.del_dept_en, rightX, y, { align: "right" });
+    doc.text(config.del_dept_en, rightBlockCenterX, y, { align: "center" });
   }
 
   y += 5;
   doc.setFont("helvetica", "bold");
   if (config?.name_fr) {
-    doc.text(config.name_fr, leftX, y);
+    doc.text(config.name_fr, leftBlockCenterX, y, { align: "center" });
   }
   if (config?.name_en) {
-    doc.text(config.name_en, rightX, y, { align: "right" });
+    doc.text(config.name_en, rightBlockCenterX, y, { align: "center" });
   }
 
   y += 5;
   doc.setFont("helvetica", "normal");
   const phone = formatPhone(config?.phone1);
   if (phone) {
-    doc.text(`Tel.: ${phone}`, leftX, y);
-    doc.text(`Phone: ${phone}`, rightX, y, { align: "right" });
+    doc.text(`Tel.: ${phone}`, leftBlockCenterX, y, { align: "center" });
+    doc.text(`Phone: ${phone}`, rightBlockCenterX, y, { align: "center" });
   }
 
   const logoSize = 18;
@@ -117,6 +121,73 @@ export const drawPdfLetterhead = (doc: jsPDF, header: SchoolHeader): number => {
   doc.setFontSize(12);
 
   return y + 8;
+};
+
+// App-level branding, not school-specific data - same on every export regardless of connection.
+const APP_NAME = "DMS_ACAD";
+const APP_EMAIL = "dmsschoolmanager@gmail.com";
+const LINK_COLOR: [number, number, number] = [37, 99, 235];
+
+// No raster mail icon asset is loaded into the bundle for this, so the small black/white envelope
+// badge is hand-drawn with jsPDF's own vector primitives (filled rounded square + a white
+// outline/flap) rather than pulling in an icon library just for one footer glyph.
+const drawMailIcon = (doc: jsPDF, x: number, y: number, size: number): void => {
+  doc.setFillColor(0, 0, 0);
+  doc.roundedRect(x, y, size, size, 0.6, 0.6, "F");
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.25);
+  doc.rect(x + 0.8, y + 1.3, size - 1.6, size - 2.6);
+  doc.line(x + 0.8, y + 1.3, x + size / 2, y + size / 2);
+  doc.line(x + size - 0.8, y + 1.3, x + size / 2, y + size / 2);
+};
+
+// Draws the footer (separator rule, app identity/contact, copyright, page number) on every page
+// of the document. Must run after autoTable has finished paginating the body - the final page
+// count isn't known until then - so this is a separate pass rather than part of the letterhead.
+export const drawPdfFooters = (doc: jsPDF): void => {
+  const pageCount = doc.getNumberOfPages();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const leftX = 14;
+  const rightX = pageWidth - 14;
+  const lineY = pageHeight - 16;
+  const textY = pageHeight - 9;
+  const iconSize = 4;
+
+  for (let page = 1; page <= pageCount; page++) {
+    doc.setPage(page);
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(leftX, lineY, rightX, lineY);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text(APP_NAME, leftX, textY);
+
+    const iconX = leftX + doc.getTextWidth(APP_NAME) + 4;
+    drawMailIcon(doc, iconX, textY - iconSize + 1, iconSize);
+
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(...LINK_COLOR);
+    doc.textWithLink(APP_EMAIL, iconX + iconSize + 2, textY, {
+      url: `mailto:${APP_EMAIL}`,
+    });
+
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(0, 0, 0);
+    doc.text(`@Copy Right ${new Date().getFullYear()}`, rightX - 30, textY, {
+      align: "right",
+    });
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Page ${page}/${pageCount}`, rightX, textY, { align: "right" });
+  }
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
 };
 
 // CSV has no room for the logo or the side-by-side layout, so this reduces the same fields to a

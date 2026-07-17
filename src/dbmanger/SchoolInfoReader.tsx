@@ -8,47 +8,49 @@ const NETWORK_ERROR_RESULT: ApiResult = {
   message: "Network error. Please try again later.",
 };
 
-// The logo isn't looked up via the basic_school_config row (its logo_path is a timestamped
-// per-upload filename) - it lives at a fixed, well-known location per connection, one level
-// below the images root, with an unpredictable extension. Probe png/jpg/jpeg in order.
-const LOGO_EXTENSIONS = ["png", "jpg", "jpeg"] as const;
-
 // Apache's docroot here is the Laravel app root (not `public/`) - confirmed live, a request for
 // `${baseUrl}images/...` 404s while `${baseUrl}public/images/...` 200s - so the `public/` segment
-// is required even though it isn't part of the logical `images/{connection}/logo/...` path the
-// backend itself stores/writes relative to `public_path()`.
-const buildLogoUrl = (connection: string, extension: string): string =>
-  `${MyConstants.getBaseUrl()}public/images/${connection}/logo/logo.${extension}`;
+// is required even though it isn't part of `logo_path` itself, which is stored relative to
+// `public_path()` on the backend.
+const buildLogoUrl = (logoPath: string): string =>
+  `${MyConstants.getBaseUrl()}public/${logoPath}`;
 
 // Loading through an Image element (rather than fetch()/HEAD) means simple display doesn't need
-// any CORS headers - a plain <img> tag never did either. crossOrigin is still set to "anonymous"
-// so callers that need to read pixel data back out (jsPDF embeds the logo into exported PDFs via
-// <canvas>) get a non-tainted image; the images folder now sends Access-Control-Allow-Origin: *
-// (see public/images/.htaccess) specifically to make that work.
-const loadLogoImage = (url: string): Promise<HTMLImageElement | null> =>
+// any CORS headers - a plain <img> tag never did either. crossOrigin is only set to "anonymous"
+// when the caller actually needs to read pixel data back out (jsPDF embeds the logo into exported
+// PDFs via <canvas>), which requires the server to answer with Access-Control-Allow-Origin (see
+// public/images/.htaccess) - the remote host's front-end CDN currently strips/ignores that header,
+// so forcing crossOrigin on the plain-display path (the school-info form preview) made even a
+// perfectly loadable image fail with net::ERR_FAILED for no display-only reason.
+const loadImageElement = (
+  url: string,
+  needsCanvasAccess: boolean,
+): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (needsCanvasAccess) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = url;
   });
 
 export class SchoolInfoReader {
-  // Resolves the school logo for the given connection by probing each known extension in turn,
-  // or null if none load. Used both by this form's own preview (via .src) and by the export
-  // letterhead (utils/exportHeader.ts), which needs the loaded element itself to embed in a PDF.
-  public static fetchLogoImage = async (
-    connection: string,
+  // Resolves the school logo from the `logo_path` a prior allSchoolConfigOfYear/schoolConfigSorU
+  // call already returned (relative to the backend's public/ root, e.g.
+  // "images/TEST/logo/logo.png") - null if there's no path yet (never uploaded) or it fails to
+  // load. This used to guess the extension by probing png/jpg/jpeg in turn, which could resolve
+  // to a stale leftover file with a different extension than the one actually last saved; trusting
+  // the backend's own recorded path is the source of truth instead.
+  public static loadLogoImage = async (
+    logoPath: string | null | undefined,
+    needsCanvasAccess = false,
   ): Promise<HTMLImageElement | null> => {
-    for (const extension of LOGO_EXTENSIONS) {
-      const url = buildLogoUrl(connection, extension);
-      const img = await loadLogoImage(url);
-      if (img) {
-        return img;
-      }
+    if (!logoPath) {
+      return null;
     }
-    return null;
+    return loadImageElement(buildLogoUrl(logoPath), needsCanvasAccess);
   };
 
   // Backs the school header (logo + identity fields) shown on printed/exported documents.

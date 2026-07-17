@@ -22,10 +22,15 @@ export const useSchoolHeader = (): SchoolHeader => {
         }
         return;
       }
-      const [config, logoImage] = await Promise.all([
-        SchoolInfoReader.fetchSchoolConfigOfYear(accessToken, connection, schoolYear),
-        SchoolInfoReader.fetchLogoImage(connection),
-      ]);
+      const config = await SchoolInfoReader.fetchSchoolConfigOfYear(
+        accessToken,
+        connection,
+        schoolYear,
+      );
+      const logoImage = await SchoolInfoReader.loadLogoImage(
+        config?.logo_path,
+        true,
+      );
       if (!cancelled) {
         setHeader({ config, logoImage });
       }

@@ -119,6 +119,7 @@ export const filiereManagerTranslations = {
     title: "Filières",
     sectionHint: (section: string) =>
       `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Nom de la filière",
     emptySection: "Aucune filière pour cette section.",
     saveBtn: "Enregistrer",
@@ -145,6 +146,7 @@ export const filiereManagerTranslations = {
     title: "Options",
     sectionHint: (section: string) =>
       `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Option name",
     emptySection: "No option for this section.",
     saveBtn: "Save",

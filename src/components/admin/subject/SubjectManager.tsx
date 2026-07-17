@@ -197,7 +197,6 @@ const SubjectManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
       subjects,
-      schoolHeader,
     );
   };
 

@@ -246,7 +246,6 @@ const SpecialityManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
       specialities,
-      schoolHeader,
     );
   };
 

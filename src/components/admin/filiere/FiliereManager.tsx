@@ -187,6 +187,7 @@ const FiliereManager = () => {
   };
 
   const exportColumns = [
+    { header: t.tableHeaderIndex, accessor: (_f: Filiere, index: number) => index + 1 },
     { header: t.tableHeaderName, accessor: (f: Filiere) => f.nom_filiere },
   ];
 
@@ -195,7 +196,6 @@ const FiliereManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
       filieres,
-      schoolHeader,
     );
   };
 
