@@ -7,6 +7,10 @@ import RequireAuth from "./components/routing/RequireAuth";
 import RequireRole from "./components/routing/RequireRole";
 import FiliereManager from "./components/admin/filiere/FiliereManager";
 import SpecialityManager from "./components/admin/speciality/SpecialityManager";
+import ClasseManager from "./components/admin/classe/ClasseManager";
+import SubjectManager from "./components/admin/subject/SubjectManager";
+import StaffManager from "./components/admin/staff/StaffManager";
+import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -25,6 +29,13 @@ function App() {
                 <Route
                   path="/admin/specialities"
                   element={<SpecialityManager />}
+                />
+                <Route path="/admin/classes" element={<ClasseManager />} />
+                <Route path="/admin/subjects" element={<SubjectManager />} />
+                <Route path="/admin/staffs" element={<StaffManager />} />
+                <Route
+                  path="/admin/school-info"
+                  element={<SchoolInfoManager />}
                 />
               </Route>
             </Route>

@@ -1,11 +1,16 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useCookies } from "react-cookie";
 import { MyReader } from "../dbmanger/MyReader";
+import { SchoolInfoReader } from "../dbmanger/SchoolInfoReader";
 import { MyConstants } from "../dbmanger/MyConstants";
 import { decodeJwtPayload } from "../dbmanger/jwt";
 import type { AuthPayload } from "../interfaces/AuthPayload";
 import { AuthContext, type AuthContextValue } from "./authContext";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [, setSchoolHeaderCookie, removeSchoolHeaderCookie] = useCookies([
+    MyConstants.SCHOOL_HEADER_CONFIG_KEY,
+  ]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authPayload, setAuthPayload] = useState<AuthPayload | null>(null);
   const [connection, setConnection] = useState("");
@@ -60,6 +65,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, connectionVal);
     sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, yearVal);
     sessionStorage.setItem(MyConstants.SECTION_KEY, sectionVal);
+
+    // Best-effort: the school header (name/address/logo for printed & exported documents) is
+    // refreshed on every login, but a failure here must never block the login itself.
+    const headerConfig = await SchoolInfoReader.fetchSchoolConfigOfYear(
+      result.access_token,
+      connectionVal,
+      yearVal,
+    );
+    if (headerConfig) {
+      setSchoolHeaderCookie(MyConstants.SCHOOL_HEADER_CONFIG_KEY, headerConfig, {
+        path: "/",
+        maxAge: MyConstants.SCHOOL_HEADER_CONFIG_COOKIE_MAX_AGE,
+      });
+    } else {
+      removeSchoolHeaderCookie(MyConstants.SCHOOL_HEADER_CONFIG_KEY, {
+        path: "/",
+      });
+    }
+
     return true;
   };
 

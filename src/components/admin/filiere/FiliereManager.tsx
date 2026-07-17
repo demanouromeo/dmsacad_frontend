@@ -3,16 +3,25 @@ import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useLanguage } from "../../../i18n/useLanguage";
-import { filiereManagerTranslations } from "../../../i18n/translations";
+import {
+  filiereManagerTranslations,
+  exportTranslations,
+} from "../../../i18n/translations";
 import { FiliereReader } from "../../../dbmanger/FiliereReader";
 import type { Filiere } from "../../../interfaces/Filiere";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import ExportButtons from "../../sharedcomp/ExportButtons";
 import {
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
   sanitizeFiliereOrSpecialityName,
 } from "../../../utils/textValidation";
 import { isDuplicateNameError } from "../../../utils/apiErrors";
+import {
+  buildExportFilename,
+  exportRowsToCsv,
+  exportRowsToPdf,
+} from "../../../utils/exportData";
 
 const FiliereManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
@@ -20,6 +29,7 @@ const FiliereManager = () => {
   const confirm = useConfirm();
   const [language] = useLanguage();
   const t = filiereManagerTranslations[language];
+  const et = exportTranslations[language];
 
   const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -174,11 +184,41 @@ const FiliereManager = () => {
     }
   };
 
+  const exportColumns = [
+    { header: t.tableHeaderName, accessor: (f: Filiere) => f.nom_filiere },
+  ];
+
+  const handleExportExcel = () => {
+    exportRowsToCsv(
+      buildExportFilename([t.title, connection, schoolYear, section], "csv"),
+      exportColumns,
+      filieres,
+    );
+  };
+
+  const handleExportPdf = () => {
+    exportRowsToPdf(
+      t.title,
+      buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
+      exportColumns,
+      filieres,
+    );
+  };
+
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-6 opacity-70 text-sm">{t.sectionHint(section)}</p>
+      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+      <div className="mb-6">
+        <ExportButtons
+          onExportExcel={handleExportExcel}
+          onExportPdf={handleExportPdf}
+          excelLabel={et.excelBtn}
+          pdfLabel={et.pdfBtn}
+          disabled={isLoading || filieres.length === 0}
+        />
+      </div>
 
       {isLoading ? (
         <Loading />

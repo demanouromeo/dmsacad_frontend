@@ -4,18 +4,17 @@ import { useConfirm } from "../../../confirm/useConfirm";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
 import {
-  specialityManagerTranslations,
+  classeManagerTranslations,
   exportTranslations,
 } from "../../../i18n/translations";
-import { FiliereReader } from "../../../dbmanger/FiliereReader";
+import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { SpecialityReader } from "../../../dbmanger/SpecialityReader";
-import type { Filiere } from "../../../interfaces/Filiere";
+import type { Classe } from "../../../interfaces/Classe";
 import type { Speciality } from "../../../interfaces/Speciality";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import {
-  MAX_SPECIALITY_DESCRIPTION_LENGTH,
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
   sanitizeFiliereOrSpecialityName,
 } from "../../../utils/textValidation";
@@ -26,30 +25,42 @@ import {
   exportRowsToPdf,
 } from "../../../utils/exportData";
 
-const SpecialityManager = () => {
+const ClasseManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
   const confirm = useConfirm();
   const showToast = useToast();
   const [language] = useLanguage();
-  const t = specialityManagerTranslations[language];
+  const t = classeManagerTranslations[language];
   const et = exportTranslations[language];
 
-  const [filieres, setFilieres] = useState<Filiere[]>([]);
-  const [selectedFiliere, setSelectedFiliere] = useState("");
+  const [classes, setClasses] = useState<Classe[]>([]);
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [newSpecialityName, setNewSpecialityName] = useState("");
-  const [newDescription, setNewDescription] = useState("");
+  const [newClasseName, setNewClasseName] = useState("");
+  const [newLevel, setNewLevel] = useState("");
+  const [newSpecialityId, setNewSpecialityId] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [editingDescription, setEditingDescription] = useState("");
-  const [editingFiliere, setEditingFiliere] = useState("");
+  const [editingLevel, setEditingLevel] = useState("");
+  const [editingSpecialityId, setEditingSpecialityId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const loadSpecialities = async () => {
+  const loadClasses = async () => {
     setIsLoading(true);
+    const list = await ClasseReader.fetchClasses(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+    );
+    setClasses(list);
+    setSelectedIds(new Set());
+    setIsLoading(false);
+  };
+
+  const loadSpecialitiesForSection = async () => {
     const list = await SpecialityReader.fetchSpecialities(
       accessToken,
       connection,
@@ -57,31 +68,27 @@ const SpecialityManager = () => {
       section,
     );
     setSpecialities(list);
-    setSelectedIds(new Set());
-    setIsLoading(false);
-  };
-
-  const loadFilieresForSection = async () => {
-    const list = await FiliereReader.fetchFilieres(
-      accessToken,
-      connection,
-      schoolYear,
-      section,
-    );
-    setFilieres(list);
-    setSelectedFiliere(list.length > 0 ? list[0].nom_filiere : "");
   };
 
   useEffect(() => {
-    loadSpecialities();
-    loadFilieresForSection();
+    loadClasses();
+    loadSpecialitiesForSection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
+  const parseLevel = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!/^\d+$/.test(trimmed)) {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    return parsed >= 1 ? parsed : null;
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedName = newSpecialityName.trim();
-    if (!trimmedName || !selectedFiliere) {
+    const trimmedName = newClasseName.trim();
+    if (!trimmedName) {
       return;
     }
     if (trimmedName.length < MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH) {
@@ -90,22 +97,31 @@ const SpecialityManager = () => {
       });
       return;
     }
+    const level = parseLevel(newLevel);
+    if (level === null) {
+      showToast(t.levelInvalid, { type: "warning" });
+      return;
+    }
+    const speciality = specialities.find(
+      (s) => String(s.speciality_id) === newSpecialityId,
+    );
     setIsSaving(true);
-    const result = await SpecialityReader.saveSpeciality(
+    const result = await ClasseReader.saveClasse(
       accessToken,
       connection,
       schoolYear,
       section,
-      selectedFiliere,
       trimmedName,
-      newDescription.trim(),
+      level,
+      speciality?.speciality_name,
     );
     setIsSaving(false);
     if (result.status) {
       showToast(t.addSuccess, { type: "info" });
-      setNewSpecialityName("");
-      setNewDescription("");
-      loadSpecialities();
+      setNewClasseName("");
+      setNewLevel("");
+      setNewSpecialityId("");
+      loadClasses();
     } else {
       showToast(
         isDuplicateNameError(result.message) ? t.addDuplicate : t.addFailure,
@@ -114,31 +130,38 @@ const SpecialityManager = () => {
     }
   };
 
-  const startEdit = (speciality: Speciality) => {
-    setEditingId(speciality.speciality_id);
-    setEditingName(speciality.speciality_name);
-    setEditingDescription(speciality.description ?? "");
-    setEditingFiliere(speciality.nom_filiere);
+  const startEdit = (classe: Classe) => {
+    setEditingId(classe.classe_id);
+    setEditingName(classe.classe_name);
+    setEditingLevel(String(classe.level));
+    setEditingSpecialityId(
+      classe.speciality_id !== null ? String(classe.speciality_id) : "",
+    );
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditingName("");
-    setEditingDescription("");
-    setEditingFiliere("");
+    setEditingLevel("");
+    setEditingSpecialityId("");
   };
 
-  const saveEdit = async (speciality: Speciality) => {
+  const saveEdit = async (classe: Classe) => {
     const trimmedName = editingName.trim();
-    const trimmedDescription = editingDescription.trim();
-    if (!trimmedName || !editingFiliere) {
+    if (!trimmedName) {
       cancelEdit();
       return;
     }
+    const level = parseLevel(editingLevel);
+    if (level === null) {
+      showToast(t.levelInvalid, { type: "warning" });
+      return;
+    }
+    const specialityId = editingSpecialityId ? Number(editingSpecialityId) : null;
     if (
-      trimmedName === speciality.speciality_name &&
-      trimmedDescription === (speciality.description ?? "") &&
-      editingFiliere === speciality.nom_filiere
+      trimmedName === classe.classe_name &&
+      level === classe.level &&
+      specialityId === classe.speciality_id
     ) {
       cancelEdit();
       return;
@@ -150,20 +173,19 @@ const SpecialityManager = () => {
       return;
     }
     setIsSaving(true);
-    const result = await SpecialityReader.updateManySpecialities(
-      accessToken,
-      connection,
-      schoolYear,
-      section,
-      [
-        {
-          speciality_id: speciality.speciality_id,
-          speciality_name: trimmedName,
-          description: trimmedDescription,
-          nom_filiere: editingFiliere,
-        },
-      ],
-    );
+    const result = await ClasseReader.updateClasses(accessToken, connection, schoolYear, [
+      {
+        classe_id: classe.classe_id,
+        classe_name: trimmedName,
+        level,
+        speciality_id: specialityId,
+        // Not editable from this screen - round-tripped unchanged so the backend doesn't
+        // null out an existing classe master/SG assignment made via the dedicated
+        // assignment endpoints (see ClasseReader.updateClasses).
+        classe_master_id: classe.classe_master_id,
+        sg_id: classe.sg_id,
+      },
+    ]);
     setIsSaving(false);
     if (result.status) {
       showToast(t.updateSuccess, { type: "info" });
@@ -177,7 +199,7 @@ const SpecialityManager = () => {
     }
     cancelEdit();
     if (result.status) {
-      loadSpecialities();
+      loadClasses();
     }
   };
 
@@ -195,9 +217,9 @@ const SpecialityManager = () => {
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) =>
-      prev.size === specialities.length
+      prev.size === classes.length
         ? new Set()
-        : new Set(specialities.map((s) => s.speciality_id)),
+        : new Set(classes.map((c) => c.classe_id)),
     );
   };
 
@@ -212,10 +234,11 @@ const SpecialityManager = () => {
       return;
     }
     setIsSaving(true);
-    const result = await SpecialityReader.deleteSpecialities(
+    const result = await ClasseReader.deleteClasses(
       accessToken,
       connection,
       schoolYear,
+      section,
       Array.from(selectedIds),
     );
     setIsSaving(false);
@@ -223,19 +246,16 @@ const SpecialityManager = () => {
       type: result.status ? "info" : "danger",
     });
     if (result.status) {
-      loadSpecialities();
+      loadClasses();
     }
   };
 
   const exportColumns = [
+    { header: t.tableHeaderName, accessor: (c: Classe) => c.classe_name },
+    { header: t.tableHeaderLevel, accessor: (c: Classe) => c.level },
     {
-      header: t.tableHeaderName,
-      accessor: (s: Speciality) => s.speciality_name,
-    },
-    { header: t.tableHeaderFiliere, accessor: (s: Speciality) => s.nom_filiere },
-    {
-      header: t.tableHeaderDescription,
-      accessor: (s: Speciality) => s.description ?? "",
+      header: t.tableHeaderSpeciality,
+      accessor: (c: Classe) => c.speciality_name ?? "",
     },
   ];
 
@@ -243,7 +263,7 @@ const SpecialityManager = () => {
     exportRowsToCsv(
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
-      specialities,
+      classes,
     );
   };
 
@@ -252,7 +272,7 @@ const SpecialityManager = () => {
       t.title,
       buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
       exportColumns,
-      specialities,
+      classes,
     );
   };
 
@@ -267,7 +287,7 @@ const SpecialityManager = () => {
           onExportPdf={handleExportPdf}
           excelLabel={et.excelBtn}
           pdfLabel={et.pdfBtn}
-          disabled={isLoading || specialities.length === 0}
+          disabled={isLoading || classes.length === 0}
         />
       </div>
 
@@ -284,33 +304,32 @@ const SpecialityManager = () => {
                       type="checkbox"
                       className="checkbox"
                       checked={
-                        specialities.length > 0 &&
-                        selectedIds.size === specialities.length
+                        classes.length > 0 && selectedIds.size === classes.length
                       }
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th>N°</th>
+                  <th>#</th>
                   <th>{t.tableHeaderName}</th>
-                  <th>{t.tableHeaderFiliere}</th>
-                  <th>{t.tableHeaderDescription}</th>
+                  <th>{t.tableHeaderLevel}</th>
+                  <th>{t.tableHeaderSpeciality}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {specialities.map((speciality, index) => (
-                  <tr key={speciality.speciality_id}>
+                {classes.map((classe, index) => (
+                  <tr key={classe.classe_id}>
                     <td>
                       <input
                         type="checkbox"
                         className="checkbox"
-                        checked={selectedIds.has(speciality.speciality_id)}
-                        onChange={() => toggleSelect(speciality.speciality_id)}
+                        checked={selectedIds.has(classe.classe_id)}
+                        onChange={() => toggleSelect(classe.classe_id)}
                       />
                     </td>
                     <td>{index + 1}</td>
                     <td>
-                      {editingId === speciality.speciality_id ? (
+                      {editingId === classe.classe_id ? (
                         <input
                           type="text"
                           className="input input-sm w-full"
@@ -322,64 +341,61 @@ const SpecialityManager = () => {
                             )
                           }
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit(speciality);
+                            if (e.key === "Enter") saveEdit(classe);
                             if (e.key === "Escape") cancelEdit();
                           }}
                         />
                       ) : (
-                        speciality.speciality_name
+                        classe.classe_name
                       )}
                     </td>
                     <td>
-                      {editingId === speciality.speciality_id ? (
+                      {editingId === classe.classe_id ? (
+                        <input
+                          type="number"
+                          min={1}
+                          className="input input-sm w-20"
+                          value={editingLevel}
+                          onChange={(e) => setEditingLevel(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit(classe);
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                        />
+                      ) : (
+                        classe.level
+                      )}
+                    </td>
+                    <td>
+                      {editingId === classe.classe_id ? (
                         <select
                           className="select select-sm w-full"
-                          value={editingFiliere}
-                          onChange={(e) => setEditingFiliere(e.target.value)}
+                          value={editingSpecialityId}
+                          onChange={(e) =>
+                            setEditingSpecialityId(e.target.value)
+                          }
                         >
-                          {filieres.map((filiere) => (
+                          <option value="">{t.noSpecialityOption}</option>
+                          {specialities.map((speciality) => (
                             <option
-                              key={filiere.filiere_id}
-                              value={filiere.nom_filiere}
+                              key={speciality.speciality_id}
+                              value={speciality.speciality_id}
                             >
-                              {filiere.nom_filiere}
+                              {speciality.speciality_name}
                             </option>
                           ))}
                         </select>
                       ) : (
-                        speciality.nom_filiere
+                        classe.speciality_name || ""
                       )}
                     </td>
                     <td>
-                      {editingId === speciality.speciality_id ? (
-                        <input
-                          type="text"
-                          className="input input-sm w-full"
-                          value={editingDescription}
-                          maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
-                          onChange={(e) =>
-                            setEditingDescription(
-                              sanitizeFiliereOrSpecialityName(
-                                e.target.value,
-                              ).slice(0, MAX_SPECIALITY_DESCRIPTION_LENGTH),
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit(speciality);
-                            if (e.key === "Escape") cancelEdit();
-                          }}
-                        />
-                      ) : (
-                        speciality.description || ""
-                      )}
-                    </td>
-                    <td>
-                      {editingId === speciality.speciality_id ? (
+                      {editingId === classe.classe_id ? (
                         <>
                           <button
                             type="button"
                             className="btn btn-xs btn-primary mr-2"
-                            onClick={() => saveEdit(speciality)}
+                            onClick={() => saveEdit(classe)}
                           >
                             {t.saveBtn}
                           </button>
@@ -395,7 +411,7 @@ const SpecialityManager = () => {
                         <button
                           type="button"
                           className="btn btn-xs btn-ghost"
-                          onClick={() => startEdit(speciality)}
+                          onClick={() => startEdit(classe)}
                         >
                           {t.editBtn}
                         </button>
@@ -403,7 +419,7 @@ const SpecialityManager = () => {
                     </td>
                   </tr>
                 ))}
-                {specialities.length === 0 && (
+                {classes.length === 0 && (
                   <tr>
                     <td colSpan={6} className="text-center opacity-60">
                       {t.emptySection}
@@ -429,58 +445,44 @@ const SpecialityManager = () => {
         onSubmit={handleAdd}
         className="flex flex-wrap gap-2 max-w-2xl items-start"
       >
-        <select
-          className="select"
-          value={selectedFiliere}
-          onChange={(e) => setSelectedFiliere(e.target.value)}
-          disabled={filieres.length === 0}
-        >
-          {filieres.length === 0 && (
-            <option value="">{t.noFiliereOption}</option>
-          )}
-          {filieres.map((filiere) => (
-            <option key={filiere.filiere_id} value={filiere.nom_filiere}>
-              {filiere.nom_filiere}
-            </option>
-          ))}
-        </select>
         <input
           type="text"
           className="input"
           placeholder={t.addPlaceholder}
-          value={newSpecialityName}
+          value={newClasseName}
           onChange={(e) =>
-            setNewSpecialityName(sanitizeFiliereOrSpecialityName(e.target.value))
+            setNewClasseName(sanitizeFiliereOrSpecialityName(e.target.value))
           }
         />
         <input
-          type="text"
-          className="input"
-          placeholder={t.descriptionPlaceholder}
-          value={newDescription}
-          maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
-          onChange={(e) =>
-            setNewDescription(
-              sanitizeFiliereOrSpecialityName(e.target.value).slice(
-                0,
-                MAX_SPECIALITY_DESCRIPTION_LENGTH,
-              ),
-            )
-          }
+          type="number"
+          min={1}
+          className="input w-24"
+          placeholder={t.levelPlaceholder}
+          value={newLevel}
+          onChange={(e) => setNewLevel(e.target.value)}
         />
-        <button
-          type="submit"
-          className="btn btn-neutral"
-          disabled={filieres.length === 0}
+        <select
+          className="select"
+          value={newSpecialityId}
+          onChange={(e) => setNewSpecialityId(e.target.value)}
         >
+          <option value="">{t.noSpecialityOption}</option>
+          {specialities.map((speciality) => (
+            <option
+              key={speciality.speciality_id}
+              value={speciality.speciality_id}
+            >
+              {speciality.speciality_name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="btn btn-neutral">
           {t.addBtn}
         </button>
       </form>
-      {filieres.length === 0 && (
-        <p className="text-sm opacity-60 mt-2">{t.createFiliereFirst}</p>
-      )}
     </div>
   );
 };
 
-export default SpecialityManager;
+export default ClasseManager;

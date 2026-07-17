@@ -37,12 +37,12 @@ interface AdminMenuItem {
 // `to` is only set for functionalities that are actually implemented; the rest render
 // as non-clickable cards until their screens are built.
 const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
-  { key: "schoolDetails", icon: iconSchoolDetails },
+  { key: "schoolDetails", icon: iconSchoolDetails, to: "/admin/school-info" },
   { key: "filieres", icon: iconFilieres, to: "/admin/filieres" },
   { key: "specialities", icon: iconSpecialities, to: "/admin/specialities" },
-  { key: "classes", icon: iconClasses },
-  { key: "subjects", icon: iconSubjects },
-  { key: "staff", icon: iconStaff },
+  { key: "classes", icon: iconClasses, to: "/admin/classes" },
+  { key: "subjects", icon: iconSubjects, to: "/admin/subjects" },
+  { key: "staff", icon: iconStaff, to: "/admin/staffs" },
   { key: "assignCourses", icon: iconAssignCourses },
   { key: "students", icon: iconStudents },
   { key: "marksEntry", icon: iconMarksEntry },
