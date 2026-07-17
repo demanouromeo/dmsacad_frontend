@@ -11,8 +11,11 @@ wrapped for Android via Capacitor (`@capacitor/*`, `capacitor.config.ts`).
 
 Login_img1.png (`src/assets/medium/login_img1.png`) is the product's feature overview: student records
 (présence/contact), subject/course management, report cards ("bulletin de notes"), and staff management
-(roles, schedules, leave). Those are the eventual functional modules — most don't exist in this codebase yet
-(see "Current state vs MVP" below).
+(roles, schedules, leave). The original auth/session MVP (`IMPLEMENTATION_PLAN.md`, Phases 1-5) is complete;
+the app is now in a second build-out phase adding the ADMIN-only functional modules reachable from the
+dashboard's menu grid — school basic info, filières, spécialités, classes, subjects, and staff are built;
+student records, marks entry, report cards, and staff scheduling/leave are not yet (see "Current state vs
+MVP" below for the up-to-date module-by-module status).
 
 ## Commands
 
@@ -60,7 +63,7 @@ the mount `useEffect`, which also force-applies this if `"local"` was already th
 previous session). Preserve this asymmetry if you touch this code — don't make the school picker
 target-agnostic.
 
-### Multi-tenancy: school + school year both map to backend params
+### Multi-tenancy: school + school year + section all map to backend params
 
 The backend has no single database — every request needs a `connection` value matching a key in the
 backend's `config/database.php` (e.g. `mysql`, `CES_DE_LDIRI`, `LYCEE_DE_PITOA`), **and** (per
@@ -77,16 +80,25 @@ populated/reset whenever the school (or backend target) changes, required before
 school. **Persist and pass the `year` string, not `sy_id`** — that's what the backend's CRUD endpoints
 actually expect. Both selections are written to `sessionStorage` on submit
 (`SCHOOL_NAME_KEY`/`SCHOOL_YEAR_KEY` in `MyConstants`) and restored on mount; treat both as part of "the
-connected user's session" going forward — any future `AuthContext`/CRUD work needs to read `SCHOOL_YEAR_KEY`
-the same way it reads the school, not just at login time.
+connected user's session" going forward.
+
+Most admin CRUD endpoints (Filiere/Speciality/Classe/Subject) also take a third dimension, `section` — a
+literal `"francophone" | "anglophone"` string, not a backend-driven list (`SectionReader.fetchSections()`
+exists and hits the real `/api/section/getSections` endpoint, but nothing currently wires it in; both
+`LoginForm` and `TopBanner` still hardcode the two-option radio group). `section` is set once at login
+(`LoginForm`'s radio group, defaulting to `"francophone"`) and persisted the same way as school/year
+(`SECTION_KEY`). Staff is the one exception among the CRUD modules — `StaffReader.fetchStaff()` only takes
+`connection`+`year`, not `section`, since a staff member isn't scoped to one section. All three
+(`connection`/`schoolYear`/`section`) are read from `useAuth()` in every screen that needs them — never read
+`sessionStorage` directly outside `AuthContext`/`TopBanner`/`LoginForm`.
 
 ### Auth: wired to the real backend contract
 
 The old client-side-only auth (fetching the whole school's account list and matching `login`/`pwd` against
 it in the browser) is gone, along with the `MyReader.fetchAccounts()`/`fetchJsonFromAPI()` methods it
-depended on. `LoginForm`'s `connectUser()` now calls `useAuth().login(loginVal, passwordVal,
-selectedSchool)` (`src/auth/useAuth.ts`) and navigates to `/dashboard` on success, showing the existing
-`t.alertBadCredentials(selectedSchool)` alert on failure.
+depended on. `LoginForm`'s `connectUser()` now calls `useAuth().login(loginVal, passwordVal, selectedSchool,
+selectedSchoolYear, selectedSection)` (`src/auth/useAuth.ts`) and navigates to `/dashboard` on success,
+showing the existing `t.alertBadCredentials(selectedSchool)` alert on failure.
 
 The backend's actual contract (`AccountController::connect`/`refresh`, confirmed by reading
 `routes/api.php`/`AccountController.php` directly, and by exercising the live endpoints with `curl` — don't
@@ -110,9 +122,21 @@ assume REST conventions here):
   access token's payload (`name`, along with `role`, `user_id`, `email`, `exp`), decoded client-side via
   `src/dbmanger/jwt.ts`'s `decodeJwtPayload()` (base64url-decode the middle segment, no secret
   needed/available client-side) rather than a `/me` endpoint, which doesn't exist.
-- Subsequent authenticated requests need `Authorization: Bearer {access_token}` — `MyReader`'s shared
-  `API_OPTIONS` object still has this commented out (`//Authorization: ...`); nothing consumes it yet since
-  there's no protected CRUD call wired up from this app yet.
+- Subsequent authenticated requests need `Authorization: Bearer {access_token}`. `MyReader`'s shared
+  `API_OPTIONS` object still has this commented out (`//Authorization: ...`) — that class only ever backs
+  the two unauthenticated pre-login endpoints (`fetchSchools`/`fetchSchoolYears`/`login`/`refreshToken`/
+  `logout`), so it never needed it. Every other `*Reader` class (`FiliereReader`, `SpecialityReader`,
+  `ClasseReader`, `SubjectReader`, `StaffReader`, `SectionReader`, `SchoolInfoReader`) attaches it per-request
+  instead, spreading a conditional `Authorization: Bearer {accessToken}` entry into its `headers` object only
+  when a token is present, reading `accessToken` from `useAuth()` at the call site. Follow this per-class
+  pattern for new protected reads/writes rather than resurrecting the commented-out line in `MyReader`.
+- On every successful login, `AuthContext.login()` also fetches
+  `SchoolInfoReader.fetchSchoolConfigOfYear(...)` and, if it resolves, stores the raw response in a
+  `SCHOOL_HEADER_CONFIG_KEY` **cookie** (`react-cookie`, 7-day `maxAge` — see `MyConstants`), or removes the
+  cookie if the fetch fails/returns nothing. This is best-effort and fire-and-forget with respect to login
+  itself (a failure here never blocks `login()` from returning `true`). It exists so a future
+  printed/exported document (report cards, bulletins) can build a school header (name, address, logo) from a
+  cookie already in hand instead of an extra round trip — nothing reads this cookie yet.
 - `POST {baseUrl}api/accounts/logout` (added after the initial contract survey above — backend
   `AccountController::logout`) revokes both tokens server-side: it decodes the `Authorization: Bearer` access
   token (if present) and the `refresh_token` cookie, and blacklists each by `jti` via
@@ -128,14 +152,51 @@ assume REST conventions here):
   (`src/auth/authContext.ts`), because ESLint's `react-refresh/only-export-components` errors on a file
   mixing a component and a hook.
 - `src/components/routing/RequireAuth.tsx` is the route guard: while `AuthContext.isRestoring` is true (the
-  silent-refresh call above hasn't resolved yet) it renders `Loading`; once resolved, it renders its child
-  routes via `<Outlet />` if `accessToken` is set, otherwise redirects to `/`. It gates only routes nested
-  under it in `App.tsx` — currently just `/dashboard`.
+  silent-refresh call above hasn't resolved yet) it renders `Loading`; once resolved, it renders `TopBanner`
+  plus its child routes via `<Outlet />` if `accessToken` is set, otherwise redirects to `/`. Every
+  authenticated route in `App.tsx` is nested under it — `/dashboard` and, one level deeper, the whole
+  `RequireRole`-gated `/admin/*` subtree (see Role-gated admin routing below).
 - Local dev's cross-origin credentialed requests (Vite dev server vs. Apache are different ports) were
   verified working end-to-end against the real backend (`curl`-simulated login → refresh round trip with
   `Origin: http://localhost:5173` + cookies, re-verified again after the GET→POST change) —
   `config/cors.php` in the backend repo already lists the Vite dev ports in `allowed_origins` with
   `supports_credentials => true`. No CORS changes were needed.
+
+### Top banner & global session controls (`src/components/layout/TopBanner.tsx`)
+
+A fixed `navbar` mounted once by `RequireAuth` (see above), above every authenticated route, replacing what
+used to be a per-page "back to dashboard" button. It reads `connection`, `schoolYear`, `section`,
+`setSchoolYear`, `setSection` from `useAuth()` (the latter two update both React state and the matching
+`sessionStorage` key, mirroring how `login()` seeds them) plus `useLanguage()` for the display language:
+
+- **Home** icon — `<Link to="/dashboard">`.
+- **School year** icon — opens a `<dialog>` that lazily fetches `MyReader.fetchSchoolYears(connection)` into a
+  draft `<select>` (seeded from the current `schoolYear`); Save commits via `setSchoolYear`, Cancel/backdrop
+  discards.
+- **Section** icon — same dialog shape, but a hardcoded francophone/anglophone radio pair (matching
+  `LoginForm`'s, not `SectionReader`-driven — see the multi-tenancy note above) committed via `setSection`.
+- **Language** — a daisyUI dropdown showing the current language's flag (`FlagFR`/`FlagGB`), selecting the
+  other calls `setLanguage`.
+- **Avatar** — a static `avatar-placeholder` circle with a generic person icon; there's no profile screen yet,
+  so it's non-interactive by design, not a stub someone forgot to wire up.
+
+Both dialogs reuse the same native-`<dialog>` + `modal`/`modal-box`/`modal-backdrop` pattern as `LoginForm`'s
+settings dialog. Changing year/section here takes effect immediately for anything reading `useAuth()` on
+render (e.g. `Dashboard`'s `{schoolYear} — {section}` line) but is **not** retroactively pushed into an
+already-mounted admin screen's own data-loading effect — e.g. `FiliereManager` only picks up a changed
+section on its next mount, not live while already open. `bannerTranslations` (`src/i18n/translations.ts`)
+holds its strings.
+
+### Role-gated admin routing
+
+`src/components/routing/RequireRole.tsx` is a second route guard (nested *inside* `RequireAuth`, not
+replacing it): it reads `authPayload.role` from `useAuth()` and renders `<Outlet />` only if `role` is in the
+`allow` prop's list, otherwise redirects to `/dashboard`. `App.tsx` wraps every `/admin/*` route in one
+`<Route element={<RequireRole allow={["ADMIN"]} />}>` group. `AdminMenuGrid`'s `ADMIN_MENU_ITEMS` array pairs
+each dashboard card with an icon and an optional `to` — a card only navigates if `to` is set; the rest render
+as inert placeholders for modules that don't exist yet. When a new admin screen ships, add its route inside
+that `RequireRole` group in `App.tsx` **and** set `to` on its `AdminMenuGrid` entry in the same change — a
+screen with a route but no `to` is unreachable from the UI, and a card with `to` but no route 404s.
 
 ### i18n
 
@@ -236,49 +297,172 @@ recovery gets its own `"info"` toast (`t.backOnline`). Messages come from `conne
 (`src/i18n/translations.ts`). If a dedicated lightweight backend health-check route is ever added, prefer
 switching this component to call it over continuing to piggyback on `allSchools`.
 
+### Admin CRUD screens (Filière / Spécialité / Classe / Subject / Staff)
+
+Five screens (`src/components/admin/{filiere,speciality,classe,subject,staff}/*Manager.tsx`) share one
+established pattern — when adding a new admin CRUD screen, follow this shape rather than inventing a new one:
+
+- **A `*Reader` static class** (`src/dbmanger/{Filiere,Speciality,Classe,Subject,Staff}Reader.tsx`) wrapping
+  `fetch`, one file per feature. Every write method (`save*`/`update*`/`delete*`) delegates to a private
+  `postJson(path, accessToken, body, callerName)` helper that POSTs JSON, attaches
+  `Authorization: Bearer {accessToken}` when present, and on any thrown error logs
+  `` `ClassName.methodName(): Error: ${error}` `` and resolves to a shared `NETWORK_ERROR_RESULT` (`{status:
+  false, message: "Network error..."}`) rather than rejecting — callers never need a `try/catch`. List-mutation
+  endpoints (`updateMany*`/`deleteMany*`) send the array as `data: JSON.stringify(items)` plus `data_size`
+  (Laravel's `json` validation rule needs a string, not a nested array). Read methods (`fetch*`) are separate
+  plain `GET`s, returning `[]` on failure and logging to console rather than using `postJson`.
+- **A `*Manager.tsx` component** (`src/components/admin/<feature>/`): loads its list on mount and whenever
+  `connection`/`schoolYear`/`section` change (`useAuth()`); renders a checkbox-select table (inline
+  `Modifier`/`Enregistrer`/`Annuler` edit-in-row, no separate edit screen) plus an add-row form at the bottom;
+  a `useConfirm()` dialog gates the multi-select delete button; every write path wraps `isSaving`
+  true/false around the async call and renders `{isSaving && <LoadingOverlay />}`; every result (success,
+  duplicate-name failure, generic failure) triggers `showToast()` via a per-file translation dictionary
+  (`filiereManagerTranslations`, etc., in `src/i18n/translations.ts`).
+- **`src/utils/apiErrors.ts`'s `isDuplicateNameError(message)`** — regex-matches `/duplicate|already
+  exists|already used/i` against the backend's raw (often unlocalized/inconsistent) error message to decide
+  whether to show a "name already exists" vs. a generic failure toast. `"already used"` specifically covers
+  `StaffController`'s login/phone1 uniqueness wording, which differs from Filiere/Speciality/Classe/Subject's
+  "already exists" — extend this regex rather than adding a second duplicate-detection helper if another
+  backend wording shows up.
+- **`src/utils/textValidation.ts`'s `sanitizeFiliereOrSpecialityName`/`MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH`**
+  — despite the name, shared generically across Filiere/Speciality/Classe/Subject name inputs (strips
+  disallowed characters on every keystroke via `onChange`). Staff name/surname/login/pwd fields legitimately
+  need characters this regex would strip (e.g. apostrophes in "N'Diaye"), so they're only trimmed/length-checked,
+  not character-filtered — see the comment in that file before reusing it for a new free-text field.
+- Staff is the outlier: `StaffManager` also creates the linked `Account` row in the same `saveStaff` call
+  (login/pwd are mandatory, not optional), and its `updateStaff` treats `pwd` as optional-per-row — omit it
+  entirely to leave the account password unchanged rather than round-tripping the plaintext value the list
+  endpoint returns (the backend only rotates the password when a non-empty value is supplied).
+
+### Export to CSV/PDF (`src/utils/exportData.ts`, `src/components/sharedcomp/ExportButtons.tsx`)
+
+All five admin CRUD screens above render `<ExportButtons onExportExcel={...} onExportPdf={...} .../>` above
+their table, disabled while loading or empty. `exportRowsToCsv(filename, columns, rows)` builds a plain
+UTF-8-BOM `.csv` client-side (not a real `.xlsx`) — deliberate: the npm `xlsx`/SheetJS package carries open,
+unpatched high-severity advisories, and this data has no formatting/multi-sheet need that would justify it;
+Excel opens `.csv` natively and the BOM keeps accented characters intact. `exportRowsToPdf(title, filename,
+columns, rows)` dynamically `import()`s `jspdf`/`jspdf-autotable` (keeps them out of the main bundle) and
+renders a simple titled table. Both take an `ExportColumn<T>[]` (`{header, accessor: (row: T) => string |
+number}`) — reuse this exact shape for a new screen's export rather than writing a bespoke CSV/PDF builder.
+`buildExportFilename(parts, extension)` joins/sanitizes filename parts (title, connection, year, section) —
+follow the same `[title, connection, schoolYear, section]` convention other screens use so exported filenames
+stay predictable.
+
+### School basic info (`/admin/school-info`, `src/components/admin/schoolinfo/SchoolInfoManager.tsx`)
+
+Unlike the five list-based CRUD screens above, this is a single-record form backing the "Information de base"
+dashboard card — one row per (connection, school year) in the backend's `basic_school_config` table.
+
+- **`SchoolInfoReader.fetchSchoolConfigOfYear(accessToken, connection, year)`** (`src/dbmanger/
+  SchoolInfoReader.tsx`) hits `GET api/configs/allSchoolConfigOfYear` and returns the raw first row (or
+  `null`) typed as `SchoolHeaderConfig` (`src/interfaces/SchoolHeaderConfig.tsx`) — snake_case DB columns,
+  intentionally *not* remapped to a local convention since it's also consumed as-is elsewhere (the login-time
+  header cookie, see Auth section). `SchoolInfoManager` re-runs this fetch every time the screen mounts and
+  whenever `connection`/`schoolYear` change, mapping the response onto the form's `SchoolConfig` fields
+  (`mapHeaderConfigToFields` — note `str1`/`str2` come back aliased as `ref_transfert`/`ref_document` from the
+  backend's raw SQL `SELECT`, and `phone1` can be a `number`, both handled explicitly) so the form always
+  reflects the server's current state rather than a stale local draft.
+- **`SchoolInfoReader.saveSchoolInfo(accessToken, connection, year, fields, logoFile)`** POSTs
+  multipart `FormData` (not JSON, unlike every other `*Reader`) to `api/configs/schoolConfigSorU`, since the
+  backend requires the logo as an uploaded file on **every** save — even editing an existing record with an
+  existing logo requires re-selecting a file client-side, because the backend controller calls
+  `$request->logo->move(...)` unconditionally regardless of whether one was actually provided. The form
+  enforces this (blocks submit with `t.logoRequired` if no file is chosen) to avoid tripping that backend
+  crash rather than relying on the backend's own (misleading) `nullable` validation rule.
+- **`SchoolInfoReader.fetchLogo(connection): Promise<string | null>`** resolves the *current* logo's URL,
+  independent of the form/save flow above — reusable from any other module that needs to display the school
+  logo (report headers, printed documents, ...). The logo isn't looked up via `logo_path` from
+  `basic_school_config` (that column holds a one-off, timestamped upload filename); instead it lives at a
+  fixed, well-known path per connection with an unpredictable extension:
+  `{baseUrl}public/images/{connection}/logo/logo.{png|jpg|jpeg}` (the `public/` segment is required — Apache's
+  docroot here is the Laravel app root, not `public/`, confirmed live). `fetchLogo` probes the three
+  extensions via a plain `Image()` `onload`/`onerror` probe, **not** `fetch()` — the images path isn't under
+  `api/*`, so it isn't covered by the backend's CORS config, and a real cross-origin `fetch()`/`HEAD` would be
+  blocked; loading through an `Image` element sidesteps CORS entirely, same as a plain `<img>` tag.
+- **`src/utils/schoolTypes.ts`** exports `SCHOOL_TYPES` (the fixed establishment-type list for the `type`
+  `<select>`) and `computeResponsable(type)`, ported from the mobile app's algorithm: CES/ENIEG/CETIC/COLLEGE
+  → `{fr: "Directeur", en: "Director"}`, everything else (LYCEE and its variants) →
+  `{fr: "Proviseur", en: "Principal"}`. Selecting a type recomputes this and immediately persists it to two
+  session variables (see below) — it's informational display only (`Responsable:[...]` under the `<select>`),
+  not an editable field.
+- **Session variables** (`MyConstants.SCHOOL_TYPE_KEY`/`RESPONSABLE_FR_KEY`/`RESPONSABLE_EN_KEY`, defaults
+  `"LYCEE"`/`"Proviseur"`/`"Principal"`) are seeded on first mount if absent and kept in sync with the `type`
+  `<select>` — other modules needing "who signs documents for this school" should read these rather than
+  recomputing `computeResponsable` themselves.
+- **`src/utils/textValidation.ts`'s `sanitizeSchoolInfoText`/`sanitizePhoneNumber`** are this form's own
+  character filters (accented-letter/punctuation allowlist for name/address fields, digits-only for phone) —
+  deliberately **not** applied to the Email field (a `type="email"` input plus a format regex check on submit
+  instead), since the allowlist has no `@` and would make typing a valid address impossible.
+
 ### Routing and state
 
-`src/App.tsx` (React Router v7, `BrowserRouter`) defines `/` → `LoginForm`, and `/dashboard` → `Dashboard`
-nested under the `RequireAuth` guard route (see Auth section above). `Footer` renders only when the
+`src/App.tsx` (React Router v7, `BrowserRouter`) defines `/` → `LoginForm`, `/dashboard` → `Dashboard`, and
+the six `/admin/*` screens above, all nested under the `RequireAuth` guard route (mounts `TopBanner` + a
+`pt-16` content offset — see the Top banner section above) with the admin routes further nested under
+`RequireRole allow={["ADMIN"]}` (see Role-gated admin routing above). `Footer` renders only when the
 `schoolName` cookie is present. `src/components/dashboard/Dashboard.tsx` renders
-`useAuth().authPayload?.name` and a logout button (`useAuth().logout()` then `navigate("/")`); it replaced
-the old `TeacherIndex.tsx` placeholder, which did its own inline `sessionStorage[SCHOOL_NAME_KEY]` check and
-is gone. Role-specific dashboard variants (teacher vs. admin vs. other roles from `authPayload.role`) are
-explicitly deferred past v1.
+`useAuth().authPayload?.name`, `{schoolYear} — {section}`, `<AdminMenuGrid />` (only when `authPayload?.role
+=== "ADMIN"`), and a logout button (`useAuth().logout()` then `navigate("/")`). Role-specific dashboard
+variants for non-ADMIN roles are still deferred.
 No global state library is used — `react-cookie` (`CookiesProvider` in `main.tsx`) plus plain
 `useState`/`sessionStorage`/`localStorage`/the one `AuthContext` is the existing pattern; keep using it
 rather than introducing Redux/Zustand unless the user asks.
 
 ### Data fetching
 
-`src/dbmanger/MyReader.tsx` is a static class wrapping native `fetch` (no axios in this project). It has
-`fetchSchools()` and `fetchSchoolYears(connection)` so far. Each method follows the same shape: build the URL
-off `MyConstants.getBaseUrl()`, check `response.ok`, check `data.Response === "False"` for an API-level
-error, `alert()` and return `[]` on any failure, log to console. Follow this same shape for new read-only
-fetch methods. `login()`/`refreshToken()`/`logout()` (see Auth section) are an intentional exception — the
-first two return `null`/`false` on failure instead of `alert()` + `[]`, since `LoginForm` needs to
-distinguish "bad credentials" from "network error" for inline UI feedback rather than a blind alert;
-`logout()` swallows errors entirely and returns `void`, since it's a best-effort fire-and-forget call.
+`src/dbmanger/MyReader.tsx` is a static class wrapping native `fetch` (no axios in this project), backing
+only the pre-login/unauthenticated calls: `fetchSchools()`, `fetchSchoolYears(connection)`,
+`login()`/`refreshToken()`/`logout()`. Its read methods follow the same shape: build the URL off
+`MyConstants.getBaseUrl()`, check `response.ok`, check `data.Response === "False"` for an API-level error,
+`alert()` and return `[]` on any failure, log to console. `login()`/`refreshToken()`/`logout()` are an
+intentional exception — the first two return `null`/`false` on failure instead of `alert()` + `[]`, since
+`LoginForm` needs to distinguish "bad credentials" from "network error" for inline UI feedback rather than a
+blind alert; `logout()` swallows errors entirely and returns `void`, since it's a best-effort fire-and-forget
+call.
+
+Every other backend-touching module has its **own** `*Reader` static class instead of growing `MyReader`
+further: `FiliereReader`, `SpecialityReader`, `ClasseReader`, `SubjectReader`, `StaffReader`, `SectionReader`
+(defined, not yet wired into any UI), `SchoolInfoReader`. See "Admin CRUD screens" above for their shared
+`postJson`-helper shape, and "School basic info" above for `SchoolInfoReader`'s two exceptions to that shape
+(multipart `FormData` for the logo upload, `Image()`-probe for `fetchLogo`). When a new feature needs backend
+data, add a new `*Reader` class following this per-feature-file convention rather than centralizing everything
+back into `MyReader`.
 
 ## Current state vs MVP scope
 
-This codebase is pre-MVP. The features below are the agreed MVP scope (from the product's feature overview
-and explicit requirements) and their current status:
+### Phase 1 — auth/session MVP (`IMPLEMENTATION_PLAN.md`, Phases 1-5) — complete
 
 | Feature | Status |
 |---|---|
-| Choose a school before logging in | Done — `LoginForm` school `<select>`, populated from `fetchSchools()`, hidden/forced to `mysql` when target is Local |
-| Choose a school year before logging in | Done — `LoginForm` school-year `<select>`, populated from `fetchSchoolYears(connection)`, persisted alongside the school |
-| Display language toggle (en/fr) | Done — `Flags.tsx` + `translations.ts`, persisted to `localStorage` |
+| Choose a school, school year, and language before logging in | Done — `LoginForm` selects, populated from `fetchSchools()`/`fetchSchoolYears()`, persisted to `sessionStorage`/`localStorage` |
 | Choose remote vs local backend server | Done — `MyConstants.getBaseUrl()`/`setBackendTarget()`, toggle in `LoginForm`; Local also special-cases the school picker (see Architecture) |
-| Real login against backend (`connection`/`login`/`pwd`/`year` → JWT) | Done — `LoginForm.connectUser()` calls `useAuth().login()`, which calls `MyReader.login()` → `POST api/accounts/connect` |
-| Store access token + refresh token, attach to requests | Done (storage/restore side) — `AuthContext` holds the access token in memory and silently restores it via `MyReader.refreshToken()` on app load. Attaching `Authorization: Bearer` to CRUD calls is still unaddressed since no protected CRUD endpoint is wired up from this app yet |
-| Navigate to and gate app functionality behind auth | Done — `RequireAuth` gates `/dashboard` on `AuthContext.accessToken`, redirecting to `/` once the silent-refresh restore (`isRestoring`) resolves with no valid session |
-| Dashboard showing the connected user's name (v1) | Done — `Dashboard.tsx` renders `useAuth().authPayload?.name` plus a logout button; role-specific variants are deferred past v1 |
+| Real login against backend (`connection`/`login`/`pwd`/`year`/`section` → JWT) | Done — `LoginForm.connectUser()` calls `useAuth().login()` → `MyReader.login()` → `POST api/accounts/connect` |
+| Store access token + refresh token, attach to protected requests | Done — access token lives in-memory in `AuthContext`, silently restored via `MyReader.refreshToken()` on app load; every `*Reader` class attaches `Authorization: Bearer` per-request (see Data fetching) |
+| Navigate to and gate app functionality behind auth | Done — `RequireAuth` (all authenticated routes) + `RequireRole` (ADMIN-only `/admin/*` routes) |
+| Dashboard showing the connected user's name | Done — `Dashboard.tsx`; role-specific dashboard variants for non-ADMIN roles are still deferred |
 
-This closes out the MVP scope from `IMPLEMENTATION_PLAN.md`'s phased breakdown (Phases 1-5; Phase 6 was this
-doc/cleanup pass). When extending the app past v1 (role-specific dashboards, protected CRUD calls attaching
-`Authorization: Bearer`, etc.), prefer extending the existing files (`MyConstants`, `MyReader`, `LoginForm`,
-`Dashboard`, `AuthContext`) over introducing new architectural layers — this app is small and the existing
-patterns (react-cookie + plain state + static utility classes + the one `AuthContext`) are intentional for
-now.
+### Phase 2 — ADMIN functional modules (in progress)
+
+Reachable from the dashboard's menu grid (`AdminMenuGrid` — a card is clickable only once its `to` route is
+set):
+
+| Module | Status |
+|---|---|
+| School basic info ("Information de base") | Done — `/admin/school-info`, `SchoolInfoManager` (see Architecture) |
+| Filières | Done — `/admin/filieres`, `FiliereManager` |
+| Spécialités | Done — `/admin/specialities`, `SpecialityManager` |
+| Classes | Done — `/admin/classes`, `ClasseManager` |
+| Subjects (Matières) | Done — `/admin/subjects`, `SubjectManager` |
+| Staff (Gestion du personnel) — basic CRUD + linked account | Done — `/admin/staffs`, `StaffManager`; roles/schedules/leave from the product's feature overview are not built |
+| Course assignment, students, marks entry, mark sheets, report cards, fill rate, discipline, summary, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
+
+Cross-cutting infra built alongside the modules above, used by all of them: the top banner (global
+year/section/language switch, replacing per-page back buttons), toast notifications, promise-based confirm
+dialogs, the loading overlay, CSV/PDF export, and the connectivity monitor — see their respective sections
+above.
+
+When extending the app (new admin screens, role-specific dashboards, wiring `SectionReader` into the section
+pickers, etc.), prefer extending the existing per-feature files (`*Reader` classes, `*Manager` components,
+`src/i18n/translations.ts` dictionaries) over introducing new architectural layers — this app is small and the
+existing patterns (react-cookie + plain state + static utility classes + the Auth/Toast/Confirm contexts) are
+intentional for now.

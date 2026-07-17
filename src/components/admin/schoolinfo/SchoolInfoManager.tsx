@@ -59,19 +59,6 @@ const persistResponsable = (responsable: Responsable) => {
 const isValidEmail = (value: string): boolean =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-// The current logo isn't looked up via the basic_school_config row (its logo_path is a
-// timestamped per-upload filename) - it lives at a fixed, well-known location per connection,
-// one level below the images root, with an unpredictable extension. Probe png/jpg/jpeg in order
-// via the <img>'s onError until one resolves, matching how the legacy app locates it.
-const LOGO_EXTENSIONS = ["png", "jpg", "jpeg"] as const;
-
-// Apache's docroot here is the Laravel app root (not `public/`) - confirmed live, a request for
-// `${baseUrl}images/...` 404s while `${baseUrl}public/images/...` 200s - so the `public/` segment
-// is required even though it isn't part of the logical `images/{connection}/logo/...` path the
-// backend itself stores/writes relative to `public_path()`.
-const buildExistingLogoUrl = (connection: string, extension: string): string =>
-  `${MyConstants.getBaseUrl()}public/images/${connection}/logo/logo.${extension}`;
-
 // Maps the raw allSchoolConfigOfYear row (snake_case DB columns, str1/str2 aliased to
 // ref_transfert/ref_document server-side) onto the form's request-param-named fields.
 const mapHeaderConfigToFields = (config: SchoolHeaderConfig): SchoolConfig => ({
@@ -108,44 +95,26 @@ const SchoolInfoManager = () => {
   );
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [existingLogoUrl, setExistingLogoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // The logo is a connection-wide asset (not year-specific, unlike the rest of this form) found
-  // at a fixed location with an unpredictable extension - probe png/jpg/jpeg in order via the
-  // <img>'s onError, null once all three have failed (falls back to the placeholder icon).
-  // `logoExtIndex`/`logoConnection` are reset inline during render (React's documented escape
-  // hatch for "adjust state when a prop changes") rather than in an effect, since a
-  // school switch must restart the probe from png before the next paint.
-  const [logoExtIndex, setLogoExtIndex] = useState<number | null>(0);
-  const [logoConnection, setLogoConnection] = useState(connection);
-  if (connection !== logoConnection) {
-    setLogoConnection(connection);
-    setLogoExtIndex(0);
-  }
-  const existingLogoUrl =
-    connection && logoExtIndex !== null
-      ? buildExistingLogoUrl(connection, LOGO_EXTENSIONS[logoExtIndex])
-      : null;
-
-  // console.log (not console.debug) so this is visible by default - most browser devtools hide
-  // the "debug" level under a "Verbose" filter that's off by default.
+  // The logo is a connection-wide asset (not year-specific, unlike the rest of this form) -
+  // re-resolve it whenever the connection changes.
   useEffect(() => {
-    if (existingLogoUrl) {
-      console.log(`SchoolInfoManager: fetching existing logo from ${existingLogoUrl}`);
-    }
-  }, [existingLogoUrl]);
-
-  const handleExistingLogoError = () => {
-    setLogoExtIndex((prev) => {
-      if (prev === null) {
-        return null;
+    let cancelled = false;
+    const resolveLogo = async () => {
+      const url = connection ? await SchoolInfoReader.fetchLogo(connection) : null;
+      if (!cancelled) {
+        setExistingLogoUrl(url);
       }
-      const next = prev + 1;
-      return next < LOGO_EXTENSIONS.length ? next : null;
-    });
-  };
+    };
+    resolveLogo();
+    return () => {
+      cancelled = true;
+    };
+  }, [connection]);
 
   // Ensure the three session variables the rest of the app relies on exist as soon as this
   // screen loads, not only after a save - mirrors the spec's "must be created with these
@@ -552,13 +521,12 @@ const SchoolInfoManager = () => {
             <Upload className="w-4 h-4" />
             {t.selectFileBtn}
           </button>
-          <div className="w-15 h-15 shrink-0 rounded border flex items-center justify-center overflow-hidden bg-base-200">
+          <div className="w-30 h-30 shrink-0 rounded border flex items-center justify-center overflow-hidden bg-base-200">
             {logoPreviewUrl || existingLogoUrl ? (
               <img
                 src={logoPreviewUrl ?? existingLogoUrl ?? undefined}
                 alt=""
                 className="w-full h-full object-contain"
-                onError={logoPreviewUrl ? undefined : handleExistingLogoError}
               />
             ) : (
               <ImageIcon className="w-8 h-8 opacity-40" />

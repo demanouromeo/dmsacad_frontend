@@ -8,7 +8,43 @@ const NETWORK_ERROR_RESULT: ApiResult = {
   message: "Network error. Please try again later.",
 };
 
+// The logo isn't looked up via the basic_school_config row (its logo_path is a timestamped
+// per-upload filename) - it lives at a fixed, well-known location per connection, one level
+// below the images root, with an unpredictable extension. Probe png/jpg/jpeg in order.
+const LOGO_EXTENSIONS = ["png", "jpg", "jpeg"] as const;
+
+// Apache's docroot here is the Laravel app root (not `public/`) - confirmed live, a request for
+// `${baseUrl}images/...` 404s while `${baseUrl}public/images/...` 200s - so the `public/` segment
+// is required even though it isn't part of the logical `images/{connection}/logo/...` path the
+// backend itself stores/writes relative to `public_path()`.
+const buildLogoUrl = (connection: string, extension: string): string =>
+  `${MyConstants.getBaseUrl()}public/images/${connection}/logo/logo.${extension}`;
+
+// Static assets under /public aren't covered by the backend's CORS config (only api/* is), so a
+// cross-origin fetch()/HEAD probe would be blocked. Loading through an Image element sidesteps
+// that entirely - like a plain <img> tag, it doesn't require CORS headers to load/display.
+const probeImageUrl = (url: string): Promise<boolean> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+
 export class SchoolInfoReader {
+  // Resolves the school logo's URL for the given connection by probing each known extension in
+  // turn, or null if none load. Used both by this form's own preview and by any other module
+  // (report headers, printed documents, ...) that needs to display the school logo.
+  public static fetchLogo = async (connection: string): Promise<string | null> => {
+    for (const extension of LOGO_EXTENSIONS) {
+      const url = buildLogoUrl(connection, extension);
+      if (await probeImageUrl(url)) {
+        return url;
+      }
+    }
+    return null;
+  };
+
   // Backs the school header (logo + identity fields) shown on printed/exported documents.
   // Returns null on any failure/empty result rather than alert()ing - this runs silently on
   // every login, not from a user-facing form, so there's nothing useful to alert() about.
