@@ -22,6 +22,7 @@ import {
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
+import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const FiliereManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
@@ -30,6 +31,7 @@ const FiliereManager = () => {
   const [language] = useLanguage();
   const t = filiereManagerTranslations[language];
   const et = exportTranslations[language];
+  const schoolHeader = useSchoolHeader();
 
   const [filieres, setFilieres] = useState<Filiere[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -193,6 +195,7 @@ const FiliereManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
       filieres,
+      schoolHeader,
     );
   };
 
@@ -202,6 +205,7 @@ const FiliereManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
       exportColumns,
       filieres,
+      schoolHeader,
     );
   };
 

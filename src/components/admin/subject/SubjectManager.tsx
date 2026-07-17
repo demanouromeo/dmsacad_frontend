@@ -3,16 +3,26 @@ import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useLanguage } from "../../../i18n/useLanguage";
-import { subjectManagerTranslations } from "../../../i18n/translations";
+import {
+  subjectManagerTranslations,
+  exportTranslations,
+} from "../../../i18n/translations";
 import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import type { Subject } from "../../../interfaces/Subject";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import ExportButtons from "../../sharedcomp/ExportButtons";
 import {
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
   sanitizeFiliereOrSpecialityName,
 } from "../../../utils/textValidation";
 import { isDuplicateNameError } from "../../../utils/apiErrors";
+import {
+  buildExportFilename,
+  exportRowsToCsv,
+  exportRowsToPdf,
+} from "../../../utils/exportData";
+import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const SubjectManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
@@ -20,6 +30,8 @@ const SubjectManager = () => {
   const confirm = useConfirm();
   const [language] = useLanguage();
   const t = subjectManagerTranslations[language];
+  const et = exportTranslations[language];
+  const schoolHeader = useSchoolHeader();
 
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -176,11 +188,43 @@ const SubjectManager = () => {
     }
   };
 
+  const exportColumns = [
+    { header: t.tableHeaderName, accessor: (s: Subject) => s.subject_title },
+  ];
+
+  const handleExportExcel = () => {
+    exportRowsToCsv(
+      buildExportFilename([t.title, connection, schoolYear, section], "csv"),
+      exportColumns,
+      subjects,
+      schoolHeader,
+    );
+  };
+
+  const handleExportPdf = () => {
+    exportRowsToPdf(
+      t.title,
+      buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
+      exportColumns,
+      subjects,
+      schoolHeader,
+    );
+  };
+
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-6 opacity-70 text-sm">{t.sectionHint(section)}</p>
+      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+      <div className="mb-6">
+        <ExportButtons
+          onExportExcel={handleExportExcel}
+          onExportPdf={handleExportPdf}
+          excelLabel={et.excelBtn}
+          pdfLabel={et.pdfBtn}
+          disabled={isLoading || subjects.length === 0}
+        />
+      </div>
 
       {isLoading ? (
         <Loading />

@@ -105,9 +105,11 @@ const SchoolInfoManager = () => {
   useEffect(() => {
     let cancelled = false;
     const resolveLogo = async () => {
-      const url = connection ? await SchoolInfoReader.fetchLogo(connection) : null;
+      const img = connection
+        ? await SchoolInfoReader.fetchLogoImage(connection)
+        : null;
       if (!cancelled) {
-        setExistingLogoUrl(url);
+        setExistingLogoUrl(img ? img.src : null);
       }
     };
     resolveLogo();
@@ -219,10 +221,6 @@ const SchoolInfoManager = () => {
     }
     if (fields.email.trim() && !isValidEmail(fields.email.trim())) {
       showToast(t.invalidEmail, { type: "warning" });
-      return;
-    }
-    if (!logoFile) {
-      showToast(t.logoRequired, { type: "warning" });
       return;
     }
 

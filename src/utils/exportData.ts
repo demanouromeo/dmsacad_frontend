@@ -1,3 +1,5 @@
+import { buildCsvLetterheadLines, drawPdfLetterhead, type SchoolHeader } from "./exportHeader";
+
 export interface ExportColumn<T> {
   header: string;
   accessor: (row: T) => string | number;
@@ -33,8 +35,10 @@ export const exportRowsToCsv = <T>(
   filename: string,
   columns: ExportColumn<T>[],
   rows: T[],
+  schoolHeader?: SchoolHeader,
 ): void => {
   const lines = [
+    ...(schoolHeader ? buildCsvLetterheadLines(schoolHeader) : []),
     columns.map((c) => csvEscape(c.header)).join(","),
     ...rows.map((row) =>
       columns.map((c) => csvEscape(c.accessor(row))).join(","),
@@ -52,16 +56,18 @@ export const exportRowsToPdf = async <T>(
   filename: string,
   columns: ExportColumn<T>[],
   rows: T[],
+  schoolHeader?: SchoolHeader,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
   ]);
   const doc = new jsPDF();
+  const y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
   doc.setFontSize(14);
-  doc.text(title, 14, 15);
+  doc.text(title, 14, y);
   autoTable(doc, {
-    startY: 20,
+    startY: y + 5,
     head: [columns.map((c) => c.header)],
     body: rows.map((row) => columns.map((c) => String(c.accessor(row)))),
   });

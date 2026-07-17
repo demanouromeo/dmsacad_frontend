@@ -488,9 +488,8 @@ export const schoolInfoTranslations = {
     requiredField: "Ce champ est obligatoire.",
     invalidPhone: "Le numéro de téléphone doit contenir entre 5 et 10 chiffres.",
     invalidEmail: "Veuillez saisir une adresse email valide.",
-    logoRequired: "Veuillez sélectionner un logo.",
     logoReselectHint:
-      "Logo actuel. Sélectionnez à nouveau un fichier pour l'enregistrer avec vos modifications.",
+      "Logo actuel. Sélectionnez un fichier uniquement si vous souhaitez le remplacer.",
     saveSuccess: "Information de l'établissement enregistrée avec succès.",
     saveFailure: "Échec de l'enregistrement de l'information de l'établissement.",
   },
@@ -518,9 +517,7 @@ export const schoolInfoTranslations = {
     requiredField: "This field is required.",
     invalidPhone: "Phone number must contain between 5 and 10 digits.",
     invalidEmail: "Please enter a valid email address.",
-    logoRequired: "Please select a logo.",
-    logoReselectHint:
-      "Current logo. Select a file again to save it along with your changes.",
+    logoReselectHint: "Current logo. Select a file only if you want to replace it.",
     saveSuccess: "Establishment information saved successfully.",
     saveFailure: "Failed to save the establishment information.",
   },

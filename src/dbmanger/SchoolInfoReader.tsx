@@ -20,26 +20,32 @@ const LOGO_EXTENSIONS = ["png", "jpg", "jpeg"] as const;
 const buildLogoUrl = (connection: string, extension: string): string =>
   `${MyConstants.getBaseUrl()}public/images/${connection}/logo/logo.${extension}`;
 
-// Static assets under /public aren't covered by the backend's CORS config (only api/* is), so a
-// cross-origin fetch()/HEAD probe would be blocked. Loading through an Image element sidesteps
-// that entirely - like a plain <img> tag, it doesn't require CORS headers to load/display.
-const probeImageUrl = (url: string): Promise<boolean> =>
+// Loading through an Image element (rather than fetch()/HEAD) means simple display doesn't need
+// any CORS headers - a plain <img> tag never did either. crossOrigin is still set to "anonymous"
+// so callers that need to read pixel data back out (jsPDF embeds the logo into exported PDFs via
+// <canvas>) get a non-tainted image; the images folder now sends Access-Control-Allow-Origin: *
+// (see public/images/.htaccess) specifically to make that work.
+const loadLogoImage = (url: string): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
     img.src = url;
   });
 
 export class SchoolInfoReader {
-  // Resolves the school logo's URL for the given connection by probing each known extension in
-  // turn, or null if none load. Used both by this form's own preview and by any other module
-  // (report headers, printed documents, ...) that needs to display the school logo.
-  public static fetchLogo = async (connection: string): Promise<string | null> => {
+  // Resolves the school logo for the given connection by probing each known extension in turn,
+  // or null if none load. Used both by this form's own preview (via .src) and by the export
+  // letterhead (utils/exportHeader.ts), which needs the loaded element itself to embed in a PDF.
+  public static fetchLogoImage = async (
+    connection: string,
+  ): Promise<HTMLImageElement | null> => {
     for (const extension of LOGO_EXTENSIONS) {
       const url = buildLogoUrl(connection, extension);
-      if (await probeImageUrl(url)) {
-        return url;
+      const img = await loadLogoImage(url);
+      if (img) {
+        return img;
       }
     }
     return null;
@@ -76,19 +82,22 @@ export class SchoolInfoReader {
 
   // Unlike the other *Reader classes' JSON POSTs, this endpoint accepts the logo as an uploaded
   // file, so the body must be multipart FormData - do not set a Content-Type header, the browser
-  // fills in the multipart boundary automatically.
+  // fills in the multipart boundary automatically. `logo` is optional: the backend only replaces
+  // the stored logo when one is actually sent, otherwise it keeps whatever's already on disk.
   public static saveSchoolInfo = async (
     accessToken: string | null,
     connection: string,
     year: string,
     fields: SchoolConfig,
-    logo: File,
+    logo: File | null,
   ): Promise<ApiResult> => {
     const targetUrl = `${MyConstants.getBaseUrl()}api/configs/schoolConfigSorU`;
     const formData = new FormData();
     formData.append("connection", connection);
     formData.append("year", year);
-    formData.append("logo", logo);
+    if (logo) {
+      formData.append("logo", logo);
+    }
     (Object.keys(fields) as (keyof SchoolConfig)[]).forEach((key) => {
       formData.append(key, fields[key]);
     });

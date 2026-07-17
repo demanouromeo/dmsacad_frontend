@@ -24,6 +24,7 @@ import {
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
+import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const ClasseManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
@@ -32,6 +33,7 @@ const ClasseManager = () => {
   const [language] = useLanguage();
   const t = classeManagerTranslations[language];
   const et = exportTranslations[language];
+  const schoolHeader = useSchoolHeader();
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
@@ -264,6 +266,7 @@ const ClasseManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "csv"),
       exportColumns,
       classes,
+      schoolHeader,
     );
   };
 
@@ -273,6 +276,7 @@ const ClasseManager = () => {
       buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
       exportColumns,
       classes,
+      schoolHeader,
     );
   };
 

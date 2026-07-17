@@ -23,6 +23,7 @@ import {
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
+import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const FUNCTION_CODES = [0, 1, 2, 3, 4, 5] as const;
 
@@ -33,6 +34,7 @@ const StaffManager = () => {
   const [language] = useLanguage();
   const t = staffManagerTranslations[language];
   const et = exportTranslations[language];
+  const schoolHeader = useSchoolHeader();
   const functionLabels = staffFunctionLabels[language];
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -281,6 +283,7 @@ const StaffManager = () => {
       buildExportFilename([t.title, connection, schoolYear], "csv"),
       exportColumns,
       staffList,
+      schoolHeader,
     );
   };
 
@@ -290,6 +293,7 @@ const StaffManager = () => {
       buildExportFilename([t.title, connection, schoolYear], "pdf"),
       exportColumns,
       staffList,
+      schoolHeader,
     );
   };
 
