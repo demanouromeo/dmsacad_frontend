@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
-import { CalendarDays, GraduationCap, Home, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  GraduationCap,
+  Home,
+  UserRound,
+} from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
 import { useLanguage } from "../../i18n/useLanguage";
 import { bannerTranslations } from "../../i18n/translations";
@@ -17,6 +23,11 @@ const TopBanner = () => {
     useAuth();
   const [language, setLanguage] = useLanguage();
   const t = bannerTranslations[language];
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Hidden on /dashboard - it's the root of the authenticated app, so browser history above it is
+  // either nothing or the unauthenticated login page, neither of which "back" should surface here.
+  const canGoBack = location.pathname !== "/dashboard";
 
   const [cookies] = useCookies([MyConstants.SCHOOL_HEADER_CONFIG_KEY]);
   const schoolHeaderConfig = cookies[MyConstants.SCHOOL_HEADER_CONFIG_KEY] as
@@ -73,36 +84,49 @@ const TopBanner = () => {
   return (
     <>
       <div className="navbar bg-base-100 shadow fixed top-0 inset-x-0 z-50 px-4">
-        <div className="flex-1 flex items-center gap-1">
+        <div className="flex-1 flex items-center gap-2 min-w-0">
           {logoUrl && (
             <img
               src={logoUrl}
               alt={t.logoAlt}
-              className="h-10 w-10 rounded object-contain mr-1"
+              className="h-10 w-10 rounded object-contain shrink-0"
             />
           )}
-          <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
-            <Link to="/dashboard" className="btn btn-ghost btn-circle">
-              <Home className="w-5 h-5" />
-            </Link>
-          </div>
-          <div className="tooltip tooltip-bottom" data-tip={t.schoolYearHint}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-circle"
-              onClick={openSchoolYearDialog}
-            >
-              <CalendarDays className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="tooltip tooltip-bottom" data-tip={t.sectionHint}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-circle"
-              onClick={openSectionDialog}
-            >
-              <GraduationCap className="w-5 h-5" />
-            </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {canGoBack && (
+              <div className="tooltip tooltip-bottom" data-tip={t.backHint}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-circle"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+            <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
+              <Link to="/dashboard" className="btn btn-ghost btn-circle">
+                <Home className="w-5 h-5" />
+              </Link>
+            </div>
+            <div className="tooltip tooltip-bottom" data-tip={t.schoolYearHint}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-circle"
+                onClick={openSchoolYearDialog}
+              >
+                <CalendarDays className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="tooltip tooltip-bottom" data-tip={t.sectionHint}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-circle"
+                onClick={openSectionDialog}
+              >
+                <GraduationCap className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 

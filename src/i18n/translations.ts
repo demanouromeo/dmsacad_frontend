@@ -55,6 +55,7 @@ export const loginTranslations = {
 export const bannerTranslations = {
   fr: {
     logoAlt: "Logo de l'établissement",
+    backHint: "Retour à la page précédente",
     homeHint: "Aller au tableau de bord",
     schoolYearHint: "Changer l'année scolaire",
     sectionHint: "Changer la section",
@@ -69,6 +70,7 @@ export const bannerTranslations = {
   },
   en: {
     logoAlt: "School logo",
+    backHint: "Back to the previous page",
     homeHint: "Go to dashboard",
     schoolYearHint: "Change the school year",
     sectionHint: "Change the section",
@@ -626,6 +628,83 @@ export const subjectManagerTranslations = {
     importFailure: "Failed to import the subjects.",
     importFailureDetail: (detail: string) =>
       `Failed to import the subjects. Details: ${detail}`,
+  },
+};
+
+// The 4 sub-modules reachable from the "Manage subjects" dashboard card (see subjectsHubTranslations
+// below). Only "matieres" (SubjectManager) and "groupes" (GroupeManager) are built - the hub renders
+// the other two as inert placeholder cards, same convention as AdminMenuGrid's unbuilt modules.
+export const subjectsHubTranslations = {
+  fr: {
+    title: "Gestion des matières",
+    matieres: "Gestion des matières",
+    groupes: "Gestion des groupes",
+    matieresClasses: "Matières et classes",
+    matieresCompetences: "Matières et compétences",
+  },
+  en: {
+    title: "Manage subjects",
+    matieres: "Manage subjects",
+    groupes: "Manage groups",
+    matieresClasses: "Subjects and classes",
+    matieresCompetences: "Subjects and competencies",
+  },
+};
+
+export const groupeManagerTranslations = {
+  fr: {
+    title: "Groupes",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderIndex: "Nº",
+    tableHeaderName: "Nom du groupe",
+    emptySection: "Aucun groupe pour cette section.",
+    saveBtn: "Enregistrer",
+    cancelBtn: "Annuler",
+    editBtn: "Modifier",
+    deleteSelectionBtn: (count: number) => `Supprimer la sélection (${count})`,
+    deleteConfirm: (count: number) => `Supprimer ${count} groupe(s) ?`,
+    addPlaceholder: "Nouveau groupe",
+    addBtn: "Ajouter",
+    nameTooShort: (min: number) =>
+      `Le nom du groupe doit contenir au moins ${min} caractères.`,
+    addSuccess: "Groupe enregistré avec succès.",
+    addDuplicate:
+      "Échec de l'enregistrement : un groupe portant le même nom existe déjà (dans cette section ou dans une autre section).",
+    addFailure: "Échec de l'ajout du groupe.",
+    renameSuccess: "Groupe mis à jour avec succès.",
+    renameDuplicate:
+      "Échec de la mise à jour : un groupe portant le même nom existe déjà (dans cette section ou dans une autre section).",
+    renameFailure: "Échec du renommage du groupe.",
+    deleteSuccess: "Groupe supprimé avec succès.",
+    deleteFailure: "Échec de la suppression d'au moins un groupe.",
+  },
+  en: {
+    title: "Groups",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderIndex: "Nº",
+    tableHeaderName: "Group name",
+    emptySection: "No group for this section.",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
+    editBtn: "Edit",
+    deleteSelectionBtn: (count: number) => `Delete selection (${count})`,
+    deleteConfirm: (count: number) => `Delete ${count} group(s)?`,
+    addPlaceholder: "New group",
+    addBtn: "Add",
+    nameTooShort: (min: number) =>
+      `The group name must contain at least ${min} characters.`,
+    addSuccess: "Group saved successfully.",
+    addDuplicate:
+      "Failed to save: a group with the same name already exists (within the section or in another section).",
+    addFailure: "Failed to add the group.",
+    renameSuccess: "Group successfully updated.",
+    renameDuplicate:
+      "Failed to update: a group with the same name already exists (within the section or in another section).",
+    renameFailure: "Failed to rename the group.",
+    deleteSuccess: "Group deleted successfully.",
+    deleteFailure: "Failed to delete at least one group.",
   },
 };
 
