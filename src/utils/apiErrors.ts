@@ -5,3 +5,12 @@
 // Speciality/Classe's "already exists".
 export const isDuplicateNameError = (message: string): boolean =>
   /duplicate|already exists|already used/i.test(message);
+
+// Some backend error messages (e.g. ClasseController::saveManyClasses' partial-failure summary)
+// are built with raw `<br/>` separators rather than being localized/structured - strip them down to
+// plain text so they're readable inside a toast instead of showing literal "<br/>" characters.
+export const stripHtmlTags = (message: string): string =>
+  message
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .trim();

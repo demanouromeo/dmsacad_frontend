@@ -31,3 +31,10 @@ export const computeResponsable = (type: string): Responsable => {
   }
   return { fr: "Proviseur", en: "Principal" };
 };
+
+// CES/CETIC/CETIC BILINGUE only go up to level 4 (classes de 6e-3e); every other type (LYCEE,
+// COLLEGE, ENIEG and their variants) goes up to level 7 (classes de 6e-Terminale).
+const SHORT_CYCLE_TYPES = ["CES", "CETIC", "CETIC BILINGUE"];
+
+export const computeMaxClasseLevel = (type: string): number =>
+  SHORT_CYCLE_TYPES.includes(type.toUpperCase()) ? 4 : 7;

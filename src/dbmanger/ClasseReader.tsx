@@ -126,16 +126,67 @@ export class ClasseReader {
     );
   };
 
+  // Backs the Excel/CSV import feature - sg_id/classe_master_id/speciality_name are always sent as
+  // null since the imported file only carries name+level, and the backend writes whatever key is
+  // present (or null) straight onto classe_year (see updateClasses' comment above).
+  public static saveManyClasses = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    rows: { classe_name: string; level: number }[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/saveManyClasses",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        data: JSON.stringify(
+          rows.map((r) => ({
+            classe_name: r.classe_name,
+            level: r.level,
+            sg_id: null,
+            classe_master_id: null,
+            speciality_name: null,
+          })),
+        ),
+        data_size: rows.length,
+      },
+      "saveManyClasses",
+    );
+  };
+
+  // Destructive - deletes every classe for the given section+year (used by the import feature's
+  // "override" path). Unlike deleteClasses, takes no classe_id list: the backend clears the whole
+  // section+year in one shot.
+  public static deleteClassesOfSectionAndYear = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/deleteClassesOfSectionAndYear",
+      accessToken,
+      { connection, year, section },
+      "deleteClassesOfSectionAndYear",
+      "DELETE",
+    );
+  };
+
   private static postJson = async (
     path: string,
     accessToken: string | null,
     body: object,
     callerName: string,
+    method: "POST" | "DELETE" = "POST",
   ): Promise<ApiResult> => {
     const targetUrl = `${MyConstants.getBaseUrl()}${path}`;
     try {
       const response = await fetch(targetUrl, {
-        method: "POST",
+        method,
         headers: {
           accept: "application/json",
           "Content-Type": "application/json",

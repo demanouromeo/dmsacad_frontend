@@ -53,6 +53,38 @@ export class SchoolInfoReader {
     return loadImageElement(buildLogoUrl(logoPath), needsCanvasAccess);
   };
 
+  // Loads the logo for PDF/export embedding through the authenticated /api/configs/schoolLogo
+  // proxy instead of the static public/images/ path loadLogoImage uses - that static path works
+  // fine for plain display, but embedding into a PDF requires reading the pixels back out of a
+  // <canvas>, which the browser blocks (tainted canvas) unless the response carries
+  // Access-Control-Allow-Origin. The remote host's static-file CDN doesn't send that header and it
+  // isn't something this app can configure, whereas /api/* routes already get it from Laravel's own
+  // CORS middleware (confirmed working remotely for every other endpoint). Fetching the bytes as a
+  // Blob and handing the resulting blob: object URL to <img> (rather than a plain <img crossOrigin>
+  // pointed at the API URL) sidesteps crossOrigin/CORS entirely for the canvas read that follows -
+  // blob: URLs are always same-origin regardless of where the bytes actually came from.
+  public static loadLogoImageForExport = async (
+    accessToken: string | null,
+    connection: string,
+  ): Promise<HTMLImageElement | null> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/configs/schoolLogo?connection=${encodeURIComponent(connection)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const blob = await response.blob();
+      return loadImageElement(URL.createObjectURL(blob), false);
+    } catch (error) {
+      console.error(`SchoolInfoReader.loadLogoImageForExport(): Error: ${error}`);
+      return null;
+    }
+  };
+
   // Backs the school header (logo + identity fields) shown on printed/exported documents.
   // Returns null on any failure/empty result rather than alert()ing - this runs silently on
   // every login, not from a user-facing form, so there's nothing useful to alert() about.

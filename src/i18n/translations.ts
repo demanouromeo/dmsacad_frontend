@@ -176,6 +176,7 @@ export const specialityManagerTranslations = {
     title: "Spécialités",
     sectionHint: (section: string) =>
       `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Nom de la spécialité",
     tableHeaderFiliere: "Filière",
     tableHeaderDescription: "Description",
@@ -207,6 +208,7 @@ export const specialityManagerTranslations = {
     title: "Specialities",
     sectionHint: (section: string) =>
       `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Speciality name",
     tableHeaderFiliere: "Option",
     tableHeaderDescription: "Description",
@@ -241,6 +243,7 @@ export const classeManagerTranslations = {
     title: "Classes",
     sectionHint: (section: string) =>
       `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Nom de la classe",
     tableHeaderLevel: "Niveau",
     tableHeaderSpeciality: "Spécialité",
@@ -256,7 +259,8 @@ export const classeManagerTranslations = {
     addBtn: "Ajouter",
     nameTooShort: (min: number) =>
       `Le nom de la classe doit contenir au moins ${min} caractères.`,
-    levelInvalid: "Le niveau doit être un nombre entier positif.",
+    levelInvalid: (max: number) =>
+      `Le niveau doit être un nombre entier compris entre 1 et ${max}.`,
     addSuccess: "Classe enregistrée avec succès.",
     addDuplicate:
       "Échec de l'enregistrement du nom de la classe, car une classe portant le même nom existe déjà (dans cette section ou dans une autre section).",
@@ -267,11 +271,39 @@ export const classeManagerTranslations = {
     updateFailure: "Échec de la modification de la classe.",
     deleteSuccess: "Classe supprimée avec succès.",
     deleteFailure: "Échec de la suppression d'au moins une classe.",
+    importBtn: "Importer",
+    importUnsupportedExtension:
+      "Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv.",
+    importEmptyFile:
+      "Le fichier est vide ou ne contient aucune ligne de données.",
+    importBadHeader:
+      "Le fichier ne respecte pas la structure attendue : la première ligne doit contenir trois colonnes.",
+    importEmptyName: (row: number) =>
+      `Le fichier ne respecte pas la structure attendue : le nom de la classe est vide (ligne ${row}, colonne B).`,
+    importInvalidLevel: (row: number) =>
+      `Le fichier ne respecte pas la structure attendue : le niveau doit être un nombre (ligne ${row}, colonne C).`,
+    importOverrideQuestion:
+      "Voulez-vous remplacer toutes les classes existantes de l'année scolaire en cours par celles du fichier importé, ou les ajouter à la liste actuelle ?",
+    importOverrideBtn: "Remplacer",
+    importAddWithoutOverrideBtn: "Ajouter",
+    importOverrideConfirmAgain:
+      "Cette action supprimera définitivement toutes les classes existantes de l'année scolaire en cours avant d'importer les nouvelles. Confirmez-vous ?",
+    importOverrideFinalBtn: "Oui, remplacer",
+    importDuplicateFound: (name: string, row: number) =>
+      `Le fichier contient une classe déjà existante dans la base de données : "${name}" (ligne ${row}, colonne B). Import annulé.`,
+    importDeleteFailure:
+      "Échec de la suppression des classes existantes. L'import a été annulé.",
+    importSuccess: (count: number) =>
+      `${count} classe(s) importée(s) avec succès.`,
+    importFailure: "Échec de l'import des classes.",
+    importFailureDetail: (detail: string) =>
+      `Échec de l'import des classes. Détails : ${detail}`,
   },
   en: {
     title: "Classes",
     sectionHint: (section: string) =>
       `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Classe name",
     tableHeaderLevel: "Level",
     tableHeaderSpeciality: "Speciality",
@@ -287,7 +319,8 @@ export const classeManagerTranslations = {
     addBtn: "Add",
     nameTooShort: (min: number) =>
       `The classe name must contain at least ${min} characters.`,
-    levelInvalid: "The level must be a positive whole number.",
+    levelInvalid: (max: number) =>
+      `The level must be a whole number between 1 and ${max}.`,
     addSuccess: "Classe saved successfully.",
     addDuplicate:
       "Failed to save the classe name, because a classe with the same name already exists (within the section or in another section).",
@@ -298,6 +331,31 @@ export const classeManagerTranslations = {
     updateFailure: "Failed to update the classe.",
     deleteSuccess: "Classe deleted successfully.",
     deleteFailure: "Failed to delete at least one classe.",
+    importBtn: "Import",
+    importUnsupportedExtension:
+      "Unsupported file format. Use an .xlsx or .csv file.",
+    importEmptyFile: "The file is empty or contains no data row.",
+    importBadHeader:
+      "The file does not match the expected structure: the first row must have three columns.",
+    importEmptyName: (row: number) =>
+      `The file does not match the expected structure: the classe name is empty (row ${row}, column B).`,
+    importInvalidLevel: (row: number) =>
+      `The file does not match the expected structure: the level must be a number (row ${row}, column C).`,
+    importOverrideQuestion:
+      "Do you want to replace all existing classes of the current school year with the ones in the imported file, or add them to the current list?",
+    importOverrideBtn: "Replace",
+    importAddWithoutOverrideBtn: "Add",
+    importOverrideConfirmAgain:
+      "This will permanently delete all existing classes of the current school year before importing the new ones. Confirm?",
+    importOverrideFinalBtn: "Yes, replace",
+    importDuplicateFound: (name: string, row: number) =>
+      `The file contains a classe that already exists in the database: "${name}" (row ${row}, column B). Import cancelled.`,
+    importDeleteFailure:
+      "Failed to delete the existing classes. The import was cancelled.",
+    importSuccess: (count: number) => `${count} classe(s) imported successfully.`,
+    importFailure: "Failed to import the classes.",
+    importFailureDetail: (detail: string) =>
+      `Failed to import the classes. Details: ${detail}`,
   },
 };
 

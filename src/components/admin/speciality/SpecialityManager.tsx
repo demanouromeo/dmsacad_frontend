@@ -231,6 +231,10 @@ const SpecialityManager = () => {
 
   const exportColumns = [
     {
+      header: t.tableHeaderIndex,
+      accessor: (_s: Speciality, index: number) => index + 1,
+    },
+    {
       header: t.tableHeaderName,
       accessor: (s: Speciality) => s.speciality_name,
     },

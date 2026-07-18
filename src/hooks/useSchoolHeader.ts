@@ -27,9 +27,12 @@ export const useSchoolHeader = (): SchoolHeader => {
         connection,
         schoolYear,
       );
-      const logoImage = await SchoolInfoReader.loadLogoImage(
-        config?.logo_path,
-        true,
+      // Goes through the API proxy (loadLogoImageForExport), not the static-file loadLogoImage
+      // the school-info preview uses - this logo gets embedded into a PDF via canvas (see
+      // exportHeader.ts), which needs CORS headers the remote static-file host doesn't send.
+      const logoImage = await SchoolInfoReader.loadLogoImageForExport(
+        accessToken,
+        connection,
       );
       if (!cancelled) {
         setHeader({ config, logoImage });

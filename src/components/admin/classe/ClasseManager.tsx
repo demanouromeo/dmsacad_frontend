@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Upload } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
+import { MyConstants } from "../../../dbmanger/MyConstants";
+import { computeMaxClasseLevel } from "../../../utils/schoolTypes";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -18,13 +21,36 @@ import {
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
   sanitizeFiliereOrSpecialityName,
 } from "../../../utils/textValidation";
-import { isDuplicateNameError } from "../../../utils/apiErrors";
+import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildExportFilename,
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import {
+  parseImportFile,
+  type ImportedClasse,
+  type ImportError,
+} from "../../../utils/classeImport";
+
+const mapImportErrorToMessage = (
+  error: ImportError,
+  t: (typeof classeManagerTranslations)["fr"],
+): string => {
+  switch (error.type) {
+    case "unsupportedExtension":
+      return t.importUnsupportedExtension;
+    case "emptyFile":
+      return t.importEmptyFile;
+    case "badHeader":
+      return t.importBadHeader;
+    case "emptyName":
+      return t.importEmptyName(error.row);
+    case "invalidLevel":
+      return t.importInvalidLevel(error.row);
+  }
+};
 
 const ClasseManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
@@ -34,6 +60,13 @@ const ClasseManager = () => {
   const t = classeManagerTranslations[language];
   const et = exportTranslations[language];
   const schoolHeader = useSchoolHeader();
+  // The establishment type is seeded/kept in sync by SchoolInfoManager (see its "Session variables"
+  // convention) - read directly rather than recomputing it, same as other modules needing school
+  // identity info. CES/CETIC/CETIC BILINGUE only go up to level 4, every other type up to level 7.
+  const schoolType =
+    sessionStorage.getItem(MyConstants.SCHOOL_TYPE_KEY) ??
+    MyConstants.DEFAULT_SCHOOL_TYPE;
+  const maxLevel = computeMaxClasseLevel(schoolType);
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
@@ -41,13 +74,14 @@ const ClasseManager = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const [newClasseName, setNewClasseName] = useState("");
-  const [newLevel, setNewLevel] = useState("");
+  const [newLevel, setNewLevel] = useState("1");
   const [newSpecialityId, setNewSpecialityId] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingLevel, setEditingLevel] = useState("");
   const [editingSpecialityId, setEditingSpecialityId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadClasses = async () => {
     setIsLoading(true);
@@ -84,7 +118,7 @@ const ClasseManager = () => {
       return null;
     }
     const parsed = Number(trimmed);
-    return parsed >= 1 ? parsed : null;
+    return parsed >= 1 && parsed <= maxLevel ? parsed : null;
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -101,7 +135,7 @@ const ClasseManager = () => {
     }
     const level = parseLevel(newLevel);
     if (level === null) {
-      showToast(t.levelInvalid, { type: "warning" });
+      showToast(t.levelInvalid(maxLevel), { type: "warning" });
       return;
     }
     const speciality = specialities.find(
@@ -121,7 +155,7 @@ const ClasseManager = () => {
     if (result.status) {
       showToast(t.addSuccess, { type: "info" });
       setNewClasseName("");
-      setNewLevel("");
+      setNewLevel("1");
       setNewSpecialityId("");
       loadClasses();
     } else {
@@ -156,7 +190,7 @@ const ClasseManager = () => {
     }
     const level = parseLevel(editingLevel);
     if (level === null) {
-      showToast(t.levelInvalid, { type: "warning" });
+      showToast(t.levelInvalid(maxLevel), { type: "warning" });
       return;
     }
     const specialityId = editingSpecialityId ? Number(editingSpecialityId) : null;
@@ -252,7 +286,119 @@ const ClasseManager = () => {
     }
   };
 
+  // The backend only rejects an import as a duplicate when a classe_name already has a classe_year
+  // record for the *current school year*, regardless of section (see ClasseController::
+  // saveManyClasses/saveClasse - the uniqueness check has no section_id filter). Section is always
+  // one of exactly these two literal values in this app (see LoginForm/TopBanner), so checking both
+  // is equivalent to checking "the whole database for this year" without needing a new backend
+  // endpoint. Always re-fetched live (not read from the `classes` state) so this is accurate even
+  // right after the override path's delete.
+  const findDuplicateAgainstDatabase = async (
+    rows: ImportedClasse[],
+  ): Promise<ImportedClasse | null> => {
+    const otherSection = section === "francophone" ? "anglophone" : "francophone";
+    const [currentSectionClasses, otherSectionClasses] = await Promise.all([
+      ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
+      ClasseReader.fetchClasses(accessToken, connection, schoolYear, otherSection),
+    ]);
+    const existingNames = new Set(
+      [...currentSectionClasses, ...otherSectionClasses].map((c) =>
+        c.classe_name.trim().toLowerCase(),
+      ),
+    );
+    return (
+      rows.find((r) => existingNames.has(r.classe_name.trim().toLowerCase())) ??
+      null
+    );
+  };
+
+  const saveImportedClasses = async (rows: ImportedClasse[]) => {
+    setIsSaving(true);
+    const duplicate = await findDuplicateAgainstDatabase(rows);
+    if (duplicate) {
+      setIsSaving(false);
+      showToast(
+        t.importDuplicateFound(duplicate.classe_name, duplicate.sourceRow),
+        { type: "danger" },
+      );
+      return;
+    }
+    const saveResult = await ClasseReader.saveManyClasses(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+      rows,
+    );
+    setIsSaving(false);
+    if (saveResult.status) {
+      showToast(t.importSuccess(rows.length), { type: "info" });
+      loadClasses();
+    } else {
+      // The backend's message names exactly which class(es) it rejected and why (e.g. invalid
+      // characters) - surface it rather than a generic failure toast.
+      const detail = stripHtmlTags(saveResult.message);
+      showToast(
+        detail ? t.importFailureDetail(detail) : t.importFailure,
+        { type: "danger" },
+      );
+    }
+  };
+
+  const handleImportFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    setIsSaving(true);
+    const parsed = await parseImportFile(file);
+    setIsSaving(false);
+    if (!parsed.status) {
+      showToast(mapImportErrorToMessage(parsed.error, t), { type: "danger" });
+      return;
+    }
+
+    const wantsOverride = await confirm(t.importOverrideQuestion, {
+      confirmLabel: t.importOverrideBtn,
+      cancelLabel: t.importAddWithoutOverrideBtn,
+    });
+
+    if (wantsOverride) {
+      const reallyOverride = await confirm(t.importOverrideConfirmAgain, {
+        danger: true,
+        confirmLabel: t.importOverrideFinalBtn,
+      });
+      if (!reallyOverride) {
+        return;
+      }
+      setIsSaving(true);
+      const delResult = await ClasseReader.deleteClassesOfSectionAndYear(
+        accessToken,
+        connection,
+        schoolYear,
+        section,
+      );
+      if (!delResult.status) {
+        setIsSaving(false);
+        showToast(t.importDeleteFailure, { type: "danger" });
+        return;
+      }
+      await saveImportedClasses(parsed.classes);
+      return;
+    }
+
+    await saveImportedClasses(parsed.classes);
+  };
+
   const exportColumns = [
+    {
+      header: t.tableHeaderIndex,
+      accessor: (_c: Classe, index: number) => index + 1,
+    },
     { header: t.tableHeaderName, accessor: (c: Classe) => c.classe_name },
     { header: t.tableHeaderLevel, accessor: (c: Classe) => c.level },
     {
@@ -284,7 +430,7 @@ const ClasseManager = () => {
       {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
       <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap gap-2 items-center">
         <ExportButtons
           onExportExcel={handleExportExcel}
           onExportPdf={handleExportPdf}
@@ -292,6 +438,22 @@ const ClasseManager = () => {
           pdfLabel={et.pdfBtn}
           disabled={isLoading || classes.length === 0}
         />
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept=".csv,.xlsx"
+          className="hidden"
+          onChange={handleImportFileChange}
+        />
+        <button
+          type="button"
+          className="btn btn-neutral gap-2"
+          disabled={isLoading}
+          onClick={() => importFileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" />
+          {t.importBtn}
+        </button>
       </div>
 
       {isLoading ? (
@@ -357,6 +519,7 @@ const ClasseManager = () => {
                         <input
                           type="number"
                           min={1}
+                          max={maxLevel}
                           className="input input-sm w-20"
                           value={editingLevel}
                           onChange={(e) => setEditingLevel(e.target.value)}
@@ -460,6 +623,7 @@ const ClasseManager = () => {
         <input
           type="number"
           min={1}
+          max={maxLevel}
           className="input w-24"
           placeholder={t.levelPlaceholder}
           value={newLevel}
