@@ -12,6 +12,7 @@ import SubjectManager from "./components/admin/subject/SubjectManager";
 import SubjectsHub from "./components/admin/subject/SubjectsHub";
 import GroupeManager from "./components/admin/groupe/GroupeManager";
 import SubjectClasseManager from "./components/admin/subjectclasse/SubjectClasseManager";
+import SubjectCompetenceManager from "./components/admin/subjectcompetence/SubjectCompetenceManager";
 import StaffManager from "./components/admin/staff/StaffManager";
 import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
 import { useCookies } from "react-cookie";
@@ -46,6 +47,10 @@ function App() {
                 <Route
                   path="/admin/subjects/matieres-classes"
                   element={<SubjectClasseManager />}
+                />
+                <Route
+                  path="/admin/subjects/matieres-competences"
+                  element={<SubjectCompetenceManager />}
                 />
                 <Route path="/admin/staffs" element={<StaffManager />} />
                 <Route

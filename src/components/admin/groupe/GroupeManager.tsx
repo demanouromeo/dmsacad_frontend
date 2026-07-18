@@ -41,6 +41,7 @@ const GroupeManager = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadGroupes = async () => {
     setIsLoading(true);
@@ -57,8 +58,13 @@ const GroupeManager = () => {
 
   useEffect(() => {
     loadGroupes();
+    setSearchQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
+
+  const filteredGroupes = groupes.filter((g) =>
+    g.groupe_name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,12 +155,23 @@ const GroupeManager = () => {
     });
   };
 
+  // Operates on the currently filtered rows, not the whole list - selecting "all" while a search is
+  // active only selects what's visible, matching what the user can see they're selecting.
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === groupes.length
-        ? new Set()
-        : new Set(groupes.map((g) => g.groupe_id)),
-    );
+    const filteredIds = filteredGroupes.map((g) => g.groupe_id);
+    const allFilteredSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => {
+        if (allFilteredSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
@@ -228,6 +245,13 @@ const GroupeManager = () => {
         <Loading />
       ) : (
         <>
+          <input
+            type="text"
+            className="input w-full max-w-2xl mb-4"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <div className="overflow-x-auto w-full max-w-2xl mx-auto mb-4">
             <table className="table w-full">
               <thead>
@@ -237,8 +261,8 @@ const GroupeManager = () => {
                       type="checkbox"
                       className="checkbox"
                       checked={
-                        groupes.length > 0 &&
-                        selectedIds.size === groupes.length
+                        filteredGroupes.length > 0 &&
+                        filteredGroupes.every((g) => selectedIds.has(g.groupe_id))
                       }
                       onChange={toggleSelectAll}
                     />
@@ -249,7 +273,7 @@ const GroupeManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {groupes.map((groupe, index) => (
+                {filteredGroupes.map((groupe, index) => (
                   <tr key={groupe.groupe_id}>
                     <td>
                       <input
@@ -313,6 +337,13 @@ const GroupeManager = () => {
                   <tr>
                     <td colSpan={4} className="text-center opacity-60">
                       {t.emptySection}
+                    </td>
+                  </tr>
+                )}
+                {groupes.length > 0 && filteredGroupes.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center opacity-60">
+                      {t.noSearchResults}
                     </td>
                   </tr>
                 )}

@@ -6,9 +6,9 @@ import iconGroup from "../../../assets/compo/group/group.png";
 import iconSubjectsOfClass from "../../../assets/compo/group/subjects_of_class.png";
 import iconCompetence from "../../../assets/compo/group/competence.png";
 
-// Landing page for the "Manage subjects" dashboard card - its 4 sub-modules. Only "matieres"
-// (SubjectManager) and "groupes" (GroupeManager) are built; the other two render as inert cards
-// (no `to`), same convention AdminMenuGrid uses for unbuilt modules.
+// Landing page for the "Manage subjects" dashboard card - its 4 sub-modules, all built:
+// "matieres" (SubjectManager), "groupes" (GroupeManager), "matieresClasses" (SubjectClasseManager),
+// "matieresCompetences" (SubjectCompetenceManager).
 const SubjectsHub = () => {
   const [language] = useLanguage();
   const t = subjectsHubTranslations[language];
@@ -36,6 +36,7 @@ const SubjectsHub = () => {
       key: "matieresCompetences",
       label: t.matieresCompetences,
       icon: iconCompetence,
+      to: "/admin/subjects/matieres-competences",
     },
   ];
 

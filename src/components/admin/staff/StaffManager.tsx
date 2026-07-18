@@ -83,6 +83,7 @@ const StaffManager = () => {
   const [editingLogin, setEditingLogin] = useState("");
   const [editingNewPassword, setEditingNewPassword] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadStaff = async () => {
@@ -99,6 +100,7 @@ const StaffManager = () => {
 
   useEffect(() => {
     loadStaff();
+    setSearchQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear]);
 
@@ -250,12 +252,23 @@ const StaffManager = () => {
     });
   };
 
+  // Operates on the currently filtered rows, not the whole list - selecting "all" while a search is
+  // active only selects what's visible, matching what the user can see they're selecting.
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === staffList.length
-        ? new Set()
-        : new Set(staffList.map((s) => s.staff_id)),
-    );
+    const filteredIds = filteredStaffList.map((s) => s.staff_id);
+    const allFilteredSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => {
+        if (allFilteredSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
@@ -369,6 +382,18 @@ const StaffManager = () => {
   const functionLabel = (code: number): string =>
     functionLabels[code as keyof typeof functionLabels] ?? String(code);
 
+  const filteredStaffList = staffList.filter((s) => {
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.surname ?? "").toLowerCase().includes(q) ||
+      (s.phone1 ?? "").toLowerCase().includes(q) ||
+      (s.civility ?? "").toLowerCase().includes(q) ||
+      s.login.toLowerCase().includes(q) ||
+      functionLabel(s.function).toLowerCase().includes(q)
+    );
+  });
+
   // Never include `pwd` (or anything password-derived) in these columns.
   const exportColumns = [
     { header: t.tableHeaderName, accessor: (s: Staff) => s.name },
@@ -435,6 +460,13 @@ const StaffManager = () => {
         <Loading />
       ) : (
         <>
+          <input
+            type="text"
+            className="input w-full max-w-md mb-4"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <div className="overflow-x-auto w-full mb-4">
             <table className="table w-full">
               <thead>
@@ -444,8 +476,10 @@ const StaffManager = () => {
                       type="checkbox"
                       className="checkbox"
                       checked={
-                        staffList.length > 0 &&
-                        selectedIds.size === staffList.length
+                        filteredStaffList.length > 0 &&
+                        filteredStaffList.every((s) =>
+                          selectedIds.has(s.staff_id),
+                        )
                       }
                       onChange={toggleSelectAll}
                     />
@@ -463,7 +497,7 @@ const StaffManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {staffList.map((staff, index) => {
+                {filteredStaffList.map((staff, index) => {
                   const isEditing = editingId === staff.staff_id;
                   return (
                     <tr key={staff.staff_id}>
@@ -626,6 +660,13 @@ const StaffManager = () => {
                   <tr>
                     <td colSpan={11} className="text-center opacity-60">
                       {t.emptyList}
+                    </td>
+                  </tr>
+                )}
+                {staffList.length > 0 && filteredStaffList.length === 0 && (
+                  <tr>
+                    <td colSpan={11} className="text-center opacity-60">
+                      {t.noSearchResults}
                     </td>
                   </tr>
                 )}

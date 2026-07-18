@@ -63,6 +63,7 @@ const SubjectManager = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadSubjects = async () => {
@@ -80,8 +81,13 @@ const SubjectManager = () => {
 
   useEffect(() => {
     loadSubjects();
+    setSearchQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
+
+  const filteredSubjects = subjects.filter((s) =>
+    s.subject_title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,12 +182,23 @@ const SubjectManager = () => {
     });
   };
 
+  // Operates on the currently filtered rows, not the whole list - selecting "all" while a search is
+  // active only selects what's visible, matching what the user can see they're selecting.
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === subjects.length
-        ? new Set()
-        : new Set(subjects.map((s) => s.subject_id)),
-    );
+    const filteredIds = filteredSubjects.map((s) => s.subject_id);
+    const allFilteredSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => {
+        if (allFilteredSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
@@ -367,6 +384,13 @@ const SubjectManager = () => {
         <Loading />
       ) : (
         <>
+          <input
+            type="text"
+            className="input w-full max-w-2xl mb-4"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <div className="overflow-x-auto w-full max-w-2xl mx-auto mb-4">
             <table className="table w-full">
               <thead>
@@ -376,8 +400,10 @@ const SubjectManager = () => {
                       type="checkbox"
                       className="checkbox"
                       checked={
-                        subjects.length > 0 &&
-                        selectedIds.size === subjects.length
+                        filteredSubjects.length > 0 &&
+                        filteredSubjects.every((s) =>
+                          selectedIds.has(s.subject_id),
+                        )
                       }
                       onChange={toggleSelectAll}
                     />
@@ -388,7 +414,7 @@ const SubjectManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {subjects.map((subject, index) => (
+                {filteredSubjects.map((subject, index) => (
                   <tr key={subject.subject_id}>
                     <td>
                       <input
@@ -454,6 +480,13 @@ const SubjectManager = () => {
                   <tr>
                     <td colSpan={4} className="text-center opacity-60">
                       {t.emptySection}
+                    </td>
+                  </tr>
+                )}
+                {subjects.length > 0 && filteredSubjects.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center opacity-60">
+                      {t.noSearchResults}
                     </td>
                   </tr>
                 )}

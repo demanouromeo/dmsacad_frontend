@@ -1,6 +1,7 @@
 import { MyConstants } from "./MyConstants";
 import type { Subject } from "../interfaces/Subject";
 import type { SubjectClasseRow } from "../interfaces/SubjectClasseRow";
+import type { SubjectCompetence } from "../interfaces/SubjectCompetence";
 import type { ApiResult } from "../interfaces/ApiResult";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
@@ -311,6 +312,129 @@ export class SubjectReader {
       console.error(`SubjectReader.calquerSubjects(): Error: ${error}`);
       return NETWORK_ERROR_RESULT;
     }
+  };
+
+  // Backs "Subjects and competencies" - competences of one (classe, subject, term) in the current
+  // section+year (SubjectController::allCompetences1). Unlike allCompetences/allCompetencesOfSection
+  // (broader, section-wide listings not used here), this is the one scoped to what the screen
+  // actually displays.
+  public static fetchCompetences = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    classeId: number,
+    subjectId: number,
+    termId: number,
+  ): Promise<SubjectCompetence[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/subjects/allCompetences1` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}` +
+      `&classe_id=${classeId}` +
+      `&subject_id=${subjectId}` +
+      `&term_id=${termId}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `SubjectReader.fetchCompetences(): Error fetching competences: ${error}`,
+      );
+      return [];
+    }
+  };
+
+  public static saveCompetence = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    classeId: number,
+    subjectId: number,
+    termId: number,
+    competenceText: string,
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/saveCompetence",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        classe_id: classeId,
+        subject_id: subjectId,
+        term_id: termId,
+        competence_text: competenceText,
+      },
+      "saveCompetence",
+    );
+  };
+
+  // No single-item update endpoint is used here, same as updateSubjects - updateACompetence exists
+  // server-side but updateManyCompetences covers the same one-element-array shape.
+  public static updateCompetences = async (
+    accessToken: string | null,
+    connection: string,
+    updates: { subject_competence_id: number; competence_text: string }[],
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/updateManyCompetences",
+      accessToken,
+      {
+        connection,
+        data: JSON.stringify(updates),
+        data_size: updates.length,
+      },
+      "updateCompetences",
+    );
+  };
+
+  public static deleteCompetences = async (
+    accessToken: string | null,
+    connection: string,
+    competenceIds: number[],
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/deleteManyCompetences",
+      accessToken,
+      {
+        connection,
+        data: JSON.stringify(
+          competenceIds.map((id) => ({ subject_competence_id: id })),
+        ),
+        data_size: competenceIds.length,
+      },
+      "deleteCompetences",
+    );
+  };
+
+  // Destructive - deletes every competence of one classe for the current school year, across every
+  // subject and term (SubjectController::deleteCompetencesOfAClasse) - backs the classe-level "delete
+  // all competences" icon button, not the row-level multi-select delete above.
+  public static deleteCompetencesOfAClasse = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    classeId: number,
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/deleteCompetencesOfAClasse",
+      accessToken,
+      { connection, year, classe_id: classeId },
+      "deleteCompetencesOfAClasse",
+      "DELETE",
+    );
   };
 
   private static postJson = async (

@@ -8,6 +8,8 @@ export const MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH = 2;
 
 export const MAX_SPECIALITY_DESCRIPTION_LENGTH = 55;
 
+export const MAX_COMPETENCE_TEXT_LENGTH = 300;
+
 export const sanitizeFiliereOrSpecialityName = (value: string): string =>
   value.replace(allowedCharactersForFiliereAndSpecialityRegex, "");
 

@@ -334,6 +334,69 @@ established pattern — when adding a new admin CRUD screen, follow this shape r
   entirely to leave the account password unchanged rather than round-tripping the plaintext value the list
   endpoint returns (the backend only rotates the password when a non-empty value is supplied).
 
+### Subjects hub and the APC / competence-based classe concept
+
+`/admin/subjects` (`SubjectsHub.tsx`) is a landing page for 4 sub-modules, not a CRUD screen itself —
+`AdminMenuCard` tiles, each with its own route nested in the same `RequireRole allow={["ADMIN"]}` group as
+every other `/admin/*` route: `matieres` (`/admin/subjects/matieres`, `SubjectManager` — the plain subject-name
+CRUD described above), `groupes` (`/admin/subjects/groupes`, `GroupeManager` — same CRUD shape, no import
+feature), `matieresClasses` (`/admin/subjects/matieres-classes`, `SubjectClasseManager` — dual-list
+assign/unassign of subjects to one classe, editing `coef`/`groupe_id`, with a "copy to other classes of the
+same level" dialog backed by `SubjectController::calquerSubjects`), and `matieresCompetences`
+(`/admin/subjects/matieres-competences`, `SubjectCompetenceManager` — see below).
+
+**A classe is "APC" (competence-based) indirectly, never via its own column.** The backend's `apc_level`
+table is keyed by `(sy_id, section_id, level)`, not by `classe_id` — so being competence-based is a trait of
+every classe *at that level*, shared across the whole level, not a per-classe flag. `ClasseReader.fetchApcLevels
+(accessToken, connection, year, section)` (`GET /api/classes/getAPCLevels`) returns `ApcLevel[]`
+(`{level, activated}`); `ClasseManager` builds a `Map<number, boolean>` from it and exposes
+`isLevelApc(level) => apcLevels.get(level) === true` — reuse this exact `fetchApcLevels` +
+`Map<level, boolean>` + `isLevelApc` pattern (not a new endpoint or a per-classe field) anywhere else "is this
+classe competence-based?" needs answering. `ClasseManager` also lets ADMIN toggle it per level
+(`ClasseReader.updateApcLevel`, `POST /api/classes/updateApcLevel` — toggling affects every classe at that
+level at once, confirmed intentional, not a bug) and shows an APC yes/no column/select per row driven by the
+same map. 404 from `fetchApcLevels`/`fetchClasses` means "nothing yet for this year+section" (empty state),
+not a fetch failure — handled the same way both places.
+
+`SubjectCompetenceManager` (`matieresCompetences`) is the one screen that actually *filters* on this: it loads
+`ClasseReader.fetchClasses` + `ClasseReader.fetchApcLevels` together, keeps only the classes whose `level` is
+`isLevelApc`-true, and only those are selectable in its classe `<select>` (defaulting to the first one) — a
+classe whose level isn't flagged competence-based never appears here. Once a classe is selected,
+`SubjectReader.fetchSubjectsOfClasse` (the same call `SubjectClasseManager`'s right panel uses,
+`GET /api/subjects/subjectOfClasse`) populates the subject `<select>` with that classe's assigned subjects for
+the current year (defaulting to the first one) — there's no separate "subjects of an APC classe" endpoint.
+Term is a plain hardcoded `1 | 2 | 3` (`TERMS` constant), same "no backend-driven list" precedent as `section`'s
+francophone/anglophone radio elsewhere in the app — default term is 1. Competences for the current
+(classe, subject, term) come from `SubjectReader.fetchCompetences` (`GET /api/subjects/allCompetences1`,
+scoped to exactly that 4-tuple plus section/year — not `allCompetences`/`allCompetencesOfSection`, which are
+broader section-wide listings unused by this screen).
+
+**Duplicate `competence_text` is a client-side rule, not a backend one.** Unlike Filiere/Speciality/Classe/
+Subject names, `subject_competences.competence_text` has no DB uniqueness constraint and
+`SubjectController::saveCompetence`/`updateACompetence` perform no duplicate check server-side — so
+`SubjectCompetenceManager` checks the *already-loaded* competences list for the current (classe, subject,
+term, section, year) itself (case-insensitive, trimmed comparison) before calling `saveCompetence`/
+`updateCompetences`, showing a `"warning"` toast and skipping the request entirely on a match, rather than
+relying on `isDuplicateNameError`-style backend error parsing. This is safe specifically because the loaded
+list is already scoped to the same uniqueness key the business rule cares about
+(`classe_id, sy_id, term_id, subject_id, section_id`) — don't reuse this same-page-list check for a field whose
+uniqueness scope isn't identical to what's currently loaded.
+
+The classe-level delete icon (trash button next to the classe `<select>`, tooltip
+`"Delete all competencies of {classe_name}"`) calls `SubjectReader.deleteCompetencesOfAClasse`
+(`DELETE /api/subjects/deleteCompetencesOfAClasse`, connection+year+classe_id only) — this wipes every
+competence of that classe **across every subject and term**, not just the currently-selected subject/term, so
+it's deliberately separate from the row-level multi-select delete (`SubjectReader.deleteCompetences` →
+`POST /api/subjects/deleteManyCompetences`) which only affects the checked rows of the current
+(classe, subject, term) list. Competence text is validated/sanitized with `sanitizeSubjectTitle`
+(`src/utils/subjectImport.ts` — the same regex the Excel subject-import path and `GroupeManager` already use,
+not `sanitizeFiliereOrSpecialityName`) and capped at `MAX_COMPETENCE_TEXT_LENGTH` (300, `src/utils/
+textValidation.ts`). No Print/Export and no "copy competences to other classes of the same level" feature was
+built here even though the backend has endpoints for the latter (`calquerCompetences`/
+`calquerCompetencesOfTerm`, mirroring `SubjectClasseManager`'s `calquerSubjects` copy dialog) — only
+add them if/when explicitly requested, following `SubjectClasseManager`'s copy-dialog pattern rather than
+inventing a new one.
+
 ### Export to CSV/PDF (`src/utils/exportData.ts`, `src/components/sharedcomp/ExportButtons.tsx`)
 
 All five admin CRUD screens above render `<ExportButtons onExportExcel={...} onExportPdf={...} .../>` above
@@ -452,7 +515,7 @@ set):
 | Filières | Done — `/admin/filieres`, `FiliereManager` |
 | Spécialités | Done — `/admin/specialities`, `SpecialityManager` |
 | Classes | Done — `/admin/classes`, `ClasseManager` |
-| Subjects (Matières) | Done — `/admin/subjects`, `SubjectManager` |
+| Subjects (Matières) — 4 sub-modules under `/admin/subjects` (`SubjectsHub`) | Done — `matieres` (`SubjectManager`), `groupes` (`GroupeManager`), `matieresClasses` (`SubjectClasseManager`), `matieresCompetences` (`SubjectCompetenceManager`) |
 | Staff (Gestion du personnel) — basic CRUD + linked account | Done — `/admin/staffs`, `StaffManager`; roles/schedules/leave from the product's feature overview are not built |
 | Course assignment, students, marks entry, mark sheets, report cards, fill rate, discipline, summary, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
 
