@@ -12,8 +12,10 @@ import {
 } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { SpecialityReader } from "../../../dbmanger/SpecialityReader";
+import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { Speciality } from "../../../interfaces/Speciality";
+import type { StaffSummary } from "../../../interfaces/StaffSummary";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -70,18 +72,32 @@ const ClasseManager = () => {
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
+  const [classMasters, setClassMasters] = useState<StaffSummary[]>([]);
+  const [sgStaff, setSgStaff] = useState<StaffSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [newClasseName, setNewClasseName] = useState("");
   const [newLevel, setNewLevel] = useState("1");
   const [newSpecialityId, setNewSpecialityId] = useState("");
+  const [newClasseMasterId, setNewClasseMasterId] = useState("");
+  const [newSgId, setNewSgId] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingLevel, setEditingLevel] = useState("");
   const [editingSpecialityId, setEditingSpecialityId] = useState("");
+  const [editingClasseMasterId, setEditingClasseMasterId] = useState("");
+  const [editingSgId, setEditingSgId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const importFileInputRef = useRef<HTMLInputElement>(null);
+
+  // "Name Surname (staff_id)" everywhere a staff is picked/shown (dropdowns, table, CSV export) -
+  // many staff can share a name, the id in brackets is what actually disambiguates them. PDF export
+  // omits the id (includeId=false) since printed documents don't need that disambiguation.
+  const formatStaffLabel = (staff: StaffSummary, includeId = true): string =>
+    `${staff.name}${staff.surname ? ` ${staff.surname}` : ""}${
+      includeId ? ` (${staff.staff_id})` : ""
+    }`;
 
   const loadClasses = async () => {
     setIsLoading(true);
@@ -111,6 +127,16 @@ const ClasseManager = () => {
     loadSpecialitiesForSection();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
+
+  // Staff aren't section-scoped (see StaffReader.fetchClassMastersOfYear/fetchSgOfYear) - a
+  // separate effect with narrower deps avoids re-fetching these lists on every section switch.
+  useEffect(() => {
+    StaffReader.fetchClassMastersOfYear(accessToken, connection, schoolYear).then(
+      setClassMasters,
+    );
+    StaffReader.fetchSgOfYear(accessToken, connection, schoolYear).then(setSgStaff);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection, schoolYear]);
 
   const parseLevel = (value: string): number | null => {
     const trimmed = value.trim();
@@ -150,6 +176,8 @@ const ClasseManager = () => {
       trimmedName,
       level,
       speciality?.speciality_name,
+      newClasseMasterId ? Number(newClasseMasterId) : null,
+      newSgId ? Number(newSgId) : null,
     );
     setIsSaving(false);
     if (result.status) {
@@ -157,6 +185,8 @@ const ClasseManager = () => {
       setNewClasseName("");
       setNewLevel("1");
       setNewSpecialityId("");
+      setNewClasseMasterId("");
+      setNewSgId("");
       loadClasses();
     } else {
       showToast(
@@ -173,6 +203,10 @@ const ClasseManager = () => {
     setEditingSpecialityId(
       classe.speciality_id !== null ? String(classe.speciality_id) : "",
     );
+    setEditingClasseMasterId(
+      classe.classe_master_id !== null ? String(classe.classe_master_id) : "",
+    );
+    setEditingSgId(classe.sg_id !== null ? String(classe.sg_id) : "");
   };
 
   const cancelEdit = () => {
@@ -180,6 +214,8 @@ const ClasseManager = () => {
     setEditingName("");
     setEditingLevel("");
     setEditingSpecialityId("");
+    setEditingClasseMasterId("");
+    setEditingSgId("");
   };
 
   const saveEdit = async (classe: Classe) => {
@@ -194,10 +230,16 @@ const ClasseManager = () => {
       return;
     }
     const specialityId = editingSpecialityId ? Number(editingSpecialityId) : null;
+    const classeMasterId = editingClasseMasterId
+      ? Number(editingClasseMasterId)
+      : null;
+    const sgId = editingSgId ? Number(editingSgId) : null;
     if (
       trimmedName === classe.classe_name &&
       level === classe.level &&
-      specialityId === classe.speciality_id
+      specialityId === classe.speciality_id &&
+      classeMasterId === classe.classe_master_id &&
+      sgId === classe.sg_id
     ) {
       cancelEdit();
       return;
@@ -215,11 +257,8 @@ const ClasseManager = () => {
         classe_name: trimmedName,
         level,
         speciality_id: specialityId,
-        // Not editable from this screen - round-tripped unchanged so the backend doesn't
-        // null out an existing classe master/SG assignment made via the dedicated
-        // assignment endpoints (see ClasseReader.updateClasses).
-        classe_master_id: classe.classe_master_id,
-        sg_id: classe.sg_id,
+        classe_master_id: classeMasterId,
+        sg_id: sgId,
       },
     ]);
     setIsSaving(false);
@@ -312,17 +351,13 @@ const ClasseManager = () => {
     );
   };
 
-  const saveImportedClasses = async (rows: ImportedClasse[]) => {
+  // Pure save step, no duplicate pre-check - the override path calls this directly right after
+  // wiping the section+year's classes (running the cross-section duplicate check there would defeat
+  // the point of "override": it could still block on the *other* section's classes, which the user
+  // just explicitly chose to replace over). The add-without-override path guards this with
+  // findDuplicateAgainstDatabase first instead (see handleImportFileChange).
+  const persistImportedClasses = async (rows: ImportedClasse[]) => {
     setIsSaving(true);
-    const duplicate = await findDuplicateAgainstDatabase(rows);
-    if (duplicate) {
-      setIsSaving(false);
-      showToast(
-        t.importDuplicateFound(duplicate.classe_name, duplicate.sourceRow),
-        { type: "danger" },
-      );
-      return;
-    }
     const saveResult = await ClasseReader.saveManyClasses(
       accessToken,
       connection,
@@ -387,11 +422,19 @@ const ClasseManager = () => {
         showToast(t.importDeleteFailure, { type: "danger" });
         return;
       }
-      await saveImportedClasses(parsed.classes);
+      await persistImportedClasses(parsed.classes);
       return;
     }
 
-    await saveImportedClasses(parsed.classes);
+    const duplicate = await findDuplicateAgainstDatabase(parsed.classes);
+    if (duplicate) {
+      showToast(
+        t.importDuplicateFound(duplicate.classe_name, duplicate.sourceRow),
+        { type: "danger" },
+      );
+      return;
+    }
+    await persistImportedClasses(parsed.classes);
   };
 
   const exportColumns = [
@@ -404,6 +447,38 @@ const ClasseManager = () => {
     {
       header: t.tableHeaderSpeciality,
       accessor: (c: Classe) => c.speciality_name ?? "",
+    },
+    {
+      header: t.tableHeaderClasseMaster,
+      accessor: (c: Classe) =>
+        c.classe_master_id
+          ? `${c.classe_master_name} (${c.classe_master_id})`
+          : "",
+    },
+    {
+      header: t.tableHeaderSg,
+      accessor: (c: Classe) => {
+        const sg = sgStaff.find((s) => s.staff_id === c.sg_id);
+        return sg ? formatStaffLabel(sg) : "";
+      },
+    },
+  ];
+
+  // Same columns as exportColumns, but the classe master/SG cells omit the "(staff_id)"
+  // disambiguator - not needed on a printed document.
+  const pdfExportColumns = [
+    ...exportColumns.slice(0, -2),
+    {
+      header: t.tableHeaderClasseMaster,
+      accessor: (c: Classe) =>
+        c.classe_master_id ? (c.classe_master_name ?? "") : "",
+    },
+    {
+      header: t.tableHeaderSg,
+      accessor: (c: Classe) => {
+        const sg = sgStaff.find((s) => s.staff_id === c.sg_id);
+        return sg ? formatStaffLabel(sg, false) : "";
+      },
     },
   ];
 
@@ -419,7 +494,7 @@ const ClasseManager = () => {
     exportRowsToPdf(
       t.title,
       buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
-      exportColumns,
+      pdfExportColumns,
       classes,
       schoolHeader,
     );
@@ -460,7 +535,7 @@ const ClasseManager = () => {
         <Loading />
       ) : (
         <>
-          <div className="overflow-x-auto w-full max-w-3xl mx-auto mb-4">
+          <div className="overflow-x-auto w-full max-w-5xl mx-auto mb-4">
             <table className="table w-full">
               <thead>
                 <tr>
@@ -478,6 +553,8 @@ const ClasseManager = () => {
                   <th>{t.tableHeaderName}</th>
                   <th>{t.tableHeaderLevel}</th>
                   <th>{t.tableHeaderSpeciality}</th>
+                  <th>{t.tableHeaderClasseMaster}</th>
+                  <th>{t.tableHeaderSg}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -557,6 +634,51 @@ const ClasseManager = () => {
                     </td>
                     <td>
                       {editingId === classe.classe_id ? (
+                        <select
+                          className="select select-sm w-full"
+                          value={editingClasseMasterId}
+                          onChange={(e) =>
+                            setEditingClasseMasterId(e.target.value)
+                          }
+                        >
+                          <option value="">{t.noClasseMasterOption}</option>
+                          {classMasters.map((staff) => (
+                            <option key={staff.staff_id} value={staff.staff_id}>
+                              {formatStaffLabel(staff)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : classe.classe_master_id ? (
+                        `${classe.classe_master_name} (${classe.classe_master_id})`
+                      ) : (
+                        ""
+                      )}
+                    </td>
+                    <td>
+                      {editingId === classe.classe_id ? (
+                        <select
+                          className="select select-sm w-full"
+                          value={editingSgId}
+                          onChange={(e) => setEditingSgId(e.target.value)}
+                        >
+                          <option value="">{t.noSgOption}</option>
+                          {sgStaff.map((staff) => (
+                            <option key={staff.staff_id} value={staff.staff_id}>
+                              {formatStaffLabel(staff)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        (() => {
+                          const sg = sgStaff.find(
+                            (s) => s.staff_id === classe.sg_id,
+                          );
+                          return sg ? formatStaffLabel(sg) : "";
+                        })()
+                      )}
+                    </td>
+                    <td>
+                      {editingId === classe.classe_id ? (
                         <>
                           <button
                             type="button"
@@ -587,7 +709,7 @@ const ClasseManager = () => {
                 ))}
                 {classes.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center opacity-60">
+                    <td colSpan={8} className="text-center opacity-60">
                       {t.emptySection}
                     </td>
                   </tr>
@@ -641,6 +763,30 @@ const ClasseManager = () => {
               value={speciality.speciality_id}
             >
               {speciality.speciality_name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select"
+          value={newClasseMasterId}
+          onChange={(e) => setNewClasseMasterId(e.target.value)}
+        >
+          <option value="">{t.noClasseMasterOption}</option>
+          {classMasters.map((staff) => (
+            <option key={staff.staff_id} value={staff.staff_id}>
+              {formatStaffLabel(staff)}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select"
+          value={newSgId}
+          onChange={(e) => setNewSgId(e.target.value)}
+        >
+          <option value="">{t.noSgOption}</option>
+          {sgStaff.map((staff) => (
+            <option key={staff.staff_id} value={staff.staff_id}>
+              {formatStaffLabel(staff)}
             </option>
           ))}
         </select>

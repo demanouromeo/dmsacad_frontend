@@ -54,6 +54,8 @@ export class ClasseReader {
     classeName: string,
     level: number,
     specialityName?: string,
+    classeMasterId?: number | null,
+    sgId?: number | null,
   ): Promise<ApiResult> => {
     return ClasseReader.postJson(
       "api/classes/saveClasse",
@@ -65,6 +67,8 @@ export class ClasseReader {
         classe_name: classeName,
         level,
         ...(specialityName ? { speciality_name: specialityName } : {}),
+        ...(classeMasterId ? { classe_master_id: classeMasterId } : {}),
+        ...(sgId ? { sg_id: sgId } : {}),
       },
       "saveClasse",
     );

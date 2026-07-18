@@ -1,5 +1,6 @@
 import { MyConstants } from "./MyConstants";
 import type { Staff } from "../interfaces/Staff";
+import type { StaffSummary } from "../interfaces/StaffSummary";
 import type { ApiResult } from "../interfaces/ApiResult";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
@@ -34,6 +35,69 @@ export class StaffReader {
     } catch (error) {
       console.error(
         `StaffReader.fetchStaff(): Error fetching staff: ${error}`,
+      );
+      return [];
+    }
+  };
+
+  // Backs the classe-master picker in ClasseManager - strictly `function = 0` (teaching staff),
+  // unlike allTeachingStaffOfYear which despite its name also includes censeurs/SG/chef de travaux
+  // (function 1/2/6). Not section-scoped, same as fetchStaff.
+  public static fetchClassMastersOfYear = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<StaffSummary[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/staffs/allClassMastersOfYear` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `StaffReader.fetchClassMastersOfYear(): Error fetching class masters: ${error}`,
+      );
+      return [];
+    }
+  };
+
+  // Backs the SG/discipline-master picker in ClasseManager - strictly `function = 1`. Not
+  // section-scoped, same as fetchStaff.
+  public static fetchSgOfYear = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<StaffSummary[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/staffs/allSgOfYear` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `StaffReader.fetchSgOfYear(): Error fetching SG staff: ${error}`,
       );
       return [];
     }

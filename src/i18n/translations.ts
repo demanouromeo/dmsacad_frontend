@@ -247,6 +247,8 @@ export const classeManagerTranslations = {
     tableHeaderName: "Nom de la classe",
     tableHeaderLevel: "Niveau",
     tableHeaderSpeciality: "Spécialité",
+    tableHeaderClasseMaster: "Titulaire",
+    tableHeaderSg: "SG",
     emptySection: "Aucune classe pour cette section.",
     saveBtn: "Enregistrer",
     cancelBtn: "Annuler",
@@ -254,6 +256,8 @@ export const classeManagerTranslations = {
     deleteSelectionBtn: (count: number) => `Supprimer la sélection (${count})`,
     deleteConfirm: (count: number) => `Supprimer ${count} classe(s) ?`,
     noSpecialityOption: "Aucune spécialité",
+    noClasseMasterOption: "Aucun titulaire",
+    noSgOption: "Aucun SG",
     addPlaceholder: "Nouvelle classe",
     levelPlaceholder: "Niveau",
     addBtn: "Ajouter",
@@ -307,6 +311,8 @@ export const classeManagerTranslations = {
     tableHeaderName: "Classe name",
     tableHeaderLevel: "Level",
     tableHeaderSpeciality: "Speciality",
+    tableHeaderClasseMaster: "Classe master",
+    tableHeaderSg: "SG",
     emptySection: "No classe for this section.",
     saveBtn: "Save",
     cancelBtn: "Cancel",
@@ -314,6 +320,8 @@ export const classeManagerTranslations = {
     deleteSelectionBtn: (count: number) => `Delete selection (${count})`,
     deleteConfirm: (count: number) => `Delete ${count} classe(s)?`,
     noSpecialityOption: "No speciality",
+    noClasseMasterOption: "No classe master",
+    noSgOption: "No SG",
     addPlaceholder: "New classe",
     levelPlaceholder: "Level",
     addBtn: "Add",
@@ -494,6 +502,31 @@ export const subjectManagerTranslations = {
     renameFailure: "Échec du renommage de la matière.",
     deleteSuccess: "Matière supprimée avec succès.",
     deleteFailure: "Échec de la suppression d'au moins une matière.",
+    importBtn: "Importer",
+    importUnsupportedExtension:
+      "Format de fichier non pris en charge. Utilisez un fichier .xlsx.",
+    importEmptyFile:
+      "Le fichier est vide ou ne contient aucune ligne de données.",
+    importBadHeader:
+      "Le fichier ne respecte pas la structure attendue : la première ligne doit contenir deux colonnes.",
+    importEmptyName: (row: number) =>
+      `Le fichier ne respecte pas la structure attendue : le nom de la matière est vide (ligne ${row}, colonne B).`,
+    importOverrideQuestion:
+      "Voulez-vous remplacer toutes les matières existantes de l'année scolaire en cours par celles du fichier importé, ou les ajouter à la liste actuelle ?",
+    importOverrideBtn: "Remplacer",
+    importAddWithoutOverrideBtn: "Ajouter",
+    importOverrideConfirmAgain:
+      "Cette action supprimera définitivement toutes les matières existantes de l'année scolaire en cours avant d'importer les nouvelles. Confirmez-vous ?",
+    importOverrideFinalBtn: "Oui, remplacer",
+    importDuplicateFound: (name: string, row: number) =>
+      `Le fichier contient une matière déjà existante dans la base de données : "${name}" (ligne ${row}, colonne B). Import annulé.`,
+    importDeleteFailure:
+      "Échec de la suppression des matières existantes. L'import a été annulé.",
+    importSuccess: (count: number) =>
+      `${count} matière(s) importée(s) avec succès.`,
+    importFailure: "Échec de l'import des matières.",
+    importFailureDetail: (detail: string) =>
+      `Échec de l'import des matières. Détails : ${detail}`,
   },
   en: {
     title: "Subjects",
@@ -520,6 +553,30 @@ export const subjectManagerTranslations = {
     renameFailure: "Failed to rename the subject.",
     deleteSuccess: "Subject deleted successfully.",
     deleteFailure: "Failed to delete at least one subject.",
+    importBtn: "Import",
+    importUnsupportedExtension:
+      "Unsupported file format. Please use a .xlsx file.",
+    importEmptyFile: "The file is empty or contains no data rows.",
+    importBadHeader:
+      "The file doesn't match the expected structure: the first row must contain two columns.",
+    importEmptyName: (row: number) =>
+      `The file doesn't match the expected structure: the subject name is empty (row ${row}, column B).`,
+    importOverrideQuestion:
+      "Do you want to replace all existing subjects of the current school year with the ones from the imported file, or add them to the current list?",
+    importOverrideBtn: "Replace",
+    importAddWithoutOverrideBtn: "Add",
+    importOverrideConfirmAgain:
+      "This will permanently delete all existing subjects of the current school year before importing the new ones. Do you confirm?",
+    importOverrideFinalBtn: "Yes, replace",
+    importDuplicateFound: (name: string, row: number) =>
+      `The file contains a subject that already exists in the database: "${name}" (row ${row}, column B). Import cancelled.`,
+    importDeleteFailure:
+      "Failed to delete the existing subjects. The import was cancelled.",
+    importSuccess: (count: number) =>
+      `${count} subject(s) successfully imported.`,
+    importFailure: "Failed to import the subjects.",
+    importFailureDetail: (detail: string) =>
+      `Failed to import the subjects. Details: ${detail}`,
   },
 };
 

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Upload } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -16,13 +17,34 @@ import {
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
   sanitizeFiliereOrSpecialityName,
 } from "../../../utils/textValidation";
-import { isDuplicateNameError } from "../../../utils/apiErrors";
+import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildExportFilename,
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import {
+  parseSubjectImportFile,
+  type ImportedSubject,
+  type SubjectImportError,
+} from "../../../utils/subjectImport";
+
+const mapImportErrorToMessage = (
+  error: SubjectImportError,
+  t: (typeof subjectManagerTranslations)["fr"],
+): string => {
+  switch (error.type) {
+    case "unsupportedExtension":
+      return t.importUnsupportedExtension;
+    case "emptyFile":
+      return t.importEmptyFile;
+    case "badHeader":
+      return t.importBadHeader;
+    case "emptyName":
+      return t.importEmptyName(error.row);
+  }
+};
 
 const SubjectManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
@@ -41,6 +63,7 @@ const SubjectManager = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadSubjects = async () => {
     setIsLoading(true);
@@ -188,6 +211,109 @@ const SubjectManager = () => {
     }
   };
 
+  // Section+year scoped, matching what deleteAllSubjectsOfSectionAndYear clears and what's already
+  // visible in this screen's own list - a subject_title can exist in another section/year without
+  // conflicting (see SubjectController::saveManySubjects, which keys the actual uniqueness
+  // violation on the subject_id+sy_id+section_id SubjectYear pairing, not the title alone). Always
+  // re-fetched live (not read from the `subjects` state) so this is accurate even right after the
+  // override path's delete.
+  const findDuplicateAgainstDatabase = async (
+    rows: ImportedSubject[],
+  ): Promise<ImportedSubject | null> => {
+    const currentSubjects = await SubjectReader.fetchSubjects(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+    );
+    const existingNames = new Set(
+      currentSubjects.map((s) => s.subject_title.trim().toLowerCase()),
+    );
+    return (
+      rows.find((r) => existingNames.has(r.subject_title.trim().toLowerCase())) ??
+      null
+    );
+  };
+
+  const saveImportedSubjects = async (rows: ImportedSubject[]) => {
+    setIsSaving(true);
+    const duplicate = await findDuplicateAgainstDatabase(rows);
+    if (duplicate) {
+      setIsSaving(false);
+      showToast(
+        t.importDuplicateFound(duplicate.subject_title, duplicate.sourceRow),
+        { type: "danger" },
+      );
+      return;
+    }
+    const saveResult = await SubjectReader.saveManySubjects(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+      rows.map((r) => ({ subject_title: r.subject_title })),
+    );
+    setIsSaving(false);
+    if (saveResult.status) {
+      showToast(t.importSuccess(rows.length), { type: "info" });
+      loadSubjects();
+    } else {
+      const detail = stripHtmlTags(saveResult.message);
+      showToast(detail ? t.importFailureDetail(detail) : t.importFailure, {
+        type: "danger",
+      });
+    }
+  };
+
+  const handleImportFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    setIsSaving(true);
+    const parsed = await parseSubjectImportFile(file);
+    setIsSaving(false);
+    if (!parsed.status) {
+      showToast(mapImportErrorToMessage(parsed.error, t), { type: "danger" });
+      return;
+    }
+
+    const wantsOverride = await confirm(t.importOverrideQuestion, {
+      confirmLabel: t.importOverrideBtn,
+      cancelLabel: t.importAddWithoutOverrideBtn,
+    });
+
+    if (wantsOverride) {
+      const reallyOverride = await confirm(t.importOverrideConfirmAgain, {
+        danger: true,
+        confirmLabel: t.importOverrideFinalBtn,
+      });
+      if (!reallyOverride) {
+        return;
+      }
+      setIsSaving(true);
+      const delResult = await SubjectReader.deleteAllSubjectsOfSectionAndYear(
+        accessToken,
+        connection,
+        schoolYear,
+        section,
+      );
+      if (!delResult.status) {
+        setIsSaving(false);
+        showToast(t.importDeleteFailure, { type: "danger" });
+        return;
+      }
+      await saveImportedSubjects(parsed.subjects);
+      return;
+    }
+
+    await saveImportedSubjects(parsed.subjects);
+  };
+
   const exportColumns = [
     { header: t.tableHeaderName, accessor: (s: Subject) => s.subject_title },
   ];
@@ -215,7 +341,7 @@ const SubjectManager = () => {
       {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
       <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap gap-2 items-center">
         <ExportButtons
           onExportExcel={handleExportExcel}
           onExportPdf={handleExportPdf}
@@ -223,6 +349,22 @@ const SubjectManager = () => {
           pdfLabel={et.pdfBtn}
           disabled={isLoading || subjects.length === 0}
         />
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept=".xlsx"
+          className="hidden"
+          onChange={handleImportFileChange}
+        />
+        <button
+          type="button"
+          className="btn btn-neutral gap-2"
+          disabled={isLoading}
+          onClick={() => importFileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" />
+          {t.importBtn}
+        </button>
       </div>
 
       {isLoading ? (

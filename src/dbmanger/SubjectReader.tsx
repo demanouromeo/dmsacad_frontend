@@ -110,16 +110,58 @@ export class SubjectReader {
     );
   };
 
+  // Backs the Excel import feature's "add without override" path - section/year scope the
+  // duplicate-title check the backend performs (see SubjectController::saveManySubjects).
+  public static saveManySubjects = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    rows: { subject_title: string }[],
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/saveManySubjects",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        data: JSON.stringify(rows),
+        data_size: rows.length,
+      },
+      "saveManySubjects",
+    );
+  };
+
+  // Destructive - deletes every subject for the given section+year (used by the import feature's
+  // "override" path). Takes no subject_id list: the backend clears the whole section+year in one
+  // shot.
+  public static deleteAllSubjectsOfSectionAndYear = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/deleteAllSubjectsOfSectionAndYear",
+      accessToken,
+      { connection, year, section },
+      "deleteAllSubjectsOfSectionAndYear",
+      "DELETE",
+    );
+  };
+
   private static postJson = async (
     path: string,
     accessToken: string | null,
     body: object,
     callerName: string,
+    method: "POST" | "DELETE" = "POST",
   ): Promise<ApiResult> => {
     const targetUrl = `${MyConstants.getBaseUrl()}${path}`;
     try {
       const response = await fetch(targetUrl, {
-        method: "POST",
+        method,
         headers: {
           accept: "application/json",
           "Content-Type": "application/json",
