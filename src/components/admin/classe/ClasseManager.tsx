@@ -94,6 +94,7 @@ const ClasseManager = () => {
   const [editingClasseMasterId, setEditingClasseMasterId] = useState("");
   const [editingSgId, setEditingSgId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
   // "Name Surname (staff_id)" everywhere a staff is picked/shown (dropdowns, table, CSV export) -
@@ -103,6 +104,11 @@ const ClasseManager = () => {
     `${staff.name}${staff.surname ? ` ${staff.surname}` : ""}${
       includeId ? ` (${staff.staff_id})` : ""
     }`;
+
+  const getSgLabel = (classe: Classe): string => {
+    const sg = sgStaff.find((s) => s.staff_id === classe.sg_id);
+    return sg ? formatStaffLabel(sg) : "";
+  };
 
   const loadClasses = async () => {
     setIsLoading(true);
@@ -141,8 +147,20 @@ const ClasseManager = () => {
     loadClasses();
     loadSpecialitiesForSection();
     loadApcLevels();
+    setSearchQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
+
+  const filteredClasses = classes.filter((c) => {
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      c.classe_name.toLowerCase().includes(q) ||
+      String(c.level).includes(q) ||
+      (c.speciality_name ?? "").toLowerCase().includes(q) ||
+      (c.classe_master_name ?? "").toLowerCase().includes(q) ||
+      getSgLabel(c).toLowerCase().includes(q)
+    );
+  });
 
   // Staff aren't section-scoped (see StaffReader.fetchClassMastersOfYear/fetchSgOfYear) - a
   // separate effect with narrower deps avoids re-fetching these lists on every section switch.
@@ -350,12 +368,23 @@ const ClasseManager = () => {
     });
   };
 
+  // Operates on the currently filtered rows, not the whole list - selecting "all" while a search is
+  // active only selects what's visible, matching what the user can see they're selecting.
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === classes.length
-        ? new Set()
-        : new Set(classes.map((c) => c.classe_id)),
-    );
+    const filteredIds = filteredClasses.map((c) => c.classe_id);
+    const allFilteredSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => {
+        if (allFilteredSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
@@ -517,10 +546,7 @@ const ClasseManager = () => {
     },
     {
       header: t.tableHeaderSg,
-      accessor: (c: Classe) => {
-        const sg = sgStaff.find((s) => s.staff_id === c.sg_id);
-        return sg ? formatStaffLabel(sg) : "";
-      },
+      accessor: (c: Classe) => getSgLabel(c),
     },
     {
       header: t.tableHeaderApc,
@@ -603,6 +629,13 @@ const ClasseManager = () => {
         <Loading />
       ) : (
         <>
+          <input
+            type="text"
+            className="input w-full max-w-5xl mb-4"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <div className="overflow-x-auto w-full max-w-5xl mx-auto mb-4">
             <table className="table w-full">
               <thead>
@@ -612,7 +645,8 @@ const ClasseManager = () => {
                       type="checkbox"
                       className="checkbox"
                       checked={
-                        classes.length > 0 && selectedIds.size === classes.length
+                        filteredClasses.length > 0 &&
+                        filteredClasses.every((c) => selectedIds.has(c.classe_id))
                       }
                       onChange={toggleSelectAll}
                     />
@@ -628,7 +662,7 @@ const ClasseManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {classes.map((classe, index) => (
+                {filteredClasses.map((classe, index) => (
                   <tr key={classe.classe_id}>
                     <td>
                       <input
@@ -738,12 +772,7 @@ const ClasseManager = () => {
                           ))}
                         </select>
                       ) : (
-                        (() => {
-                          const sg = sgStaff.find(
-                            (s) => s.staff_id === classe.sg_id,
-                          );
-                          return sg ? formatStaffLabel(sg) : "";
-                        })()
+                        getSgLabel(classe)
                       )}
                     </td>
                     <td>
@@ -792,6 +821,13 @@ const ClasseManager = () => {
                   <tr>
                     <td colSpan={9} className="text-center opacity-60">
                       {t.emptySection}
+                    </td>
+                  </tr>
+                )}
+                {classes.length > 0 && filteredClasses.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="text-center opacity-60">
+                      {t.noSearchResults}
                     </td>
                   </tr>
                 )}

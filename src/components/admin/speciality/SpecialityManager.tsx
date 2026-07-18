@@ -49,6 +49,7 @@ const SpecialityManager = () => {
   const [editingDescription, setEditingDescription] = useState("");
   const [editingFiliere, setEditingFiliere] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadSpecialities = async () => {
     setIsLoading(true);
@@ -77,8 +78,18 @@ const SpecialityManager = () => {
   useEffect(() => {
     loadSpecialities();
     loadFilieresForSection();
+    setSearchQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
+
+  const filteredSpecialities = specialities.filter((s) => {
+    const q = searchQuery.trim().toLowerCase();
+    return (
+      s.speciality_name.toLowerCase().includes(q) ||
+      s.nom_filiere.toLowerCase().includes(q) ||
+      (s.description ?? "").toLowerCase().includes(q)
+    );
+  });
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,12 +206,23 @@ const SpecialityManager = () => {
     });
   };
 
+  // Operates on the currently filtered rows, not the whole list - selecting "all" while a search is
+  // active only selects what's visible, matching what the user can see they're selecting.
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === specialities.length
-        ? new Set()
-        : new Set(specialities.map((s) => s.speciality_id)),
-    );
+    const filteredIds = filteredSpecialities.map((s) => s.speciality_id);
+    const allFilteredSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => {
+        if (allFilteredSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
@@ -282,6 +304,13 @@ const SpecialityManager = () => {
         <Loading />
       ) : (
         <>
+          <input
+            type="text"
+            className="input w-full max-w-3xl mb-4"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <div className="overflow-x-auto w-full max-w-3xl mx-auto mb-4">
             <table className="table w-full">
               <thead>
@@ -291,8 +320,10 @@ const SpecialityManager = () => {
                       type="checkbox"
                       className="checkbox"
                       checked={
-                        specialities.length > 0 &&
-                        selectedIds.size === specialities.length
+                        filteredSpecialities.length > 0 &&
+                        filteredSpecialities.every((s) =>
+                          selectedIds.has(s.speciality_id),
+                        )
                       }
                       onChange={toggleSelectAll}
                     />
@@ -305,7 +336,7 @@ const SpecialityManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {specialities.map((speciality, index) => (
+                {filteredSpecialities.map((speciality, index) => (
                   <tr key={speciality.speciality_id}>
                     <td>
                       <input
@@ -414,6 +445,13 @@ const SpecialityManager = () => {
                   <tr>
                     <td colSpan={6} className="text-center opacity-60">
                       {t.emptySection}
+                    </td>
+                  </tr>
+                )}
+                {specialities.length > 0 && filteredSpecialities.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center opacity-60">
+                      {t.noSearchResults}
                     </td>
                   </tr>
                 )}

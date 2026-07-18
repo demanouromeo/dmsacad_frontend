@@ -41,6 +41,7 @@ const FiliereManager = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadFilieres = async () => {
     setIsLoading(true);
@@ -57,8 +58,13 @@ const FiliereManager = () => {
 
   useEffect(() => {
     loadFilieres();
+    setSearchQuery("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
+
+  const filteredFilieres = filieres.filter((f) =>
+    f.nom_filiere.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,12 +158,23 @@ const FiliereManager = () => {
     });
   };
 
+  // Operates on the currently filtered rows, not the whole list - selecting "all" while a search is
+  // active only selects what's visible, matching what the user can see they're selecting.
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === filieres.length
-        ? new Set()
-        : new Set(filieres.map((f) => f.filiere_id)),
-    );
+    const filteredIds = filteredFilieres.map((f) => f.filiere_id);
+    const allFilteredSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => {
+        if (allFilteredSelected) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+      });
+      return next;
+    });
   };
 
   const handleDeleteSelected = async () => {
@@ -228,6 +245,13 @@ const FiliereManager = () => {
         <Loading />
       ) : (
         <>
+          <input
+            type="text"
+            className="input w-full max-w-2xl mb-4"
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <table className="table w-full max-w-2xl mb-4 mx-auto">
             <thead>
               <tr>
@@ -236,8 +260,8 @@ const FiliereManager = () => {
                     type="checkbox"
                     className="checkbox"
                     checked={
-                      filieres.length > 0 &&
-                      selectedIds.size === filieres.length
+                      filteredFilieres.length > 0 &&
+                      filteredFilieres.every((f) => selectedIds.has(f.filiere_id))
                     }
                     onChange={toggleSelectAll}
                   />
@@ -248,7 +272,7 @@ const FiliereManager = () => {
               </tr>
             </thead>
             <tbody>
-              {filieres.map((filiere, index) => (
+              {filteredFilieres.map((filiere, index) => (
                 <tr key={filiere.filiere_id}>
                   <td>
                     <input
@@ -314,6 +338,13 @@ const FiliereManager = () => {
                 <tr>
                   <td colSpan={4} className="text-center opacity-60">
                     {t.emptySection}
+                  </td>
+                </tr>
+              )}
+              {filieres.length > 0 && filteredFilieres.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="text-center opacity-60">
+                    {t.noSearchResults}
                   </td>
                 </tr>
               )}

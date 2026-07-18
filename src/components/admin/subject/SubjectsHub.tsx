@@ -30,6 +30,7 @@ const SubjectsHub = () => {
       key: "matieresClasses",
       label: t.matieresClasses,
       icon: iconSubjectsOfClass,
+      to: "/admin/subjects/matieres-classes",
     },
     {
       key: "matieresCompetences",
