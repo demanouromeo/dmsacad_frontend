@@ -1,6 +1,7 @@
 import { MyConstants } from "./MyConstants";
 import type { Classe } from "../interfaces/Classe";
 import type { ApiResult } from "../interfaces/ApiResult";
+import type { ApcLevel } from "../interfaces/ApcLevel";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
   status: false,
@@ -159,6 +160,62 @@ export class ClasseReader {
         data_size: rows.length,
       },
       "saveManyClasses",
+    );
+  };
+
+  // A classe is APC not via its own row, but indirectly: apc_level is keyed by (sy_id, section_id,
+  // level), not by classe_id - so this is a per-level flag shared by every classe at that level, not
+  // a per-classe one. 404 means no apc_level row exists yet for this year+section (nothing
+  // activated), same "empty state, not an error" handling as fetchClasses' 404.
+  public static fetchApcLevels = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+  ): Promise<ApcLevel[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/classes/getAPCLevels` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (response.status === 404) {
+        return [];
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const rows: { level: number; activated: number }[] = await response.json();
+      return rows.map((row) => ({ level: row.level, activated: Boolean(row.activated) }));
+    } catch (error) {
+      console.error(
+        `ClasseReader.fetchApcLevels(): Error fetching APC levels: ${error}`,
+      );
+      return [];
+    }
+  };
+
+  // Upserts the (year, section, level) APC flag - affects every classe at that level, not just one.
+  public static updateApcLevel = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    level: number,
+    section: string,
+    activated: boolean,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/updateApcLevel",
+      accessToken,
+      { connection, year, level, section, activated },
+      "updateApcLevel",
     );
   };
 

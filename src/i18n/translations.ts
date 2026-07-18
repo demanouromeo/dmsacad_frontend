@@ -251,6 +251,12 @@ export const classeManagerTranslations = {
     tableHeaderSpeciality: "Spécialité",
     tableHeaderClasseMaster: "Titulaire",
     tableHeaderSg: "SG",
+    tableHeaderApc: "APC",
+    apcYes: "OUI",
+    apcNo: "NON",
+    apcLabel: "APC ?",
+    apcUpdateSuccess: "Statut APC mis à jour avec succès.",
+    apcUpdateFailure: "Échec de la mise à jour du statut APC.",
     emptySection: "Aucune classe pour cette section.",
     saveBtn: "Enregistrer",
     cancelBtn: "Annuler",
@@ -315,6 +321,12 @@ export const classeManagerTranslations = {
     tableHeaderSpeciality: "Speciality",
     tableHeaderClasseMaster: "Classe master",
     tableHeaderSg: "SG",
+    tableHeaderApc: "APC",
+    apcYes: "YES",
+    apcNo: "NO",
+    apcLabel: "APC?",
+    apcUpdateSuccess: "APC status successfully updated.",
+    apcUpdateFailure: "Failed to update the APC status.",
     emptySection: "No classe for this section.",
     saveBtn: "Save",
     cancelBtn: "Cancel",
@@ -434,6 +446,27 @@ export const staffManagerTranslations = {
     updateFailure: "Échec de la modification du personnel.",
     deleteSuccess: "Personnel supprimé avec succès.",
     deleteFailure: "Échec de la suppression d'au moins un membre du personnel.",
+    importBtn: "Importer",
+    importUnsupportedExtension:
+      "Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv.",
+    importEmptyFile:
+      "Le fichier est vide ou ne contient aucune ligne de données.",
+    importBadHeader:
+      "Le fichier ne respecte pas la structure attendue : la première ligne doit contenir six colonnes.",
+    importEmptyName: (row: number) =>
+      `Le fichier ne respecte pas la structure attendue : le nom est vide (ligne ${row}, colonne C).`,
+    importDeleteExistingQuestion:
+      "Souhaitez-vous supprimer tout le personnel existant de l'année scolaire en cours avant d'enregistrer le personnel importé ? Si vous refusez, le personnel importé sera simplement ajouté à la liste actuelle.",
+    importDeleteBtn: "Supprimer",
+    importAddWithoutDeleteBtn: "Ne pas supprimer",
+    importDeleteConfirmAgain:
+      "Cette action supprimera définitivement tout le personnel existant de l'année scolaire en cours. Confirmez-vous ?",
+    importDeleteFinalBtn: "Oui, supprimer",
+    importSuccess: (count: number) =>
+      `${count} membre(s) du personnel importé(s) avec succès. Des identifiants (login/mot de passe) temporaires ont été générés automatiquement — pensez à les modifier depuis la liste du personnel.`,
+    importFailure: "Échec de l'import du personnel.",
+    importFailureDetail: (detail: string) =>
+      `Échec de l'import du personnel. Détails : ${detail}`,
   },
   en: {
     title: "Staff",
@@ -475,6 +508,26 @@ export const staffManagerTranslations = {
     updateFailure: "Failed to update the staff member.",
     deleteSuccess: "Staff member deleted successfully.",
     deleteFailure: "Failed to delete at least one staff member.",
+    importBtn: "Import",
+    importUnsupportedExtension:
+      "Unsupported file format. Use an .xlsx or .csv file.",
+    importEmptyFile: "The file is empty or contains no data row.",
+    importBadHeader:
+      "The file does not match the expected structure: the first row must have six columns.",
+    importEmptyName: (row: number) =>
+      `The file does not match the expected structure: the name is empty (row ${row}, column C).`,
+    importDeleteExistingQuestion:
+      "Would you like to delete all existing staff of the current school year before saving the imported staff? If you decline, the imported staff will simply be added to the current list.",
+    importDeleteBtn: "Delete",
+    importAddWithoutDeleteBtn: "Don't delete",
+    importDeleteConfirmAgain:
+      "This will permanently delete all existing staff of the current school year. Confirm?",
+    importDeleteFinalBtn: "Yes, delete",
+    importSuccess: (count: number) =>
+      `${count} staff member(s) imported successfully. Temporary logins/passwords were generated automatically — remember to update them from the staff list.`,
+    importFailure: "Failed to import the staff.",
+    importFailureDetail: (detail: string) =>
+      `Failed to import the staff. Details: ${detail}`,
   },
 };
 

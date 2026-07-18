@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Upload } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useToast } from "../../../toast/useToast";
@@ -17,13 +18,35 @@ import {
   MIN_STAFF_NAME_LENGTH,
   MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH,
 } from "../../../utils/textValidation";
-import { isDuplicateNameError } from "../../../utils/apiErrors";
+import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildExportFilename,
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import {
+  parseStaffImportFile,
+  generateImportCredentials,
+  type ImportedStaff,
+  type StaffImportError,
+} from "../../../utils/staffImport";
+
+const mapStaffImportErrorToMessage = (
+  error: StaffImportError,
+  t: (typeof staffManagerTranslations)["fr"],
+): string => {
+  switch (error.type) {
+    case "unsupportedExtension":
+      return t.importUnsupportedExtension;
+    case "emptyFile":
+      return t.importEmptyFile;
+    case "badHeader":
+      return t.importBadHeader;
+    case "emptyName":
+      return t.importEmptyName(error.row);
+  }
+};
 
 const FUNCTION_CODES = [0, 1, 2, 3, 4, 5] as const;
 
@@ -60,6 +83,7 @@ const StaffManager = () => {
   const [editingLogin, setEditingLogin] = useState("");
   const [editingNewPassword, setEditingNewPassword] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadStaff = async () => {
     setIsLoading(true);
@@ -261,6 +285,87 @@ const StaffManager = () => {
     }
   };
 
+  // No name-uniqueness check before saving, unlike Classe/Filiere/Speciality/Subject's import - staff
+  // names aren't required to be unique server-side (that's exactly why the classe-master/SG pickers
+  // disambiguate by staff_id in brackets), so there's nothing to guard against here.
+  const persistImportedStaff = async (rows: ImportedStaff[], override: boolean) => {
+    setIsSaving(true);
+    const payload = rows.map((row) => {
+      const { login, pwd } = generateImportCredentials(
+        row.name,
+        row.surname,
+        row.sourceRow,
+      );
+      return {
+        name: row.name,
+        surname: row.surname,
+        phone1: row.phone1,
+        function: row.function,
+        civility: row.civility,
+        sexe: "",
+        login,
+        pwd,
+      };
+    });
+    const saveResult = await StaffReader.saveManyStaffs(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+      payload,
+      override,
+    );
+    setIsSaving(false);
+    if (saveResult.status) {
+      showToast(t.importSuccess(rows.length), { type: "info" });
+      loadStaff();
+    } else {
+      const detail = stripHtmlTags(saveResult.message);
+      showToast(detail ? t.importFailureDetail(detail) : t.importFailure, {
+        type: "danger",
+      });
+    }
+  };
+
+  const handleImportFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    setIsSaving(true);
+    const parsed = await parseStaffImportFile(file);
+    setIsSaving(false);
+    if (!parsed.status) {
+      showToast(mapStaffImportErrorToMessage(parsed.error, t), {
+        type: "danger",
+      });
+      return;
+    }
+
+    const wantsDelete = await confirm(t.importDeleteExistingQuestion, {
+      confirmLabel: t.importDeleteBtn,
+      cancelLabel: t.importAddWithoutDeleteBtn,
+    });
+
+    if (wantsDelete) {
+      const reallyDelete = await confirm(t.importDeleteConfirmAgain, {
+        danger: true,
+        confirmLabel: t.importDeleteFinalBtn,
+      });
+      if (!reallyDelete) {
+        return;
+      }
+      await persistImportedStaff(parsed.staff, true);
+      return;
+    }
+
+    await persistImportedStaff(parsed.staff, false);
+  };
+
   const functionLabel = (code: number): string =>
     functionLabels[code as keyof typeof functionLabels] ?? String(code);
 
@@ -300,7 +405,7 @@ const StaffManager = () => {
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap gap-2 items-center">
         <ExportButtons
           onExportExcel={handleExportExcel}
           onExportPdf={handleExportPdf}
@@ -308,6 +413,22 @@ const StaffManager = () => {
           pdfLabel={et.pdfBtn}
           disabled={isLoading || staffList.length === 0}
         />
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept=".csv,.xlsx"
+          className="hidden"
+          onChange={handleImportFileChange}
+        />
+        <button
+          type="button"
+          className="btn btn-neutral gap-2"
+          disabled={isLoading}
+          onClick={() => importFileInputRef.current?.click()}
+        >
+          <Upload className="w-4 h-4" />
+          {t.importBtn}
+        </button>
       </div>
 
       {isLoading ? (

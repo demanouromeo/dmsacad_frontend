@@ -178,6 +178,42 @@ export class StaffReader {
     );
   };
 
+  // Backs the Excel/CSV import feature. Unlike Classe/Subject's import (a separate delete-then-save
+  // pair of calls), saveManyStaffs has its own built-in `override` flag: when set, the backend wipes
+  // every staff record of the current year+section server-side before inserting the new ones, in one
+  // atomic call - see StaffController::saveManyStaffs.
+  public static saveManyStaffs = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    rows: {
+      name: string;
+      surname: string;
+      phone1: string;
+      function: number;
+      civility: string;
+      sexe: string;
+      login: string;
+      pwd: string;
+    }[],
+    override: boolean,
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/saveManyStaffs",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        data: JSON.stringify(rows),
+        data_size: rows.length,
+        ...(override ? { override: "1" } : {}),
+      },
+      "saveManyStaffs",
+    );
+  };
+
   public static deleteStaff = async (
     accessToken: string | null,
     connection: string,

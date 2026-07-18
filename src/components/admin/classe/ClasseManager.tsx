@@ -74,6 +74,10 @@ const ClasseManager = () => {
   const [specialities, setSpecialities] = useState<Speciality[]>([]);
   const [classMasters, setClassMasters] = useState<StaffSummary[]>([]);
   const [sgStaff, setSgStaff] = useState<StaffSummary[]>([]);
+  // level -> activated. apc_level is keyed by (year, section, level), not by classe_id - see
+  // ClasseReader.fetchApcLevels' comment - so this map, not a per-classe field, is the source of
+  // truth for whether any given classe counts as APC.
+  const [apcLevels, setApcLevels] = useState<Map<number, boolean>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -82,6 +86,7 @@ const ClasseManager = () => {
   const [newSpecialityId, setNewSpecialityId] = useState("");
   const [newClasseMasterId, setNewClasseMasterId] = useState("");
   const [newSgId, setNewSgId] = useState("");
+  const [newApc, setNewApc] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingLevel, setEditingLevel] = useState("");
@@ -122,9 +127,20 @@ const ClasseManager = () => {
     setSpecialities(list);
   };
 
+  const loadApcLevels = async () => {
+    const list = await ClasseReader.fetchApcLevels(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+    );
+    setApcLevels(new Map(list.map((entry) => [entry.level, entry.activated])));
+  };
+
   useEffect(() => {
     loadClasses();
     loadSpecialitiesForSection();
+    loadApcLevels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
@@ -137,6 +153,31 @@ const ClasseManager = () => {
     StaffReader.fetchSgOfYear(accessToken, connection, schoolYear).then(setSgStaff);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear]);
+
+  const isLevelApc = (level: number): boolean => apcLevels.get(level) === true;
+
+  // Toggling this affects every classe at `level`, not just the row it was clicked from - that's
+  // the actual data model (see the apcLevels state comment above), not a bug. Optimistic update with
+  // rollback on failure, matching this select's "instant toggle" UX rather than gating it behind the
+  // row's Modifier/Enregistrer edit flow.
+  const handleApcChange = async (level: number, activated: boolean) => {
+    const previous = apcLevels.get(level) ?? false;
+    setApcLevels((prev) => new Map(prev).set(level, activated));
+    const result = await ClasseReader.updateApcLevel(
+      accessToken,
+      connection,
+      schoolYear,
+      level,
+      section,
+      activated,
+    );
+    if (result.status) {
+      showToast(t.apcUpdateSuccess, { type: "info" });
+    } else {
+      setApcLevels((prev) => new Map(prev).set(level, previous));
+      showToast(t.apcUpdateFailure, { type: "danger" });
+    }
+  };
 
   const parseLevel = (value: string): number | null => {
     const trimmed = value.trim();
@@ -182,11 +223,30 @@ const ClasseManager = () => {
     setIsSaving(false);
     if (result.status) {
       showToast(t.addSuccess, { type: "info" });
+      // Only write the APC flag when it actually differs from the level's current state - avoids
+      // creating a needless apc_level row (or flipping every other classe at this level) when the
+      // admin just left the default untouched.
+      if (isLevelApc(level) !== newApc) {
+        const apcResult = await ClasseReader.updateApcLevel(
+          accessToken,
+          connection,
+          schoolYear,
+          level,
+          section,
+          newApc,
+        );
+        if (apcResult.status) {
+          setApcLevels((prev) => new Map(prev).set(level, newApc));
+        } else {
+          showToast(t.apcUpdateFailure, { type: "danger" });
+        }
+      }
       setNewClasseName("");
       setNewLevel("1");
       setNewSpecialityId("");
       setNewClasseMasterId("");
       setNewSgId("");
+      setNewApc(false);
       loadClasses();
     } else {
       showToast(
@@ -462,12 +522,16 @@ const ClasseManager = () => {
         return sg ? formatStaffLabel(sg) : "";
       },
     },
+    {
+      header: t.tableHeaderApc,
+      accessor: (c: Classe) => (isLevelApc(c.level) ? t.apcYes : t.apcNo),
+    },
   ];
 
   // Same columns as exportColumns, but the classe master/SG cells omit the "(staff_id)"
   // disambiguator - not needed on a printed document.
   const pdfExportColumns = [
-    ...exportColumns.slice(0, -2),
+    ...exportColumns.slice(0, -3),
     {
       header: t.tableHeaderClasseMaster,
       accessor: (c: Classe) =>
@@ -479,6 +543,10 @@ const ClasseManager = () => {
         const sg = sgStaff.find((s) => s.staff_id === c.sg_id);
         return sg ? formatStaffLabel(sg, false) : "";
       },
+    },
+    {
+      header: t.tableHeaderApc,
+      accessor: (c: Classe) => (isLevelApc(c.level) ? t.apcYes : t.apcNo),
     },
   ];
 
@@ -555,6 +623,7 @@ const ClasseManager = () => {
                   <th>{t.tableHeaderSpeciality}</th>
                   <th>{t.tableHeaderClasseMaster}</th>
                   <th>{t.tableHeaderSg}</th>
+                  <th>{t.tableHeaderApc}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -678,6 +747,18 @@ const ClasseManager = () => {
                       )}
                     </td>
                     <td>
+                      <select
+                        className="select select-sm w-full"
+                        value={isLevelApc(classe.level) ? "1" : "0"}
+                        onChange={(e) =>
+                          handleApcChange(classe.level, e.target.value === "1")
+                        }
+                      >
+                        <option value="0">{t.apcNo}</option>
+                        <option value="1">{t.apcYes}</option>
+                      </select>
+                    </td>
+                    <td>
                       {editingId === classe.classe_id ? (
                         <>
                           <button
@@ -709,7 +790,7 @@ const ClasseManager = () => {
                 ))}
                 {classes.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center opacity-60">
+                    <td colSpan={9} className="text-center opacity-60">
                       {t.emptySection}
                     </td>
                   </tr>
@@ -790,6 +871,17 @@ const ClasseManager = () => {
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-2">
+          {t.apcLabel}
+          <select
+            className="select"
+            value={newApc ? "1" : "0"}
+            onChange={(e) => setNewApc(e.target.value === "1")}
+          >
+            <option value="0">{t.apcNo}</option>
+            <option value="1">{t.apcYes}</option>
+          </select>
+        </label>
         <button type="submit" className="btn btn-neutral">
           {t.addBtn}
         </button>
