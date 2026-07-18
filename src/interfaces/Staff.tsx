@@ -8,9 +8,9 @@ export interface Staff {
   civility: string | null;
   acc_id: number;
   login: string;
-  // Present in the backend's list response (accounts still store plaintext passwords) - never
-  // render/export this. It only exists here because updateManyStaffs is per-item full-replace and
-  // this is where a caller would read the current value from if it ever needed to round-trip it.
+  // Present in the backend's list response (accounts still store plaintext passwords).
+  // StaffManager's per-row eye toggle reveals this on demand - never include it in CSV/PDF export
+  // columns or anywhere else it could leak beyond that explicit, one-row-at-a-time reveal.
   pwd: string;
   type: number;
   email: string | null;

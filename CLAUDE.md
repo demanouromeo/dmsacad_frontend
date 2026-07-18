@@ -332,7 +332,12 @@ established pattern — when adding a new admin CRUD screen, follow this shape r
 - Staff is the outlier: `StaffManager` also creates the linked `Account` row in the same `saveStaff` call
   (login/pwd are mandatory, not optional), and its `updateStaff` treats `pwd` as optional-per-row — omit it
   entirely to leave the account password unchanged rather than round-tripping the plaintext value the list
-  endpoint returns (the backend only rotates the password when a non-empty value is supplied).
+  endpoint returns (the backend only rotates the password when a non-empty value is supplied). Since
+  `allStaffs1` already returns the plaintext `pwd` per row, each row also has an `Eye`/`EyeOff` toggle
+  (`visiblePasswordIds`, a `Set<number>` of `staff_id`s) revealing that row's current password on demand,
+  masked (`••••••••`) by default and reset on every reload — this is a separate concern from the `New
+  password` column (which only ever holds a not-yet-saved replacement value), and `pwd` must still never
+  appear in `exportColumns`/CSV/PDF export.
 
 ### Subjects hub and the APC / competence-based classe concept
 
@@ -396,6 +401,70 @@ built here even though the backend has endpoints for the latter (`calquerCompete
 `calquerCompetencesOfTerm`, mirroring `SubjectClasseManager`'s `calquerSubjects` copy dialog) — only
 add them if/when explicitly requested, following `SubjectClasseManager`'s copy-dialog pattern rather than
 inventing a new one.
+
+### Students (`/admin/students`, `src/components/admin/student/StudentManager.tsx`)
+
+Classe-scoped like `SubjectClasseManager`/`SubjectCompetenceManager` (a classe `<select>`, defaulting to the
+first classe of the section, drives everything below it) — but unlike those, "Students" reads a **basic
+CRUD roster reference screenshot from a different, legacy app design**, not this app's own prior conventions,
+so several things it showed had to be reconciled or explicitly descoped after discussion:
+
+- **`repeating`/`cas_social` need two endpoints merged.** `StudentController::allStudentsOfClasse` (backing
+  `StudentReader.fetchStudentsOfClasse`) hardcodes `repeating`/`cas_social` to `0` in its `SELECT` — they're
+  placeholder columns there, not real data. The real values live on the `student_classe` pivot, returned by
+  `allStudClassOfAClasse` (`StudentReader.fetchStudentClasseOfClasse`). `StudentManager.loadStudents` fetches
+  both in parallel and merges the pivot's `repeating`/`cas_social` onto each `Student` row by `stud_id` before
+  rendering — never trust `repeating`/`cas_social` straight off `fetchStudentsOfClasse` alone.
+- **No parent/phone linkage.** The reference screenshot has a "Phone" filter, but `Student` has no phone
+  column — phone would live on `StudParent` (`p_id`), and there is **no backend support for it at all**: no
+  `StudParentController`, no routes, nothing (confirmed by grepping the whole `app/Http/Controllers`
+  directory). `setFatherMother` is unrelated — it just writes plain father/mother name text onto
+  `student.st1`/`student.str2`, no phone involved. Building real parent+phone linkage is a separate, future
+  backend-first task (a whole new controller/routes/CRUD, mirroring Staff's account-linkage pattern) — this
+  screen has no Phone filter/column and doesn't touch `StudParent`.
+- **Matricule generation is pure client-side, per the school's own numbering convention** —
+  `src/utils/matricule.ts`'s `generateUniqueMatricule(schoolYear, classeName, section, existingMatricules)`
+  builds `{yearPrev}-{cl}{sectionCode}{2 random letters}-{2 random digits}` (e.g. `"2025-6e01BG-47"` for year
+  "2025/2026", classe "6ème A", francophone): `yearPrev` is the year string's first half, `cl` is the classe
+  name normalized (accents stripped, lowercased) and sliced to 2 chars, `sectionCode` is `"01"`
+  francophone/`"02"` anglophone (a fixed literal, not the DB `section_id`). There's no backend endpoint for
+  this or for uniqueness-checking it, so "Generate matricule" fetches every student of the *whole year*
+  across all classes (`StudentReader.fetchAllStudentsOfYear`, `GET /api/students/allStudents`) fresh on each
+  click and regenerates until the candidate isn't already taken — reuse this exact
+  fetch-fresh-and-regenerate approach rather than caching the matricule set, since it must reflect students
+  added earlier in the same session.
+- **Toolbar is Import + Export + Refresh only** — the reference screenshot's ~9 icons (a second PDF-style
+  icon, a download icon, an orange lock icon, etc.) were deliberately not all built; only the icons that map
+  to this app's existing per-screen conventions were kept. The lock icon in particular was *not* wired to the
+  existing `LockController`/`locksOfYear` module — if term-based edit-locking for students is wanted, that's
+  new, separate scope.
+- **Edit is whole-row**, matching every other manager (`Modifier` toggles the whole row into edit mode via
+  `editingFields`/`editingMatricule`), not the reference screenshot's per-cell pencil icons.
+- **Import file format** (`src/utils/studentImport.ts`) has a quirk classeImport.ts/staffImport.ts don't:
+  the sample sheet's row 1 is a title cell (e.g. `"6e B"` in column A), not the header — `findHeaderRowIndex`
+  scans the first few rows for the one whose column B reads `"NOM"` (case/accent-insensitive) rather than
+  assuming row 1 is always the header. Columns: A=NO (ignored), B=NOM→name (required, sanitized via
+  `sanitizeStudentName` — letters/accents/space/hyphen only, matching `saveAStudent`'s backend regex exactly,
+  stricter than `sanitizeSubjectTitle`/`sanitizeStaffText`), C=PRENOM→surname, D=MATRICULE→matricule,
+  E=SEXE→sexe, F=DATE NAIS.→bday (handles genuine `Date`-typed xlsx cells via `cellToBday`, plus a
+  fallback parse of `M/D/YYYY`/`D-M-YYYY`/ISO strings), G=LIEU NAIS.→bplace, H=REDOUBLE→repeating (lenient:
+  only `R`/`OUI`/`O`/`YES`/`1`/`TRUE` count as repeating). The delete-existing-before-import question, like
+  Subject/Staff/Classe's import, maps to `saveStudents`'s `override` flag — but note `override` here only
+  clears the **selected classe's** roster (`student_classe.classe_id = $classe_id`), not the whole
+  section+year like Subject's does, since `StudentController::saveStudents` is classe-scoped by design.
+- **Backend bug fixed as part of this module**: `StudentController::updateStudents` validated `year` as
+  `required|integer`, but every other student endpoint (and this whole app's convention) sends year as a
+  string like `"2025/2026"` — that request would always 422. Confirmed live via `curl` before and after;
+  changed to `required|string` in the backend repo. If a similar "all other student endpoints treat X as a
+  string but this one doesn't" mismatch shows up elsewhere in `StudentController`, treat it the same way
+  (verify with `curl`, then fix) rather than assuming the frontend must adapt to it.
+- **Search is one unified box** (name/surname/matricule/bplace substring match), not the reference
+  screenshot's multiple discrete filter fields (separate Name/Surname/Phone/birth-day/birth-place/gender/
+  matricule/redouble inputs) — matches every other manager's single `searchQuery` convention. The stats bar
+  (Filles/Garçons/Total/Redoublants/Nouveaux/Handicapés/Cas social) is computed client-side from the full
+  (unfiltered) roster, not the search-narrowed one, so searching for one student doesn't change the header
+  counts. "Nouveaux" is simply `Total - Redoublants` — there's no separate "new admission" flag in the data
+  model to distinguish it any other way.
 
 ### Export to CSV/PDF (`src/utils/exportData.ts`, `src/components/sharedcomp/ExportButtons.tsx`)
 
@@ -517,7 +586,9 @@ set):
 | Classes | Done — `/admin/classes`, `ClasseManager` |
 | Subjects (Matières) — 4 sub-modules under `/admin/subjects` (`SubjectsHub`) | Done — `matieres` (`SubjectManager`), `groupes` (`GroupeManager`), `matieresClasses` (`SubjectClasseManager`), `matieresCompetences` (`SubjectCompetenceManager`) |
 | Staff (Gestion du personnel) — basic CRUD + linked account | Done — `/admin/staffs`, `StaffManager`; roles/schedules/leave from the product's feature overview are not built |
-| Course assignment, students, marks entry, mark sheets, report cards, fill rate, discipline, summary, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
+| Course assignment | Done — `/admin/course-assignment`, `CourseAssignmentManager` |
+| Students (Gestion des élèves) — basic CRUD + import, no parent/phone linkage | Done — `/admin/students`, `StudentManager` (see Architecture) |
+| Marks entry, mark sheets, report cards, fill rate, discipline, summary, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
 
 Cross-cutting infra built alongside the modules above, used by all of them: the top banner (global
 year/section/language switch, replacing per-page back buttons), toast notifications, promise-based confirm

@@ -2,6 +2,7 @@ import { MyConstants } from "./MyConstants";
 import type { Classe } from "../interfaces/Classe";
 import type { ApiResult } from "../interfaces/ApiResult";
 import type { ApcLevel } from "../interfaces/ApcLevel";
+import type { ClasseOfSubject } from "../interfaces/ClasseOfSubject";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
   status: false,
@@ -235,6 +236,45 @@ export class ClasseReader {
       "deleteClassesOfSectionAndYear",
       "DELETE",
     );
+  };
+
+  // Backs the "Assign courses" screen's left panel - classes where subjectId is taught in the
+  // current section+year (ClasseController::allClassesOfSubject). 404 means no classe teaches this
+  // subject yet - an expected empty state, same handling as fetchClasses'/fetchApcLevels' 404.
+  public static fetchClassesOfSubject = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    subjectId: number,
+  ): Promise<ClasseOfSubject[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/classes/allClassesOfSubject` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}` +
+      `&subject_id=${subjectId}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (response.status === 404) {
+        return [];
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `ClasseReader.fetchClassesOfSubject(): Error fetching classes: ${error}`,
+      );
+      return [];
+    }
   };
 
   private static postJson = async (

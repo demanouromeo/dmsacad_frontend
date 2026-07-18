@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload } from "lucide-react";
+import { Eye, EyeOff, Upload, Wand2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useToast } from "../../../toast/useToast";
@@ -50,6 +50,20 @@ const mapStaffImportErrorToMessage = (
 
 const FUNCTION_CODES = [0, 1, 2, 3, 4, 5] as const;
 
+const RANDOM_CREDENTIAL_CHARS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const RANDOM_CREDENTIAL_LENGTH = 6;
+const MAX_LOGIN_GENERATION_ATTEMPTS = 50;
+
+const randomCredentialString = (length: number): string =>
+  Array.from(
+    { length },
+    () =>
+      RANDOM_CREDENTIAL_CHARS[
+        Math.floor(Math.random() * RANDOM_CREDENTIAL_CHARS.length)
+      ],
+  ).join("");
+
 const StaffManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
   const confirm = useConfirm();
@@ -72,6 +86,7 @@ const StaffManager = () => {
   const [newFunction, setNewFunction] = useState("0");
   const [newLogin, setNewLogin] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -83,6 +98,9 @@ const StaffManager = () => {
   const [editingLogin, setEditingLogin] = useState("");
   const [editingNewPassword, setEditingNewPassword] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [visiblePasswordIds, setVisiblePasswordIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,6 +113,7 @@ const StaffManager = () => {
     );
     setStaffList(list);
     setSelectedIds(new Set());
+    setVisiblePasswordIds(new Set());
     setIsLoading(false);
   };
 
@@ -113,6 +132,30 @@ const StaffManager = () => {
     setNewFunction("0");
     setNewLogin("");
     setNewPassword("");
+    setShowNewPassword(false);
+  };
+
+  // Best-effort uniqueness: staffList only covers the current school year (StaffReader.fetchStaff
+  // isn't year-unbounded), but Account.login is globally unique server-side (see backend CLAUDE.md) -
+  // retrying against 62^6 possibilities makes a collision with a login from another year vanishingly
+  // unlikely, and the existing addDuplicate handling in handleAdd already covers the rare case where
+  // the backend still rejects it.
+  const generateLoginAndPassword = () => {
+    const existingLogins = new Set(
+      staffList.map((s) => s.login.toLowerCase()),
+    );
+    let login = randomCredentialString(RANDOM_CREDENTIAL_LENGTH);
+    let attempts = 0;
+    while (
+      existingLogins.has(login.toLowerCase()) &&
+      attempts < MAX_LOGIN_GENERATION_ATTEMPTS
+    ) {
+      login = randomCredentialString(RANDOM_CREDENTIAL_LENGTH);
+      attempts++;
+    }
+    setNewLogin(login);
+    setNewPassword(randomCredentialString(RANDOM_CREDENTIAL_LENGTH));
+    setShowNewPassword(true);
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -242,6 +285,18 @@ const StaffManager = () => {
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const togglePasswordVisibility = (id: number) => {
+    setVisiblePasswordIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -492,6 +547,7 @@ const StaffManager = () => {
                   <th>{t.tableHeaderCivility}</th>
                   <th>{t.tableHeaderFunction}</th>
                   <th>{t.tableHeaderLogin}</th>
+                  <th>{t.tableHeaderPassword}</th>
                   <th>{t.tableHeaderNewPassword}</th>
                   <th></th>
                 </tr>
@@ -609,6 +665,33 @@ const StaffManager = () => {
                         )}
                       </td>
                       <td>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">
+                            {visiblePasswordIds.has(staff.staff_id)
+                              ? staff.pwd
+                              : "••••••••"}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost btn-square"
+                            aria-label={
+                              visiblePasswordIds.has(staff.staff_id)
+                                ? t.hidePasswordHint
+                                : t.showPasswordHint
+                            }
+                            onClick={() =>
+                              togglePasswordVisibility(staff.staff_id)
+                            }
+                          >
+                            {visiblePasswordIds.has(staff.staff_id) ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                      <td>
                         {isEditing && (
                           <input
                             type="password"
@@ -658,14 +741,14 @@ const StaffManager = () => {
                 })}
                 {staffList.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="text-center opacity-60">
+                    <td colSpan={12} className="text-center opacity-60">
                       {t.emptyList}
                     </td>
                   </tr>
                 )}
                 {staffList.length > 0 && filteredStaffList.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="text-center opacity-60">
+                    <td colSpan={12} className="text-center opacity-60">
                       {t.noSearchResults}
                     </td>
                   </tr>
@@ -743,13 +826,38 @@ const StaffManager = () => {
           value={newLogin}
           onChange={(e) => setNewLogin(e.target.value)}
         />
-        <input
-          type="password"
-          className="input"
-          placeholder={t.addPlaceholderPassword}
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
+        <div className="relative">
+          <input
+            type={showNewPassword ? "text" : "password"}
+            className="input pr-10"
+            placeholder={t.addPlaceholderPassword}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
+            tabIndex={-1}
+            aria-label={
+              showNewPassword ? t.hidePasswordHint : t.showPasswordHint
+            }
+            onClick={() => setShowNewPassword((prev) => !prev)}
+          >
+            {showNewPassword ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+        <button
+          type="button"
+          className="btn btn-neutral gap-2"
+          onClick={generateLoginAndPassword}
+        >
+          <Wand2 className="w-4 h-4" />
+          {t.generateCredentialsBtn}
+        </button>
         <button type="submit" className="btn btn-neutral">
           {t.addBtn}
         </button>

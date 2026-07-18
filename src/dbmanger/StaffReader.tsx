@@ -1,6 +1,7 @@
 import { MyConstants } from "./MyConstants";
 import type { Staff } from "../interfaces/Staff";
 import type { StaffSummary } from "../interfaces/StaffSummary";
+import type { CourseAssignment } from "../interfaces/CourseAssignment";
 import type { ApiResult } from "../interfaces/ApiResult";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
@@ -235,16 +236,175 @@ export class StaffReader {
     );
   };
 
+  // Backs the "Assign courses" screen - every (subject, classe, staff) assignment in the current
+  // section+year, in one call (StaffController::AllAttributionsOfSection). Cached and refetched
+  // after every mutation on that screen rather than re-derived from smaller per-staff/per-subject
+  // endpoints, since it already carries everything both panels need (right panel filters by
+  // staff_id, left panel's "other teachers" annotation filters by subject_id+classe_id).
+  public static fetchAllAttributionsOfSection = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+  ): Promise<CourseAssignment[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/staffs/AllAttributionsOfSection` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `StaffReader.fetchAllAttributionsOfSection(): Error fetching attributions: ${error}`,
+      );
+      return [];
+    }
+  };
+
+  // Assigns one (subject, classe) pair to one staff member (StaffController::assignACourse) - a
+  // no-op server-side if that exact triple is already assigned.
+  public static assignCourse = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    subjectId: number,
+    classeId: number,
+    staffId: number,
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/assignACourse",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        subject_id: subjectId,
+        classe_id: classeId,
+        staff_id: staffId,
+      },
+      "assignCourse",
+    );
+  };
+
+  // Unassigns one (subject, classe, staff) row (StaffController::removeACourse) - backs the
+  // right panel's per-row delete icon.
+  public static removeCourse = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    subjectId: number,
+    classeId: number,
+    staffId: number,
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/removeACourse",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        subject_id: subjectId,
+        classe_id: classeId,
+        staff_id: staffId,
+      },
+      "removeCourse",
+      "DELETE",
+    );
+  };
+
+  // Unassigns every course currently assigned to one staff member, in the current section+year
+  // (StaffController::removeALLCourses / MyHelper::removeAStaffCourses) - backs the "Remove all"
+  // button, scoped to the selected teacher only (not the whole section).
+  public static removeAllCoursesOfStaff = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    staffId: number,
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/removeALLCourses",
+      accessToken,
+      { connection, year, section, staff_id: staffId },
+      "removeAllCoursesOfStaff",
+      "DELETE",
+    );
+  };
+
+  // Batch-assigns several (subject, classe) pairs to one staff member in one call
+  // (StaffController::batchAssignCourses) - backs the left panel's "Save" button (one row per
+  // checked classe, all sharing the currently selected subject+staff).
+  public static batchAssignCourses = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    rows: { staff_id: number; subject_id: number; classe_id: number }[],
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/batchAssignCourses",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        data: JSON.stringify(rows),
+        data_size: rows.length,
+      },
+      "batchAssignCourses",
+    );
+  };
+
+  // Batch-unassigns several (subject, classe, staff) rows in one call
+  // (StaffController::batchRemoveCourses) - backs the right panel's bulk-delete button, and is also
+  // how the "delete all assignments of the section+year" red button is implemented client-side
+  // (no dedicated whole-section wipe endpoint exists server-side, so it's this call given every
+  // currently-loaded attribution row).
+  public static batchRemoveCourses = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    rows: { staff_id: number; subject_id: number; classe_id: number }[],
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/batchRemoveCourses",
+      accessToken,
+      {
+        connection,
+        year,
+        section,
+        data: JSON.stringify(rows),
+        data_size: rows.length,
+      },
+      "batchRemoveCourses",
+    );
+  };
+
   private static postJson = async (
     path: string,
     accessToken: string | null,
     body: object,
     callerName: string,
+    method: "POST" | "DELETE" = "POST",
   ): Promise<ApiResult> => {
     const targetUrl = `${MyConstants.getBaseUrl()}${path}`;
     try {
       const response = await fetch(targetUrl, {
-        method: "POST",
+        method,
         headers: {
           accept: "application/json",
           "Content-Type": "application/json",
