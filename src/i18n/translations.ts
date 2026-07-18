@@ -54,6 +54,7 @@ export const loginTranslations = {
 
 export const bannerTranslations = {
   fr: {
+    logoAlt: "Logo de l'établissement",
     homeHint: "Aller au tableau de bord",
     schoolYearHint: "Changer l'année scolaire",
     sectionHint: "Changer la section",
@@ -67,6 +68,7 @@ export const bannerTranslations = {
     cancelBtn: "Annuler",
   },
   en: {
+    logoAlt: "School logo",
     homeHint: "Go to dashboard",
     schoolYearHint: "Change the school year",
     sectionHint: "Change the section",
@@ -287,12 +289,12 @@ export const classeManagerTranslations = {
     importInvalidLevel: (row: number) =>
       `Le fichier ne respecte pas la structure attendue : le niveau doit être un nombre (ligne ${row}, colonne C).`,
     importOverrideQuestion:
-      "Voulez-vous remplacer toutes les classes existantes de l'année scolaire en cours par celles du fichier importé, ou les ajouter à la liste actuelle ?",
-    importOverrideBtn: "Remplacer",
-    importAddWithoutOverrideBtn: "Ajouter",
+      "Voulez-vous supprimer toutes les classes existantes de la section et de l'année scolaire en cours avant d'importer les nouvelles classes ?",
+    importOverrideBtn: "Supprimer",
+    importAddWithoutOverrideBtn: "Ne pas supprimer",
     importOverrideConfirmAgain:
-      "Cette action supprimera définitivement toutes les classes existantes de l'année scolaire en cours avant d'importer les nouvelles. Confirmez-vous ?",
-    importOverrideFinalBtn: "Oui, remplacer",
+      "Cette action supprimera définitivement toutes les classes existantes de la section et de l'année scolaire en cours. Confirmez-vous ?",
+    importOverrideFinalBtn: "Oui, supprimer",
     importDuplicateFound: (name: string, row: number) =>
       `Le fichier contient une classe déjà existante dans la base de données : "${name}" (ligne ${row}, colonne B). Import annulé.`,
     importDeleteFailure:
@@ -350,12 +352,12 @@ export const classeManagerTranslations = {
     importInvalidLevel: (row: number) =>
       `The file does not match the expected structure: the level must be a number (row ${row}, column C).`,
     importOverrideQuestion:
-      "Do you want to replace all existing classes of the current school year with the ones in the imported file, or add them to the current list?",
-    importOverrideBtn: "Replace",
-    importAddWithoutOverrideBtn: "Add",
+      "Do you want to delete all existing classes of the current section and school year before importing the new ones?",
+    importOverrideBtn: "Delete",
+    importAddWithoutOverrideBtn: "Don't delete",
     importOverrideConfirmAgain:
-      "This will permanently delete all existing classes of the current school year before importing the new ones. Confirm?",
-    importOverrideFinalBtn: "Yes, replace",
+      "This will permanently delete all existing classes of the current section and school year. Confirm?",
+    importOverrideFinalBtn: "Yes, delete",
     importDuplicateFound: (name: string, row: number) =>
       `The file contains a classe that already exists in the database: "${name}" (row ${row}, column B). Import cancelled.`,
     importDeleteFailure:
@@ -511,13 +513,10 @@ export const subjectManagerTranslations = {
       "Le fichier ne respecte pas la structure attendue : la première ligne doit contenir deux colonnes.",
     importEmptyName: (row: number) =>
       `Le fichier ne respecte pas la structure attendue : le nom de la matière est vide (ligne ${row}, colonne B).`,
-    importOverrideQuestion:
-      "Voulez-vous remplacer toutes les matières existantes de l'année scolaire en cours par celles du fichier importé, ou les ajouter à la liste actuelle ?",
-    importOverrideBtn: "Remplacer",
-    importAddWithoutOverrideBtn: "Ajouter",
-    importOverrideConfirmAgain:
-      "Cette action supprimera définitivement toutes les matières existantes de l'année scolaire en cours avant d'importer les nouvelles. Confirmez-vous ?",
-    importOverrideFinalBtn: "Oui, remplacer",
+    importDeleteExistingQuestion:
+      "Souhaitez-vous supprimer toutes les matières existantes de la section et de l'année scolaire en cours avant d'enregistrer les matières importées ? Si vous refusez, les matières importées seront simplement ajoutées à la liste actuelle.",
+    importDeleteExistingConfirm:
+      "Cette action supprimera définitivement toutes les matières existantes de la section et de l'année scolaire en cours. Confirmez-vous ?",
     importDuplicateFound: (name: string, row: number) =>
       `Le fichier contient une matière déjà existante dans la base de données : "${name}" (ligne ${row}, colonne B). Import annulé.`,
     importDeleteFailure:
@@ -561,13 +560,10 @@ export const subjectManagerTranslations = {
       "The file doesn't match the expected structure: the first row must contain two columns.",
     importEmptyName: (row: number) =>
       `The file doesn't match the expected structure: the subject name is empty (row ${row}, column B).`,
-    importOverrideQuestion:
-      "Do you want to replace all existing subjects of the current school year with the ones from the imported file, or add them to the current list?",
-    importOverrideBtn: "Replace",
-    importAddWithoutOverrideBtn: "Add",
-    importOverrideConfirmAgain:
-      "This will permanently delete all existing subjects of the current school year before importing the new ones. Do you confirm?",
-    importOverrideFinalBtn: "Yes, replace",
+    importDeleteExistingQuestion:
+      "Would you like to delete all existing subjects of the current section and school year before saving the imported subjects? If you decline, the imported subjects will simply be added to the current list.",
+    importDeleteExistingConfirm:
+      "This will permanently delete all existing subjects of the current section and school year. Do you confirm?",
     importDuplicateFound: (name: string, row: number) =>
       `The file contains a subject that already exists in the database: "${name}" (row ${row}, column B). Import cancelled.`,
     importDeleteFailure:

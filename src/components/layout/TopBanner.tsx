@@ -1,11 +1,15 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useCookies } from "react-cookie";
 import { CalendarDays, GraduationCap, Home, UserRound } from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
 import { useLanguage } from "../../i18n/useLanguage";
 import { bannerTranslations } from "../../i18n/translations";
 import { MyReader } from "../../dbmanger/MyReader";
+import { SchoolInfoReader } from "../../dbmanger/SchoolInfoReader";
+import { MyConstants } from "../../dbmanger/MyConstants";
 import type { SchoolYear } from "../../interfaces/SchoolYear";
+import type { SchoolHeaderConfig } from "../../interfaces/SchoolHeaderConfig";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 
 const TopBanner = () => {
@@ -14,11 +18,35 @@ const TopBanner = () => {
   const [language, setLanguage] = useLanguage();
   const t = bannerTranslations[language];
 
+  const [cookies] = useCookies([MyConstants.SCHOOL_HEADER_CONFIG_KEY]);
+  const schoolHeaderConfig = cookies[MyConstants.SCHOOL_HEADER_CONFIG_KEY] as
+    | SchoolHeaderConfig
+    | undefined;
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
   const schoolYearDialogRef = useRef<HTMLDialogElement>(null);
   const sectionDialogRef = useRef<HTMLDialogElement>(null);
   const [schoolYearList, setSchoolYearList] = useState<SchoolYear[]>([]);
   const [draftSchoolYear, setDraftSchoolYear] = useState(schoolYear);
   const [draftSection, setDraftSection] = useState(section);
+
+  // The school header (name/address/logo_path) cookie is set at login (see AuthContext.login) -
+  // reload the actual logo image whenever the recorded logo_path changes rather than fetching the
+  // config again here, following the same SchoolInfoReader.loadLogoImage convention as
+  // SchoolInfoManager's preview.
+  useEffect(() => {
+    let cancelled = false;
+    SchoolInfoReader.loadLogoImage(schoolHeaderConfig?.logo_path).then(
+      (logoImage) => {
+        if (!cancelled) {
+          setLogoUrl(logoImage ? logoImage.src : null);
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolHeaderConfig?.logo_path]);
 
   const openSchoolYearDialog = async () => {
     setDraftSchoolYear(schoolYear);
@@ -46,6 +74,13 @@ const TopBanner = () => {
     <>
       <div className="navbar bg-base-100 shadow fixed top-0 inset-x-0 z-50 px-4">
         <div className="flex-1 flex items-center gap-1">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={t.logoAlt}
+              className="h-10 w-10 rounded object-contain mr-1"
+            />
+          )}
           <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
             <Link to="/dashboard" className="btn btn-ghost btn-circle">
               <Home className="w-5 h-5" />

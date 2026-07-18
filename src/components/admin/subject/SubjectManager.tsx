@@ -282,17 +282,13 @@ const SubjectManager = () => {
       return;
     }
 
-    const wantsOverride = await confirm(t.importOverrideQuestion, {
-      confirmLabel: t.importOverrideBtn,
-      cancelLabel: t.importAddWithoutOverrideBtn,
-    });
+    const wantsDelete = await confirm(t.importDeleteExistingQuestion);
 
-    if (wantsOverride) {
-      const reallyOverride = await confirm(t.importOverrideConfirmAgain, {
+    if (wantsDelete) {
+      const reallyDelete = await confirm(t.importDeleteExistingConfirm, {
         danger: true,
-        confirmLabel: t.importOverrideFinalBtn,
       });
-      if (!reallyOverride) {
+      if (!reallyDelete) {
         return;
       }
       setIsSaving(true);

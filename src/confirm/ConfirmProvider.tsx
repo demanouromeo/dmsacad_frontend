@@ -18,9 +18,9 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const resolveRef = useRef<((result: boolean) => void) | null>(null);
-  // Tracks the native "close" listener currently attached to the dialog, so settle() can remove it
-  // synchronously before calling close() - see the effect below for why this is necessary.
-  const closeListenerRef = useRef<(() => void) | null>(null);
+  // Counts dialog.close() calls made by settle() whose native "close" event hasn't fired yet - see
+  // the persistent-listener effect below for why this is needed.
+  const pendingProgrammaticClosesRef = useRef(0);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
 
   const confirm = useCallback((message: string, options?: ConfirmOptions) => {
@@ -30,47 +30,56 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
     });
   }, []);
 
-  // The native <dialog>'s "close" event is deferred (queued as a task), not synchronous - calling
+  // A native <dialog>'s "close" event is deferred (queued as a task), not synchronous - calling
   // .close() imperatively (via settle(), below) hides the dialog immediately but the event itself
-  // fires later. Chaining two confirm() calls back-to-back (e.g. an "are you sure, really sure?"
-  // pair) used to race: the first dialog's deferred close event would fire *after* the second
-  // confirm() had already replaced resolveRef, incorrectly auto-cancelling the second dialog the
-  // instant it opened. Attaching/removing the listener per-open (rather than a single persistent
-  // React onClose prop) lets settle() remove its own listener before closing, so a
-  // programmatically-settled close never fires this handler at all - only a genuine user dismissal
-  // (Escape key) does.
+  // fires later. With two confirm() calls chained back-to-back (e.g. an "are you sure, really
+  // sure?" pair, like the classe-import override flow), the second dialog can already be open on
+  // this same shared <dialog> element by the time the first close's deferred event actually fires -
+  // and since a "close" event carries no information about which close() call produced it, it gets
+  // delivered to whichever listener is attached *at that moment*, incorrectly auto-cancelling the
+  // second (unrelated, still-open) dialog the instant it opens. A per-open listener (removed before
+  // each programmatic close) doesn't fix this - it only stops OUR OWN request's listener from
+  // catching its own deferred event, not a *later* request's listener from catching an *earlier*
+  // one's. The actual fix: one persistent listener, plus a counter of self-inflicted closes still
+  // in flight - a real user dismissal (Escape/backdrop) only reaches this handler when that count
+  // is zero.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+    const onNativeClose = () => {
+      if (pendingProgrammaticClosesRef.current > 0) {
+        pendingProgrammaticClosesRef.current -= 1;
+        return;
+      }
+      resolveRef.current?.(false);
+      resolveRef.current = null;
+      setRequest(null);
+    };
+    dialog.addEventListener("close", onNativeClose);
+    return () => dialog.removeEventListener("close", onNativeClose);
+  }, []);
+
+  // Opens (or re-opens with fresh content) whenever a new request comes in.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!request || !dialog) {
       return;
     }
-    const onNativeClose = () => {
-      resolveRef.current?.(false);
-      resolveRef.current = null;
-      closeListenerRef.current = null;
-      setRequest(null);
-    };
-    closeListenerRef.current = onNativeClose;
-    dialog.addEventListener("close", onNativeClose);
     dialog.showModal();
-    return () => {
-      dialog.removeEventListener("close", onNativeClose);
-      if (closeListenerRef.current === onNativeClose) {
-        closeListenerRef.current = null;
-      }
-    };
   }, [request]);
 
   const settle = (result: boolean) => {
-    resolveRef.current?.(result);
+    const resolve = resolveRef.current;
     resolveRef.current = null;
     const dialog = dialogRef.current;
-    if (dialog && closeListenerRef.current) {
-      dialog.removeEventListener("close", closeListenerRef.current);
-      closeListenerRef.current = null;
+    if (dialog?.open) {
+      pendingProgrammaticClosesRef.current += 1;
+      dialog.close();
     }
-    dialog?.close();
     setRequest(null);
+    resolve?.(result);
   };
 
   return (
