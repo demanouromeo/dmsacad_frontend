@@ -49,13 +49,10 @@ import {
 } from "../../../utils/exportAllMarksReport";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import FillRateChartDialog from "./FillRateChartDialog";
+import { computeDbSequence } from "../../../utils/markSequence";
 
 const TERMS = [1, 2, 3];
 const SEQUENCES = [1, 2];
-
-// dbsequence in [1..6] is how non-APC marks (student_subject.sequence) key a (term, sequence) pair -
-// see StudentController's own comment block on saveSeqMarks/getSeqMarks for this exact mapping.
-const computeDbSequence = (term: number, sequence: number): number => (term - 1) * 2 + sequence;
 
 // Column headers for a non-APC classe's block in the "all classes" PDF report - the term's two
 // sequences, always exactly these two literal labels (see exportAllMarksReport.ts).
@@ -1244,10 +1241,10 @@ const MarkEntryManager = () => {
       <FillRateChartDialog
         isOpen={isChartDialogOpen}
         onClose={() => setIsChartDialogOpen(false)}
-        classeName={selectedClasse?.classe_name ?? ""}
-        subjects={subjects.map((s) => ({
-          subjectId: s.subject_id,
-          title: s.subject_title,
+        title={t.fillRateChartTitle(selectedClasse?.classe_name ?? "")}
+        entries={subjects.map((s) => ({
+          id: s.subject_id,
+          label: s.subject_title,
           rate: subjectFillRates.get(s.subject_id) ?? null,
         }))}
       />

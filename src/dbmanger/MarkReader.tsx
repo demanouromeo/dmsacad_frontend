@@ -2,6 +2,8 @@ import { MyConstants } from "./MyConstants";
 import type { Mark } from "../interfaces/Mark";
 import type { LockRow } from "../interfaces/LockRow";
 import type { ApiResult } from "../interfaces/ApiResult";
+import type { FillRateNonApcRow } from "../interfaces/FillRateNonApcRow";
+import type { FillRateApcRow } from "../interfaces/FillRateApcRow";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
   status: false,
@@ -182,6 +184,71 @@ export class MarkReader {
       },
       "saveLock",
     );
+  };
+
+  // Whole-section, whole-year fill-rate aggregate for non-APC classes - one row per (classe,
+  // subject, dbsequence 1-6), roster_count/filled_count already summed server-side
+  // (StudentController::fillRateNonApc). Backs the Fill rate module, which needs every classe of a
+  // section at once rather than the single-classe fetchSeqMarks loop MarkEntryManager's own
+  // fill-rate panel uses.
+  public static fetchFillRateNonApc = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+  ): Promise<FillRateNonApcRow[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/students/fillRateNonApc` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`MarkReader.fetchFillRateNonApc(): Error fetching fill rate: ${error}`);
+      return [];
+    }
+  };
+
+  // Same idea as fetchFillRateNonApc but for APC classes - one row per (classe, subject, term,
+  // competence), see FillRateApcRow's comment (StudentController::fillRateApc).
+  public static fetchFillRateApc = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+  ): Promise<FillRateApcRow[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/students/fillRateApc` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`MarkReader.fetchFillRateApc(): Error fetching fill rate: ${error}`);
+      return [];
+    }
   };
 
   private static postJson = async (

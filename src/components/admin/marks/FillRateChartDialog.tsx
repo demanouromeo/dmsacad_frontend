@@ -3,16 +3,16 @@ import { markEntryManagerTranslations } from "../../../i18n/translations";
 import { useLanguage } from "../../../i18n/useLanguage";
 
 export interface FillRateChartEntry {
-  subjectId: number;
-  title: string;
+  id: number;
+  label: string;
   rate: number | null;
 }
 
 interface FillRateChartDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  classeName: string;
-  subjects: FillRateChartEntry[];
+  title: string;
+  entries: FillRateChartEntry[];
 }
 
 type ChartType = "bar" | "pie";
@@ -28,7 +28,7 @@ const colorForIndex = (index: number, total: number): string =>
 // (bar = plain width-percentage divs, pie = a CSS conic-gradient) - matches this app's existing
 // "avoid a dependency for something this simple" precedent (CSV over xlsx, no PDF lib for anything
 // but the actual PDF export).
-const FillRateChartDialog = ({ isOpen, onClose, classeName, subjects }: FillRateChartDialogProps) => {
+const FillRateChartDialog = ({ isOpen, onClose, title, entries }: FillRateChartDialogProps) => {
   const [language] = useLanguage();
   const t = markEntryManagerTranslations[language];
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -42,17 +42,17 @@ const FillRateChartDialog = ({ isOpen, onClose, classeName, subjects }: FillRate
     }
   }, [isOpen]);
 
-  const usableSubjects = subjects.filter(
-    (s): s is FillRateChartEntry & { rate: number } => s.rate !== null,
+  const usableEntries = entries.filter(
+    (e): e is FillRateChartEntry & { rate: number } => e.rate !== null,
   );
-  const totalRate = usableSubjects.reduce((sum, s) => sum + s.rate, 0);
+  const totalRate = usableEntries.reduce((sum, e) => sum + e.rate, 0);
 
-  const pieSegments = usableSubjects.reduce<
+  const pieSegments = usableEntries.reduce<
     Array<FillRateChartEntry & { rate: number; color: string; start: number; end: number }>
-  >((acc, s, index) => {
-    const share = totalRate > 0 ? (s.rate / totalRate) * 100 : 0;
+  >((acc, e, index) => {
+    const share = totalRate > 0 ? (e.rate / totalRate) * 100 : 0;
     const start = acc.length > 0 ? acc[acc.length - 1].end : 0;
-    acc.push({ ...s, color: colorForIndex(index, usableSubjects.length), start, end: start + share });
+    acc.push({ ...e, color: colorForIndex(index, usableEntries.length), start, end: start + share });
     return acc;
   }, []);
   const pieGradient =
@@ -65,7 +65,7 @@ const FillRateChartDialog = ({ isOpen, onClose, classeName, subjects }: FillRate
   return (
     <dialog ref={dialogRef} className="modal" onClose={onClose}>
       <div className="modal-box max-w-2xl">
-        <h3 className="font-bold text-lg mb-4">{t.fillRateChartTitle(classeName)}</h3>
+        <h3 className="font-bold text-lg mb-4">{title}</h3>
 
         <div className="join mb-4">
           <button
@@ -84,29 +84,29 @@ const FillRateChartDialog = ({ isOpen, onClose, classeName, subjects }: FillRate
           </button>
         </div>
 
-        {subjects.length === 0 ? (
+        {entries.length === 0 ? (
           <p className="opacity-60">{t.fillRateChartEmpty}</p>
         ) : chartType === "bar" ? (
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {subjects.map((s, index) => (
-              <div key={s.subjectId} className="flex items-center gap-2">
-                <span className="w-48 shrink-0 truncate text-sm" title={s.title}>
-                  {index + 1} - {s.title}
+            {entries.map((e, index) => (
+              <div key={e.id} className="flex items-center gap-2">
+                <span className="w-48 shrink-0 truncate text-sm" title={e.label}>
+                  {index + 1} - {e.label}
                 </span>
                 <div className="flex-1 bg-base-200 rounded h-4 overflow-hidden">
                   <div
                     className="h-full rounded"
                     style={{
-                      width: `${s.rate ?? 0}%`,
+                      width: `${e.rate ?? 0}%`,
                       backgroundColor:
-                        s.rate !== null && s.rate < 100
+                        e.rate !== null && e.rate < 100
                           ? "var(--color-error, #ef4444)"
-                          : colorForIndex(index, subjects.length),
+                          : colorForIndex(index, entries.length),
                     }}
                   />
                 </div>
                 <span className="w-14 shrink-0 text-sm text-right">
-                  {s.rate === null ? "…" : `${s.rate.toFixed(1)}%`}
+                  {e.rate === null ? "…" : `${e.rate.toFixed(1)}%`}
                 </span>
               </div>
             ))}
@@ -118,16 +118,16 @@ const FillRateChartDialog = ({ isOpen, onClose, classeName, subjects }: FillRate
               style={{ background: pieGradient ?? "var(--fallback-b2,oklch(var(--b2)))" }}
             />
             <ul className="space-y-1 max-h-96 overflow-y-auto">
-              {pieSegments.map((s, index) => (
-                <li key={s.subjectId} className="flex items-center gap-2 text-sm">
+              {pieSegments.map((e, index) => (
+                <li key={e.id} className="flex items-center gap-2 text-sm">
                   <span
                     className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: s.color }}
+                    style={{ backgroundColor: e.color }}
                   />
-                  <span className="truncate" title={s.title}>
-                    {index + 1} - {s.title}
+                  <span className="truncate" title={e.label}>
+                    {index + 1} - {e.label}
                   </span>
-                  <strong className="ml-auto">{s.rate.toFixed(1)}%</strong>
+                  <strong className="ml-auto">{e.rate.toFixed(1)}%</strong>
                 </li>
               ))}
             </ul>
