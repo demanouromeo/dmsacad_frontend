@@ -415,6 +415,31 @@ built here even though the backend has endpoints for the latter (`calquerCompete
 add them if/when explicitly requested, following `SubjectClasseManager`'s copy-dialog pattern rather than
 inventing a new one.
 
+**"Delete competences with no marks" toolbox button** (`Eraser` icon, `handleDeleteWithNoMarks`) — like
+`deleteCompetencesOfAClasse` above, scoped to the current (classe, subject, term) list, not the whole classe.
+`SubjectController::deleteCompetencesWithNoMarks` (`DELETE /api/subjects/deleteCompetencesWithNoMarks`)
+deletes whatever ids it's given without itself deciding what "no marks" means (its own docblock says so) — so
+the filtering happens client-side first: for every loaded competence, `MarkReader.fetchCompMarks` is called
+and a competence is kept as a deletion candidate only if every returned row has `isEmpty === 1` (or there are
+no rows at all) — a row can already exist with `isEmpty: 1` from a prior Mark-entry Save/Clear-all without
+that meaning a real mark was ever entered, same "isEmpty is the truth, not row-existence" precedent
+`MarkEntryManager` itself relies on. A warning toast fires if nothing qualifies; otherwise a confirm dialog
+shows the count before the actual delete call.
+
+**Backend bug fixed as part of this feature**: `deleteCompetencesWithNoMarks` ran a bare
+`DELETE FROM subject_competences WHERE subject_competence_id = ?` with no cleanup of `stud_comp_mark` first —
+unlike its siblings `deleteACompetence`/`deleteManyCompetences`, which both delete the competence's
+`stud_comp_mark` rows before deleting the competence itself. Since `stud_comp_mark.subject_competence_id` has
+a FK constraint back to `subject_competences`, this meant the delete call failed with a 1451 integrity-
+constraint-violation error (surfaced to the user as a generic failure toast) for *any* competence that still
+had even a leftover `isEmpty=1` placeholder row — i.e. almost exactly the set of competences this button
+exists to clean up, since visiting Mark entry for that (classe, subject, term) even once without typing
+anything is enough to create one. Fixed (confirmed via direct `curl` reproduction against the live XAMPP
+backend, before/after) to mirror the sibling methods' delete-children-then-parent order, plus an added
+server-side safety check — re-querying for a genuine `isEmpty=0` row per id and refusing to delete (reporting
+it in the failure message) rather than trusting the caller's own pre-check alone, since this is the one
+competence-delete route whose entire contract is "never touch real marks."
+
 ### Students (`/admin/students`, `src/components/admin/student/StudentManager.tsx`)
 
 Classe-scoped like `SubjectClasseManager`/`SubjectCompetenceManager` (a classe `<select>`, defaulting to the
@@ -525,6 +550,29 @@ whichever browser tab last visited `/admin/school-info`. It draws nothing if the
 signature place nor date set. `exportRowsToPdf` takes an `includeSignature = true` param to opt out — reserved
 for the future report-card/bulletin/livret exporters, which will use their own print layout and shouldn't get
 this generic block; no caller passes `false` yet.
+
+Every PDF export also gets a faint, centered, full-page **school-logo watermark** via `exportHeader.ts`'s
+`drawPdfWatermark(doc, header)` (8% opacity, 60% of page width, height derived from the logo's own natural
+aspect ratio so it isn't stretched) — deliberately implemented as part of `drawPdfFooters(doc, header?)` rather
+than as a separate call each export has to remember to make: `drawPdfFooters` is the one call every PDF export
+in the app already makes exactly once at the very end, looping over every page via `doc.setPage(page)` after
+`autoTable` has finished paginating (this is also what lets the watermark reach pages `jspdf-autotable` adds
+internally on overflow, which nothing else in the app has a hook into). Because it piggybacks on that same
+final pass, the watermark is necessarily drawn **on top of** each page's existing content rather than truly
+behind it (jsPDF's content stream is append-only — an earlier "draw it first, before the table" approach would
+need a hook into every page-creation path, including autoTable's internal ones); at 8% opacity via
+`doc.saveGraphicsState()`/`doc.setGState(doc.GState({opacity}))`/`doc.restoreGraphicsState()` this reads the
+same as a traditional behind-content watermark. Every existing `drawPdfFooters` call site was updated to pass
+its already-in-scope `schoolHeader` (every one of them already had it, for the letterhead/signature); the
+param is optional only because `exportRowsToPdf`'s own `schoolHeader` param is optional, and a caller with no
+header at all still gets a plain footer with no watermark, matching `drawPdfLetterhead`/`drawPdfSignature`'s
+own "draw nothing without a header" fallback. `drawPdfWatermark` draws nothing if `header.logoImage` is still
+null (loading, or no logo configured for this school) — same convention as the letterhead's own logo. **Not**
+applied to `src/utils/exportMarkSheets.ts`'s `exportMarkSheetsToPdf` ("Fiches de report de notes" blank paper
+forms) — that exporter was deliberately built with no letterhead/signature/footer at all per an earlier
+explicit request (it's a working paper meant to be filled in by hand and transcribed later, not an official
+document), and it isn't wired into any screen yet (`MarkSheetManager.tsx` exists but nothing imports
+`exportMarkSheetsToPdf`) — revisit whether it should get the watermark once that module is actually built out.
 
 Student's PDF export is one deviation worth knowing: it prepends a row-index (`Nº`) column via a
 `pdfExportColumns` array that isn't shared with the CSV export (CSV relies on the spreadsheet's own implicit
@@ -707,6 +755,86 @@ every mark cell is always directly editable, with one global Save (floppy icon) 
 row into a single bulk write. With 30-60 students per classe, a per-row edit-toggle would make the common
 "enter marks for the whole roster" case far more tedious, and this was a deliberate, confirmed departure from
 the rest of the app's inline-edit convention rather than an oversight.
+
+**Fill-rate PDF export and chart** — a `Download` icon next to the fill-rate panel heading exports its
+current per-subject list to PDF via the existing generic `exportRowsToPdf`; a `BarChart3` icon opens
+`FillRateChartDialog.tsx` (same native-`<dialog>` pattern as `TopBanner`'s dialogs), which renders that same
+data as a Bar or Pie view with no charting library added — Bar is plain width-percentage `<div>`s, Pie is a
+CSS `conic-gradient` (slice size = each subject's share of the summed rates) with a color-keyed legend.
+
+**Offline-safe mark export/import** — three toolbar buttons address a teacher losing connectivity or hitting
+a server error mid-entry:
+
+- `FileDown` **exports the currently-displayed marks** (selected classe/subject/term/sequence-or-competence)
+  to CSV via `exportRowsToCsv`, columns `# / stud_id / matricule / Name / Mark/20` (the `Mark/20` cell is the
+  mark re-parsed to a plain `Number`, not the displayed `"XX.YY"` string, so a round-trip import doesn't carry
+  a misleading `.00`). Always the full `roster`, never `filteredRoster` — matches every other manager's
+  "export ignores the active search filter" convention.
+- `FileSpreadsheet` **exports every subject's marks at once** to a genuine multi-sheet `.xlsx` workbook
+  (`src/utils/exportMarksWorkbook.ts`'s `exportMarksWorkbookToXlsx`) for the current term (+ sequence for
+  non-APC): one worksheet per subject, same 5-column shape as the single-subject CSV. For an APC classe, a
+  subject alone isn't a complete key (marks also need a competence), so it's one worksheet per
+  **(subject, competence)** pair instead, fetched via a nested `Promise.all` over
+  `SubjectReader.fetchCompetences` then `MarkReader.fetchCompMarks`; a subject with zero competences defined
+  for the current term is simply skipped, same as `apcHasNoCompetence` elsewhere on this screen.
+  `buildUniqueSheetName` sanitizes/truncates each sheet name to Excel's 31-char, no-`\/*?:[]`-character
+  worksheet-name rules and dedupes collisions with a `" (2)"`/`" (3)"` suffix. This uses **`exceljs`**
+  (already a dependency, the same library every `*Import.ts` reader already uses to parse `.xlsx` on the way
+  in) to *write* the workbook — a different library from the npm `xlsx`/SheetJS package the Export-to-CSV/PDF
+  section above documents avoiding for its unpatched advisories; a real multi-sheet file has no CSV
+  equivalent, so this is the one export in the app that produces a `.xlsx` rather than a `.csv`.
+- `Upload` **imports marks** from a `.csv` or `.xlsx` file shaped like the single-subject export
+  (`src/utils/markImport.ts`'s `parseMarkImportFile`) back into the currently-selected subject/term/
+  sequence-or-competence. Only columns C (`matricule`) and E (`Mark/20`) are read, starting at row 2; each
+  matricule is resolved against the already-loaded `roster` (the file's own `stud_id`/`Name` columns are
+  never trusted back), and each mark must be empty or in `[0, 20]`. Parsing aborts on the **first** invalid
+  row with a specific "row N, matricule X" message (same all-or-nothing precedent as `studentImport.ts`/
+  `classeImport.ts`, not an accumulate-every-error report). A valid file still requires
+  `useConfirm()`-accepting an explicit "this REPLACES every existing mark for this subject+period" warning
+  before `saveSeqMarks`/`saveCompMarks` actually runs. Legacy binary **`.xls` is deliberately not
+  supported** — `ExcelJS` only reads `.xlsx`, and every other importer in this app has the same gap for the
+  same reason (adding the full `xlsx`/SheetJS package just to cover `.xls` would reintroduce the advisories
+  noted above); selecting one shows a clear unsupported-format toast rather than failing silently.
+
+**Whole-section "Notes trim N" PDF report** (`FileText` toolbar icon, `handleExportAllClassesMarks`,
+`src/utils/exportAllMarksReport.ts`'s `exportAllMarksReportToPdf`) — unlike every other export on this screen
+(all scoped to the single selected classe), this one is scoped like `EffectifsManager`'s report: **every
+classe of the current section** (`classes`, already loaded), for the currently selected `selectedTerm`, into
+one downloaded PDF. For each classe it independently re-fetches that classe's own subjects
+(`SubjectReader.fetchSubjectsOfClasse`) and roster (`StudentReader.fetchStudentsOfClasse`) rather than reusing
+the single-selected-classe `subjects`/`roster` state; a classe with an empty roster is skipped entirely (no
+blank block), and — same `apcHasNoCompetence` precedent as elsewhere on this screen — an APC subject with zero
+competences defined for the current term is skipped rather than emitting an empty table.
+
+- **Bespoke PDF builder, not `exportRowsToPdf`** (same reasoning as `exportEffectifsToPdf`: the generic
+  exporter only knows one flat table). `exportAllMarksReportToPdf` draws the shared letterhead once
+  (`drawPdfLetterhead`) on a cover page titled `"NOTES DU {ORDINAL} TRIMESTRE"` + `"Année Scolaire: {year}"`,
+  then gives **every (classe, subject) block its own fresh page** (`doc.addPage()` before each `autoTable`
+  call) — a deliberate deviation from `exportEffectifsToPdf`'s continuous-flow/`finalY`-tracking layout, chosen
+  to match the user-provided reference report's own observed pagination (a new subject's block always starts a
+  fresh page, even when the previous table had room to spare). Each page's own small header line reads
+  `Classe: {classe_name}` (left) / `Matière: {subject_title}` (right) above the table
+  (`NO. / NOM ET PRÉNOM / ...`), and the whole document ends with the standard `drawPdfSignature` +
+  `drawPdfFooters` (page-numbered footer), same as every other PDF export in the app.
+- **Column headers differ by classe type, per explicit request**: non-APC classes always get the two literal
+  columns `NOTE1`/`NOTE2` (the term's two sequences, `computeDbSequence(selectedTerm, 1/2)` via
+  `fetchSeqMarks`); APC classes get one column per subject-competence, labeled **`Comp. 1`, `Comp. 2`, ...**
+  rather than the competence's own text — the same reasoning `SubjectCompetenceManager`'s competence `<select>`
+  already truncates long competence text for, but here the header is fully replaced by the numbered label
+  rather than truncated, since a wide multi-column table has even less room per header than a dropdown option.
+- **Mark values are raw numbers** (`formatReportMarkValue`: `String(Number(mark))`, `""` for an empty/unset
+  mark) — not the on-screen zero-padded `"XX.YY"` display format (`formatMarkValue`), matching the reference
+  report's own plain `"16.5"`/`"20"` styling.
+- **Filename** goes through the same `buildTimestampedFilename(\`Notes trim ${selectedTerm}\`, [\`Section
+  ${capitalizeSectionName(section)}\`], "pdf")` helper every other export in the app uses — deliberately *not*
+  the literal `"...2026-7-19 14h 43m 43s"` timestamp format from the original feature request, to stay
+  consistent with this app's one existing timestamp convention (`"yyyy mm dd hh mm ss"`, space-separated)
+  rather than introducing a second one.
+- Guarded by its own `isExportingReport` loading flag (folded into the existing `{(isSaving || isExportingAll
+  || isExportingReport) && <LoadingOverlay />}` condition) since the fetch loop is potentially heavy — every
+  classe × subject (× competence, for APC) of the whole section, sequentially per classe to avoid firing every
+  request at once. A `t.exportAllClassesMarksEmpty` warning toast covers both "no classes in this section" and
+  "every classe/subject was skipped" (empty rosters, or every APC subject having zero competences this term).
 
 ### School basic info (`/admin/school-info`, `src/components/admin/schoolinfo/SchoolInfoManager.tsx`)
 

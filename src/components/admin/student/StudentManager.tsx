@@ -531,7 +531,7 @@ const StudentManager = () => {
     if (schoolHeader) {
       drawPdfSignature(doc, schoolHeader, finalY);
     }
-    drawPdfFooters(doc);
+    drawPdfFooters(doc, schoolHeader);
 
     doc.save(
       buildTimestampedFilename(

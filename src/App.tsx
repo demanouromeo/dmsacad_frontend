@@ -19,6 +19,7 @@ import CourseAssignmentManager from "./components/admin/courseassignment/CourseA
 import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
 import EffectifsManager from "./components/admin/effectifs/EffectifsManager";
 import MarkEntryManager from "./components/admin/marks/MarkEntryManager";
+import MarkSheetManager from "./components/admin/marksheet/MarkSheetManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
                 />
                 <Route path="/admin/effectifs" element={<EffectifsManager />} />
                 <Route path="/admin/mark-entry" element={<MarkEntryManager />} />
+                <Route path="/admin/mark-sheet" element={<MarkSheetManager />} />
               </Route>
             </Route>
           </Routes>

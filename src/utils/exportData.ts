@@ -122,6 +122,6 @@ export const exportRowsToPdf = async <T>(
       .lastAutoTable.finalY;
     drawPdfSignature(doc, schoolHeader, finalY);
   }
-  drawPdfFooters(doc);
+  drawPdfFooters(doc, schoolHeader);
   doc.save(filename);
 };

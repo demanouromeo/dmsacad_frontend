@@ -419,6 +419,35 @@ export class SubjectReader {
     );
   };
 
+  // Deletes a specific set of competences unconditionally - the backend
+  // (SubjectController::deleteCompetencesWithNoMarks) does not itself check for marks, it deletes
+  // whichever ids are passed in `data`; it's on the caller (SubjectCompetenceManager) to have
+  // already determined, via MarkReader.fetchCompMarks per competence, which ones have no marks
+  // before passing their ids here. Kept as its own method (rather than reusing deleteCompetences)
+  // so the two "toolbox" actions can carry distinct success/failure semantics in the UI even though
+  // they hit different backend routes.
+  public static deleteCompetencesWithNoMarks = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    competenceIds: number[],
+  ): Promise<ApiResult> => {
+    return SubjectReader.postJson(
+      "api/subjects/deleteCompetencesWithNoMarks",
+      accessToken,
+      {
+        connection,
+        year,
+        data: JSON.stringify(
+          competenceIds.map((id) => ({ subject_competence_id: id })),
+        ),
+        data_size: competenceIds.length,
+      },
+      "deleteCompetencesWithNoMarks",
+      "DELETE",
+    );
+  };
+
   // Destructive - deletes every competence of one classe for the current school year, across every
   // subject and term (SubjectController::deleteCompetencesOfAClasse) - backs the classe-level "delete
   // all competences" icon button, not the row-level multi-select delete above.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Eraser, Trash2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -7,6 +7,7 @@ import { useLanguage } from "../../../i18n/useLanguage";
 import { subjectCompetenceManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { SubjectReader } from "../../../dbmanger/SubjectReader";
+import { MarkReader } from "../../../dbmanger/MarkReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
@@ -303,6 +304,64 @@ const SubjectCompetenceManager = () => {
     }
   };
 
+  // "Toolbox" cleanup action, scoped to the currently selected (classe, subject, term) list - the
+  // backend's deleteCompetencesWithNoMarks route deletes whatever ids it's given without checking
+  // marks itself (see SubjectController::deleteCompetencesWithNoMarks), so the "no marks" filtering
+  // happens here: fetch each currently loaded competence's marks (MarkReader.fetchCompMarks, the
+  // same stud_comp_mark lookup MarkEntryManager uses) and keep only the ones where every row is
+  // isEmpty (or there are no rows at all) - a row can exist with isEmpty=1 from a prior "clear all"
+  // without that meaning a mark was ever genuinely entered.
+  const handleDeleteWithNoMarks = async () => {
+    if (selectedClasseId === null || selectedSubjectId === null || competences.length === 0) {
+      return;
+    }
+    const classeId = selectedClasseId;
+    const subjectId = selectedSubjectId;
+    setIsSaving(true);
+    const results = await Promise.all(
+      competences.map(async (comp) => {
+        const rows = await MarkReader.fetchCompMarks(
+          accessToken,
+          connection,
+          schoolYear,
+          classeId,
+          subjectId,
+          selectedTerm,
+          comp.subject_competence_id,
+        );
+        const hasAnyMark = rows.some((r) => r.isEmpty !== 1);
+        return { id: comp.subject_competence_id, hasAnyMark };
+      }),
+    );
+    const idsWithNoMarks = results.filter((r) => !r.hasAnyMark).map((r) => r.id);
+    if (idsWithNoMarks.length === 0) {
+      setIsSaving(false);
+      showToast(t.deleteNoMarksNoneFound, { type: "warning" });
+      return;
+    }
+    setIsSaving(false);
+    const confirmed = await confirm(t.deleteNoMarksConfirm(idsWithNoMarks.length), {
+      danger: true,
+    });
+    if (!confirmed) {
+      return;
+    }
+    setIsSaving(true);
+    const result = await SubjectReader.deleteCompetencesWithNoMarks(
+      accessToken,
+      connection,
+      schoolYear,
+      idsWithNoMarks,
+    );
+    setIsSaving(false);
+    showToast(result.status ? t.deleteNoMarksSuccess : t.deleteNoMarksFailure, {
+      type: result.status ? "info" : "danger",
+    });
+    if (result.status) {
+      loadCompetences();
+    }
+  };
+
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
@@ -523,14 +582,26 @@ const SubjectCompetenceManager = () => {
                     </table>
                   </div>
 
-                  <button
-                    type="button"
-                    className="btn btn-error btn-sm mb-6"
-                    disabled={selectedIds.size === 0}
-                    onClick={handleDeleteSelected}
-                  >
-                    {t.deleteSelectionBtn(selectedIds.size)}
-                  </button>
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <button
+                      type="button"
+                      className="btn btn-error btn-sm"
+                      disabled={selectedIds.size === 0}
+                      onClick={handleDeleteSelected}
+                    >
+                      {t.deleteSelectionBtn(selectedIds.size)}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-error btn-sm gap-2"
+                      title={t.deleteNoMarksTooltip}
+                      disabled={competences.length === 0}
+                      onClick={handleDeleteWithNoMarks}
+                    >
+                      <Eraser className="w-4 h-4" />
+                      {t.deleteNoMarksBtn}
+                    </button>
+                  </div>
                 </>
               )}
             </>

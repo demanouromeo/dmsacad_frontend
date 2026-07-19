@@ -4,7 +4,14 @@
       "Bash(\"/c/xampp/php/php.exe\" -l \"c:\\\\xampp\\\\htdocs\\\\dmsacad_backend_dev\\\\app\\\\Http\\\\Controllers\\\\StudentController.php\")",
       "Bash(\"/c/xampp/php/php.exe\" -l \"c:\\\\xampp\\\\htdocs\\\\dmsacad_backend_dev\\\\routes\\\\api.php\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5173/src/components/admin/student/StudentManager.tsx\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git stash *)",
+      "Bash(/c/xampp/php/php.exe -r ' *)",
+      "Bash(curl -s 'http://localhost/dmsacad_backend_dev/api/classes/getAPCLevels?connection=mysql&year=2025%2F2026&section=francophone' -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ5b3VyLWFwcCIsInN1YiI6MSwianRpIjoiZjliY2YxYmE0YmZkYjA3NDIxMWM5ZDZmYjRjYTQ2MjEiLCJlbWFpbCI6ImRtc19hY2RhQGdtYWlsLmNvbSIsInJvbGUiOiJBRE1JTiIsIm5hbWUiOiJBRE1JTklTVFJBVEVVUiIsInVzZXJfaWQiOjEsImlhdCI6MTc4NDQ3MjQ0NSwiZXhwIjoxNzg0NjQ1MjQ1fQ.ERjZLyD4MH00PC7OPfLxNNZ1GRtF26uSTP4xps0bfKE')",
+      "Bash(rm -f /tmp/cookies.txt)",
+      "Bash(curl -s -c /tmp/cookies.txt -X POST http://localhost/dmsacad_backend_dev/api/accounts/connect -H 'Content-Type: application/json' -d '{\"login\":\"test1\",\"pwd\":\"test1\",\"connection\":\"mysql\"}' -o /tmp/login_resp.json)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X POST http://localhost/dmsacad_backend_dev/api/accounts/refresh -H 'Content-Type: application/json' -d '{\"connection\":\"mysql\"}')"
     ],
     "additionalDirectories": [
       "c:\\xampp\\htdocs\\dmsacad_backend_dev\\routes"

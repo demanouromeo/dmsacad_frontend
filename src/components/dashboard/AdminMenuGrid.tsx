@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useLanguage } from "../../i18n/useLanguage";
-import { adminMenuTranslations } from "../../i18n/translations";
+import { adminMenuTranslations, subjectsHubTranslations } from "../../i18n/translations";
 import AdminMenuCard from "./AdminMenuCard";
 
 import iconSchoolDetails from "../../assets/menu/Information de bqse.svg";
@@ -27,6 +28,18 @@ import iconScholarship from "../../assets/menu/Boursiers.svg";
 import iconInsolvents from "../../assets/menu/Insolvables.svg";
 
 type AdminMenuKey = keyof (typeof adminMenuTranslations)["fr"];
+type SubjectsHubKey = keyof (typeof subjectsHubTranslations)["fr"];
+
+// The 4 sub-modules reachable from the "subjects" card via SubjectsHub - the only functionality with
+// subfunctionalities right now (see SubjectsHub.tsx). Searching one of their names (e.g.
+// "compétences") still surfaces the parent "subjects" card below, since a subfunctionality has no
+// card of its own on this grid.
+const SUBJECT_SUB_ITEM_KEYS: SubjectsHubKey[] = [
+  "matieres",
+  "groupes",
+  "matieresClasses",
+  "matieresCompetences",
+];
 
 interface AdminMenuItem {
   key: AdminMenuKey;
@@ -50,7 +63,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   },
   { key: "students", icon: iconStudents, to: "/admin/students" },
   { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
-  { key: "markSheet", icon: iconMarkSheet },
+  { key: "markSheet", icon: iconMarkSheet, to: "/admin/mark-sheet" },
   { key: "printReportCards", icon: iconPrintReportCards },
   { key: "fillRate", icon: iconFillRate },
   { key: "discipline", icon: iconDiscipline },
@@ -69,17 +82,44 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
 const AdminMenuGrid = () => {
   const [language] = useLanguage();
   const t = adminMenuTranslations[language];
+  const hubT = subjectsHubTranslations[language];
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const query = searchQuery.trim().toLowerCase();
+  const matches = (text: string) => text.toLowerCase().includes(query);
+  const filteredItems =
+    query === ""
+      ? ADMIN_MENU_ITEMS
+      : ADMIN_MENU_ITEMS.filter(
+          (item) =>
+            matches(t[item.key]) ||
+            (item.key === "subjects" &&
+              SUBJECT_SUB_ITEM_KEYS.some((key) => matches(hubT[key]))),
+        );
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-      {ADMIN_MENU_ITEMS.map((item) => (
-        <AdminMenuCard
-          key={item.key}
-          label={t[item.key]}
-          icon={item.icon}
-          to={item.to}
-        />
-      ))}
+    <div>
+      <input
+        type="text"
+        className="input w-full max-w-sm mb-6"
+        placeholder={t.searchPlaceholder}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      {filteredItems.length === 0 ? (
+        <p className="opacity-60">{t.searchNoResults}</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {filteredItems.map((item) => (
+            <AdminMenuCard
+              key={item.key}
+              label={t[item.key]}
+              icon={item.icon}
+              to={item.to}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

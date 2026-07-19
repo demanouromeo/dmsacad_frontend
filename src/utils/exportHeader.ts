@@ -185,6 +185,41 @@ export const drawPdfSignature = (
   return y;
 };
 
+// Faint, centered, full-page logo watermark - drawn on every page of every PDF export (see
+// drawPdfFooters below, which is the one call every export already makes on every page). Sized
+// off the page width rather than a fixed size so it reads the same on both the letterhead's own
+// small corner logo and this much larger background mark; height is derived from the logo's own
+// natural aspect ratio so a non-square logo doesn't get stretched.
+const WATERMARK_OPACITY = 0.08;
+const WATERMARK_WIDTH_RATIO = 0.6;
+
+const drawPdfWatermark = (doc: jsPDF, header: SchoolHeader): void => {
+  const { logoImage } = header;
+  if (!logoImage) {
+    return;
+  }
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const width = pageWidth * WATERMARK_WIDTH_RATIO;
+  const aspect =
+    logoImage.naturalWidth && logoImage.naturalHeight
+      ? logoImage.naturalHeight / logoImage.naturalWidth
+      : 1;
+  const height = width * aspect;
+  const x = (pageWidth - width) / 2;
+  const y = (pageHeight - height) / 2;
+  try {
+    doc.saveGraphicsState();
+    doc.setGState(doc.GState({ opacity: WATERMARK_OPACITY }));
+    doc.addImage(logoImage, "PNG", x, y, width, height);
+    doc.restoreGraphicsState();
+  } catch (error) {
+    // Same fallback as drawPdfLetterhead's own addImage call - most likely a cross-origin canvas
+    // read blocked by the browser; a missing watermark shouldn't block the rest of the export.
+    console.error("drawPdfWatermark(): failed to embed watermark image", error);
+  }
+};
+
 // App-level branding, not school-specific data - same on every export regardless of connection.
 const APP_NAME = "DMS_ACAD";
 const APP_EMAIL = "dmsschoolmanager@gmail.com";
@@ -204,9 +239,16 @@ const drawMailIcon = (doc: jsPDF, x: number, y: number, size: number): void => {
 };
 
 // Draws the footer (separator rule, app identity/contact, copyright, page number) on every page
-// of the document. Must run after autoTable has finished paginating the body - the final page
-// count isn't known until then - so this is a separate pass rather than part of the letterhead.
-export const drawPdfFooters = (doc: jsPDF): void => {
+// of the document, plus the logo watermark (see drawPdfWatermark above). Must run after autoTable
+// has finished paginating the body - the final page count isn't known until then - so this is a
+// separate pass rather than part of the letterhead. This is the one call every PDF export in the
+// app already makes exactly once, at the very end, regardless of how many pages it produced
+// (including pages jspdf-autotable adds internally on overflow, which no other part of this app
+// has a hook into) - piggybacking the watermark on this same per-page loop is what puts it on
+// every page of every export without having to touch each export's own page-creation logic.
+// `header` is optional only because exportRowsToPdf's own `schoolHeader` param is optional (a
+// caller with no header at all still gets the plain footer, just no watermark).
+export const drawPdfFooters = (doc: jsPDF, header?: SchoolHeader): void => {
   const pageCount = doc.getNumberOfPages();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -218,6 +260,10 @@ export const drawPdfFooters = (doc: jsPDF): void => {
 
   for (let page = 1; page <= pageCount; page++) {
     doc.setPage(page);
+
+    if (header) {
+      drawPdfWatermark(doc, header);
+    }
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);

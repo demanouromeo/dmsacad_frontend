@@ -4,10 +4,14 @@ import {
   Download,
   Eraser,
   Eye,
+  FileDown,
+  FileSpreadsheet,
+  FileText,
   Lock,
   RefreshCw,
   Save,
   Unlock,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -22,10 +26,27 @@ import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
 import type { Student } from "../../../interfaces/Student";
+import type { Mark } from "../../../interfaces/Mark";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import { sanitizeMarkInput, isMarkInRange, formatMarkValue } from "../../../utils/textValidation";
-import { buildTimestampedFilename, exportRowsToPdf } from "../../../utils/exportData";
+import {
+  buildTimestampedFilename,
+  capitalizeSectionName,
+  exportRowsToCsv,
+  exportRowsToPdf,
+} from "../../../utils/exportData";
+import { parseMarkImportFile } from "../../../utils/markImport";
+import {
+  buildUniqueSheetName,
+  exportMarksWorkbookToXlsx,
+  type MarksSheet,
+} from "../../../utils/exportMarksWorkbook";
+import {
+  exportAllMarksReportToPdf,
+  type AllMarksReportBlock,
+  type AllMarksReportRow,
+} from "../../../utils/exportAllMarksReport";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import FillRateChartDialog from "./FillRateChartDialog";
 
@@ -35,6 +56,15 @@ const SEQUENCES = [1, 2];
 // dbsequence in [1..6] is how non-APC marks (student_subject.sequence) key a (term, sequence) pair -
 // see StudentController's own comment block on saveSeqMarks/getSeqMarks for this exact mapping.
 const computeDbSequence = (term: number, sequence: number): number => (term - 1) * 2 + sequence;
+
+// Column headers for a non-APC classe's block in the "all classes" PDF report - the term's two
+// sequences, always exactly these two literal labels (see exportAllMarksReport.ts).
+const NON_APC_COLUMN_HEADERS = ["NOTE1", "NOTE2"];
+
+// Raw numeric value for the "all classes" PDF report - unlike the on-screen "XX.YY" display format
+// (formatMarkValue), the report shows plain numbers ("16.5", "20"), matching the reference document.
+const formatReportMarkValue = (row: Mark | undefined): string =>
+  row && row.isEmpty !== 1 ? String(Number(row.mark)) : "";
 
 interface MarkEntry {
   value: string;
@@ -57,6 +87,8 @@ const MarkEntryManager = () => {
   const t = markEntryManagerTranslations[language];
   const schoolHeader = useSchoolHeader();
   const [isChartDialogOpen, setIsChartDialogOpen] = useState(false);
+  const [isExportingAll, setIsExportingAll] = useState(false);
+  const [isExportingReport, setIsExportingReport] = useState(false);
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [apcLevels, setApcLevels] = useState<Map<number, boolean>>(new Map());
@@ -90,6 +122,7 @@ const MarkEntryManager = () => {
   // mouse click - the only way to move between marks before this. Entries are added/removed by the
   // input's own ref callback as filteredRoster (search) changes which rows are actually mounted.
   const markInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
+  const importFileInputRef = useRef<HTMLInputElement>(null);
 
   const isLevelApc = (level: number): boolean => apcLevels.get(level) === true;
   const selectedClasse = classes.find((c) => c.classe_id === selectedClasseId) ?? null;
@@ -485,6 +518,329 @@ const MarkEntryManager = () => {
     }
   };
 
+  // "Seq N"/"Comp id" segment shared by the export filename and the file's own header/import
+  // confirm message - Comp uses the raw subject_competence_id (not the full competence text) since
+  // it must stay short and filesystem-safe.
+  const periodFilenameSegment = isApc ? `Comp ${selectedCompetenceId ?? ""}` : `Seq ${selectedSequence}`;
+
+  const handleExportMarks = () => {
+    const filename = buildTimestampedFilename(
+      selectedClasse?.classe_name ?? "",
+      [selectedSubject?.subject_title ?? "", `Trim ${selectedTerm}`, periodFilenameSegment],
+      "csv",
+    );
+    // Always the full roster, never filteredRoster - matches every other manager's "export ignores
+    // the active search filter" convention. The mark cell is re-parsed to a plain Number rather than
+    // exported as the displayed "XX.YY" string, so re-importing the same file round-trips exactly
+    // and a whole mark doesn't carry a misleading ".00".
+    exportRowsToCsv(
+      filename,
+      [
+        { header: t.exportMarksColIndex, accessor: (_row: Student, index: number) => index + 1 },
+        { header: t.exportMarksColStudId, accessor: (row: Student) => row.stud_id },
+        { header: t.exportMarksColMatricule, accessor: (row: Student) => row.matricule ?? "" },
+        {
+          header: t.exportMarksColName,
+          accessor: (row: Student) => `${row.name} ${row.surname ?? ""}`.trim(),
+        },
+        {
+          header: t.exportMarksColMark,
+          accessor: (row: Student) => {
+            const entry = marks.get(row.stud_id);
+            return entry && !entry.isEmpty && entry.value.trim() !== "" ? Number(entry.value) : "";
+          },
+        },
+      ],
+      roster,
+    );
+  };
+
+  const handleImportMarksFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || selectedSubjectId === null || (isApc && selectedCompetenceId === null)) {
+      return;
+    }
+
+    setIsSaving(true);
+    const parsed = await parseMarkImportFile(file, roster);
+    setIsSaving(false);
+    if (!parsed.status) {
+      switch (parsed.error.type) {
+        case "unsupportedExtension":
+          showToast(t.importMarksUnsupportedExtension, { type: "danger" });
+          break;
+        case "emptyFile":
+          showToast(t.importMarksEmptyFile, { type: "danger" });
+          break;
+        case "unknownMatricule":
+          showToast(t.importMarksUnknownMatricule(parsed.error.row, parsed.error.matricule), {
+            type: "danger",
+          });
+          break;
+        case "invalidMark":
+          showToast(t.importMarksInvalidMark(parsed.error.row, parsed.error.matricule), {
+            type: "danger",
+          });
+          break;
+      }
+      return;
+    }
+
+    const periodLabel = isApc
+      ? `${t.termInfoLabel} ${selectedTerm} - ${t.competenceInfoLabel} ${selectedCompetence?.competence_text ?? ""}`
+      : `${t.termInfoLabel} ${selectedTerm} - ${t.sequenceInfoLabel} ${selectedSequence}`;
+    const confirmed = await confirm(
+      t.importMarksConfirm(selectedSubject?.subject_title ?? "", periodLabel),
+      { danger: true, confirmLabel: t.importMarksConfirmBtn },
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await saveRows(
+      parsed.marks.map((m) => ({ stud_id: m.stud_id, mark: m.mark, isEmpty: m.isEmpty })),
+    );
+    setIsSaving(false);
+    showToast(result.status ? t.importMarksSuccess(parsed.marks.length) : t.importMarksFailure, {
+      type: result.status ? "info" : "danger",
+    });
+    if (result.status) {
+      await loadMarks();
+      loadFillRates();
+    }
+  };
+
+  // "All marks" toolbox - one workbook, one sheet per subject (non-APC, current term+sequence) or
+  // per (subject, competence) pair (APC, current term - APC marks have no sequence axis, but do
+  // still need a competence to be a valid key, so "current term" alone isn't enough to address a
+  // single sheet the way it is for non-APC). Subjects/competences with nothing to export (an APC
+  // subject with zero competences this term) are simply skipped, matching apcHasNoCompetence's
+  // handling elsewhere on this screen.
+  const handleExportAllMarks = async () => {
+    if (selectedClasseId === null || subjects.length === 0) {
+      showToast(t.exportAllMarksEmpty, { type: "warning" });
+      return;
+    }
+    const classeId = selectedClasseId;
+    setIsExportingAll(true);
+    const usedNames = new Set<string>();
+    let sheets: MarksSheet[];
+    if (isApc) {
+      const perSubject = await Promise.all(
+        subjects.map(async (subject) => {
+          const subjectCompetences = await SubjectReader.fetchCompetences(
+            accessToken,
+            connection,
+            schoolYear,
+            section,
+            classeId,
+            subject.subject_id,
+            selectedTerm,
+          );
+          return Promise.all(
+            subjectCompetences.map(async (comp) => {
+              const rows = await MarkReader.fetchCompMarks(
+                accessToken,
+                connection,
+                schoolYear,
+                classeId,
+                subject.subject_id,
+                selectedTerm,
+                comp.subject_competence_id,
+              );
+              return {
+                sheetName: buildUniqueSheetName(
+                  `${subject.subject_title} - ${comp.competence_text}`,
+                  usedNames,
+                ),
+                marksByStudId: new Map(rows.map((r) => [r.stud_id, r])),
+              };
+            }),
+          );
+        }),
+      );
+      sheets = perSubject.flat();
+    } else {
+      sheets = await Promise.all(
+        subjects.map(async (subject) => {
+          const rows = await MarkReader.fetchSeqMarks(
+            accessToken,
+            connection,
+            schoolYear,
+            classeId,
+            subject.subject_id,
+            dbsequence,
+          );
+          return {
+            sheetName: buildUniqueSheetName(subject.subject_title, usedNames),
+            marksByStudId: new Map(rows.map((r) => [r.stud_id, r])),
+          };
+        }),
+      );
+    }
+    const filename = buildTimestampedFilename(
+      selectedClasse?.classe_name ?? "",
+      isApc ? [`Trim ${selectedTerm}`] : [`Trim ${selectedTerm}`, `Seq ${selectedSequence}`],
+      "xlsx",
+    );
+    await exportMarksWorkbookToXlsx(filename, roster, sheets, {
+      index: t.exportMarksColIndex,
+      studId: t.exportMarksColStudId,
+      matricule: t.exportMarksColMatricule,
+      name: t.exportMarksColName,
+      mark: t.exportMarksColMark,
+    });
+    setIsExportingAll(false);
+  };
+
+  // "Notes trim N" report - a single PDF spanning EVERY classe of the current section (not just the
+  // selected one, unlike every other export on this screen) for the current term, one page-per-block
+  // table per (classe, subject): NOTE1/NOTE2 columns for non-APC classes (the term's two sequences),
+  // one "Comp. N" column per subject-competence for APC classes (the competence's own wording is
+  // deliberately not used as the header, since it can be paragraph-length - see
+  // exportAllMarksReport.ts). Same "whole scope, not just what's on screen" precedent as
+  // EffectifsManager's report. Fetches each classe's own subjects/roster independently (not the
+  // single-selected-classe `subjects`/`roster` state above), and classes with an empty roster or APC
+  // subjects with zero competences this term are skipped entirely rather than emitting an empty block.
+  const handleExportAllClassesMarks = async () => {
+    if (classes.length === 0) {
+      showToast(t.exportAllClassesMarksEmpty, { type: "warning" });
+      return;
+    }
+    setIsExportingReport(true);
+    const blocks: AllMarksReportBlock[] = [];
+    for (const classe of classes) {
+      const classeIsApc = isLevelApc(classe.level);
+      const [subjectList, rosterList] = await Promise.all([
+        SubjectReader.fetchSubjectsOfClasse(
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          classe.classe_id,
+        ),
+        StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classe.classe_id),
+      ]);
+      if (rosterList.length === 0) {
+        continue;
+      }
+      const nameByStudId = new Map(
+        rosterList.map((s) => [s.stud_id, `${s.name} ${s.surname ?? ""}`.trim()]),
+      );
+
+      if (classeIsApc) {
+        const subjectBlocks = await Promise.all(
+          subjectList.map(async (subject): Promise<AllMarksReportBlock | null> => {
+            const subjectCompetences = await SubjectReader.fetchCompetences(
+              accessToken,
+              connection,
+              schoolYear,
+              section,
+              classe.classe_id,
+              subject.subject_id,
+              selectedTerm,
+            );
+            if (subjectCompetences.length === 0) {
+              return null;
+            }
+            const marksPerCompetence = await Promise.all(
+              subjectCompetences.map((comp) =>
+                MarkReader.fetchCompMarks(
+                  accessToken,
+                  connection,
+                  schoolYear,
+                  classe.classe_id,
+                  subject.subject_id,
+                  selectedTerm,
+                  comp.subject_competence_id,
+                ),
+              ),
+            );
+            const marksByStudIdPerCompetence = marksPerCompetence.map(
+              (rows) => new Map(rows.map((r) => [r.stud_id, r])),
+            );
+            const rows: AllMarksReportRow[] = rosterList.map((student) => ({
+              studId: student.stud_id,
+              name: nameByStudId.get(student.stud_id) ?? "",
+              values: marksByStudIdPerCompetence.map((m) =>
+                formatReportMarkValue(m.get(student.stud_id)),
+              ),
+            }));
+            return {
+              classeName: classe.classe_name,
+              subjectTitle: subject.subject_title,
+              columnHeaders: subjectCompetences.map((_, index) => `Comp. ${index + 1}`),
+              rows,
+            };
+          }),
+        );
+        subjectBlocks.forEach((block) => {
+          if (block) {
+            blocks.push(block);
+          }
+        });
+      } else {
+        const dbseq1 = computeDbSequence(selectedTerm, 1);
+        const dbseq2 = computeDbSequence(selectedTerm, 2);
+        const subjectBlocks = await Promise.all(
+          subjectList.map(async (subject): Promise<AllMarksReportBlock> => {
+            const [seq1Rows, seq2Rows] = await Promise.all([
+              MarkReader.fetchSeqMarks(
+                accessToken,
+                connection,
+                schoolYear,
+                classe.classe_id,
+                subject.subject_id,
+                dbseq1,
+              ),
+              MarkReader.fetchSeqMarks(
+                accessToken,
+                connection,
+                schoolYear,
+                classe.classe_id,
+                subject.subject_id,
+                dbseq2,
+              ),
+            ]);
+            const seq1ByStudId = new Map(seq1Rows.map((r) => [r.stud_id, r]));
+            const seq2ByStudId = new Map(seq2Rows.map((r) => [r.stud_id, r]));
+            const rows: AllMarksReportRow[] = rosterList.map((student) => ({
+              studId: student.stud_id,
+              name: nameByStudId.get(student.stud_id) ?? "",
+              values: [
+                formatReportMarkValue(seq1ByStudId.get(student.stud_id)),
+                formatReportMarkValue(seq2ByStudId.get(student.stud_id)),
+              ],
+            }));
+            return {
+              classeName: classe.classe_name,
+              subjectTitle: subject.subject_title,
+              columnHeaders: NON_APC_COLUMN_HEADERS,
+              rows,
+            };
+          }),
+        );
+        blocks.push(...subjectBlocks);
+      }
+    }
+
+    if (blocks.length === 0) {
+      setIsExportingReport(false);
+      showToast(t.exportAllClassesMarksEmpty, { type: "warning" });
+      return;
+    }
+
+    const filename = buildTimestampedFilename(
+      `Notes trim ${selectedTerm}`,
+      [`Section ${capitalizeSectionName(section)}`],
+      "pdf",
+    );
+    await exportAllMarksReportToPdf(schoolYear, selectedTerm, blocks, schoolHeader, filename);
+    setIsExportingReport(false);
+  };
+
   const handleExportFillRatePdf = async () => {
     const classeName = selectedClasse?.classe_name ?? "";
     await exportRowsToPdf(
@@ -508,7 +864,7 @@ const MarkEntryManager = () => {
 
   return (
     <div className="p-10 pb-32">
-      {isSaving && <LoadingOverlay />}
+      {(isSaving || isExportingAll || isExportingReport) && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
 
       {isLoadingClasses ? (
@@ -610,17 +966,73 @@ const MarkEntryManager = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
 
-            <button
-              type="button"
-              className="btn btn-neutral btn-sm gap-2 ml-auto"
-              onClick={() => {
-                loadMarks();
-                loadFillRates();
-              }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t.refreshBtn}
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".csv,.xlsx"
+                className="hidden"
+                onChange={handleImportMarksFileChange}
+              />
+              <div className="tooltip" data-tip={t.exportMarksTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-neutral btn-sm gap-2"
+                  disabled={selectedSubjectId === null || roster.length === 0}
+                  onClick={handleExportMarks}
+                >
+                  <FileDown className="w-4 h-4" />
+                </button>
+              </div>
+              <div
+                className="tooltip"
+                data-tip={isApc ? t.exportAllMarksTooltipApc : t.exportAllMarksTooltip}
+              >
+                <button
+                  type="button"
+                  className="btn btn-neutral btn-sm gap-2"
+                  disabled={subjects.length === 0 || roster.length === 0 || isExportingAll}
+                  onClick={handleExportAllMarks}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="tooltip" data-tip={t.exportAllClassesMarksTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-neutral btn-sm gap-2"
+                  disabled={classes.length === 0 || isExportingReport}
+                  onClick={handleExportAllClassesMarks}
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="tooltip" data-tip={t.importMarksTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-neutral btn-sm gap-2"
+                  disabled={
+                    selectedSubjectId === null ||
+                    isLocked ||
+                    (isApc && selectedCompetenceId === null)
+                  }
+                  onClick={() => importFileInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4" />
+                </button>
+              </div>
+              <button
+                type="button"
+                className="btn btn-neutral btn-sm gap-2"
+                onClick={() => {
+                  loadMarks();
+                  loadFillRates();
+                }}
+              >
+                <RefreshCw className="w-4 h-4" />
+                {t.refreshBtn}
+              </button>
+            </div>
           </div>
 
           {!isLoadingSubjects && subjects.length === 0 && (

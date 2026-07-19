@@ -1057,6 +1057,15 @@ export const subjectCompetenceManagerTranslations = {
     deleteConfirm: (count: number) => `Supprimer ${count} compétence(s) ?`,
     deleteSuccess: "Compétence(s) supprimée(s) avec succès.",
     deleteFailure: "Échec de la suppression d'au moins une compétence.",
+    deleteNoMarksBtn: "Supprimer les compétences sans notes",
+    deleteNoMarksTooltip:
+      "Rechercher et supprimer, pour cette matière et ce trimestre, les compétences n'ayant reçu aucune note",
+    deleteNoMarksNoneFound:
+      "Aucune compétence sans notes n'a été trouvée pour cette matière et ce trimestre.",
+    deleteNoMarksConfirm: (count: number) =>
+      `Supprimer définitivement ${count} compétence(s) n'ayant reçu aucune note ? Cette action est irréversible.`,
+    deleteNoMarksSuccess: "Compétence(s) sans notes supprimée(s) avec succès.",
+    deleteNoMarksFailure: "Échec de la suppression d'au moins une compétence sans notes.",
   },
   en: {
     title: "Subjects and competencies",
@@ -1098,6 +1107,15 @@ export const subjectCompetenceManagerTranslations = {
     deleteConfirm: (count: number) => `Delete ${count} competency(ies)?`,
     deleteSuccess: "Competency(ies) deleted successfully.",
     deleteFailure: "Failed to delete at least one competency.",
+    deleteNoMarksBtn: "Delete competencies with no marks",
+    deleteNoMarksTooltip:
+      "Find and delete, for this subject and term, the competencies that have not received any mark",
+    deleteNoMarksNoneFound:
+      "No competency without marks was found for this subject and term.",
+    deleteNoMarksConfirm: (count: number) =>
+      `Permanently delete ${count} competency(ies) that have not received any mark? This action cannot be undone.`,
+    deleteNoMarksSuccess: "Competency(ies) with no marks deleted successfully.",
+    deleteNoMarksFailure: "Failed to delete at least one competency with no marks.",
   },
 };
 
@@ -1166,6 +1184,34 @@ export const markEntryManagerTranslations = {
     fillRateChartPieLabel: "Camembert",
     fillRateChartCloseBtn: "Fermer",
     fillRateChartEmpty: "Aucune donnée de remplissage disponible.",
+    exportMarksTooltip:
+      "Exporter les notes actuellement affichées en Excel (utile pour saisir hors-ligne et importer plus tard en cas de problème de connexion ou de serveur)",
+    exportMarksColIndex: "#",
+    exportMarksColStudId: "stud_id",
+    exportMarksColMatricule: "matricule",
+    exportMarksColName: "Name",
+    exportMarksColMark: "Mark/20",
+    importMarksTooltip:
+      "Importer des notes depuis un fichier .csv, .xls ou .xlsx (même format que l'export)",
+    importMarksConfirm: (subjectTitle: string, periodLabel: string) =>
+      `L'importation va REMPLACER toutes les notes existantes de la matière '${subjectTitle}' (${periodLabel}) par celles du fichier. Cette action est irréversible. Continuer ?`,
+    importMarksConfirmBtn: "Importer",
+    importMarksSuccess: (count: number) => `${count} note(s) importée(s) avec succès.`,
+    importMarksFailure: "Échec de l'importation des notes.",
+    importMarksUnsupportedExtension: "Format de fichier non supporté. Utilisez .csv ou .xlsx.",
+    importMarksEmptyFile: "Le fichier ne contient aucune donnée à importer.",
+    importMarksUnknownMatricule: (row: number, matricule: string) =>
+      `Ligne ${row} : le matricule '${matricule}' ne correspond à aucun élève de cette classe.`,
+    importMarksInvalidMark: (row: number, matricule: string) =>
+      `Ligne ${row} (matricule '${matricule}') : la note doit être vide ou un nombre entre 0 et 20.`,
+    exportAllMarksTooltip:
+      "Exporter les notes de toutes les matières (trimestre et séquence actuels, une feuille par matière) dans un classeur Excel",
+    exportAllMarksTooltipApc:
+      "Exporter les notes de toutes les matières et compétences du trimestre actuel dans un classeur Excel (une feuille par compétence)",
+    exportAllMarksEmpty: "Aucune matière assignée à cette classe à exporter.",
+    exportAllClassesMarksTooltip:
+      "Exporter les notes du trimestre actuel de toutes les classes de la section dans un seul fichier PDF",
+    exportAllClassesMarksEmpty: "Aucune note à exporter pour cette section.",
   },
   en: {
     title: "Mark entry",
@@ -1227,6 +1273,52 @@ export const markEntryManagerTranslations = {
     fillRateChartPieLabel: "Pie",
     fillRateChartCloseBtn: "Close",
     fillRateChartEmpty: "No fill rate data available.",
+    exportMarksTooltip:
+      "Export the currently displayed marks to Excel (useful to fill in offline and import later if the connection or server is unavailable)",
+    exportMarksColIndex: "#",
+    exportMarksColStudId: "stud_id",
+    exportMarksColMatricule: "matricule",
+    exportMarksColName: "Name",
+    exportMarksColMark: "Mark/20",
+    importMarksTooltip: "Import marks from a .csv, .xls or .xlsx file (same format as the export)",
+    importMarksConfirm: (subjectTitle: string, periodLabel: string) =>
+      `Importing will REPLACE every existing mark for subject '${subjectTitle}' (${periodLabel}) with the ones from the file. This action cannot be undone. Continue?`,
+    importMarksConfirmBtn: "Import",
+    importMarksSuccess: (count: number) => `${count} mark(s) imported successfully.`,
+    importMarksFailure: "Failed to import the marks.",
+    importMarksUnsupportedExtension: "Unsupported file format. Use .csv or .xlsx.",
+    importMarksEmptyFile: "The file has no data to import.",
+    importMarksUnknownMatricule: (row: number, matricule: string) =>
+      `Row ${row}: matricule '${matricule}' doesn't match any student of this class.`,
+    importMarksInvalidMark: (row: number, matricule: string) =>
+      `Row ${row} (matricule '${matricule}'): the mark must be empty or a number between 0 and 20.`,
+    exportAllMarksTooltip:
+      "Export every subject's marks (current term and sequence, one sheet per subject) to an Excel workbook",
+    exportAllMarksTooltipApc:
+      "Export every subject and competency's marks of the current term to an Excel workbook (one sheet per competency)",
+    exportAllMarksEmpty: "No subject assigned to this class to export.",
+    exportAllClassesMarksTooltip:
+      "Export the current term's marks for every class of the section to a single PDF file",
+    exportAllClassesMarksEmpty: "No marks to export for this section.",
+  },
+};
+
+export const markSheetManagerTranslations = {
+  fr: {
+    title: "Fiches de report de notes",
+    description:
+      "Génère un document PDF contenant, pour chaque classe de la section actuelle, une fiche vierge (Enseignant/Matière/Trimestre/Coef. à remplir à la main) listant les élèves de la classe - à imprimer et distribuer aux enseignants pour la saisie manuelle des notes.",
+    generateBtn: "Générer les fiches",
+    emptyClasses: "Aucune classe pour cette section.",
+    emptyRosters: "Aucun élève dans les classes de cette section.",
+  },
+  en: {
+    title: "Mark sheets",
+    description:
+      "Generates a PDF document containing, for every class of the current section, a blank sheet (Teacher/Subject/Term/Coef. left for hand-fill) listing the class's students - to print and hand out to teachers for manual mark collection.",
+    generateBtn: "Generate the sheets",
+    emptyClasses: "No class for this section.",
+    emptyRosters: "No student in this section's classes.",
   },
 };
 
@@ -1425,6 +1517,8 @@ export const adminMenuTranslations = {
     basculement: "Basculement",
     scholarship: "Bourse",
     insolvents: "Insolvables",
+    searchPlaceholder: "Rechercher une fonctionnalité…",
+    searchNoResults: "Aucune fonctionnalité ne correspond à cette recherche.",
   },
   en: {
     schoolDetails: "School details",
@@ -1450,5 +1544,7 @@ export const adminMenuTranslations = {
     basculement: "Basculement",
     scholarship: "Scholarship",
     insolvents: "Insolvents",
+    searchPlaceholder: "Search a functionality…",
+    searchNoResults: "No functionality matches this search.",
   },
 };

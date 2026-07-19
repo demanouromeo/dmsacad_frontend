@@ -119,6 +119,6 @@ export const exportEffectifsToPdf = async (
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
   drawPdfSignature(doc, schoolHeader, finalY);
-  drawPdfFooters(doc);
+  drawPdfFooters(doc, schoolHeader);
   doc.save(filename);
 };

@@ -478,7 +478,7 @@ const CourseAssignmentManager = () => {
     if (schoolHeader) {
       drawPdfSignature(doc, schoolHeader, y);
     }
-    drawPdfFooters(doc);
+    drawPdfFooters(doc, schoolHeader);
     doc.save(
       buildTimestampedFilename(
         "Liste des attributions",
