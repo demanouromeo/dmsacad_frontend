@@ -17,8 +17,16 @@ import type { ClasseOfSubject } from "../../../interfaces/ClasseOfSubject";
 import type { CourseAssignment } from "../../../interfaces/CourseAssignment";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
-import { buildExportFilename, exportRowsToCsv } from "../../../utils/exportData";
-import { drawPdfLetterhead, drawPdfFooters } from "../../../utils/exportHeader";
+import {
+  buildTimestampedFilename,
+  capitalizeSectionName,
+  exportRowsToCsv,
+} from "../../../utils/exportData";
+import {
+  drawPdfLetterhead,
+  drawPdfFooters,
+  drawPdfSignature,
+} from "../../../utils/exportHeader";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 interface StaffLike {
@@ -378,8 +386,12 @@ const CourseAssignmentManager = () => {
       return;
     }
     exportRowsToCsv(
-      buildExportFilename(
-        [t.title, formatStaffLabel(selectedStaff, false), connection, schoolYear, section],
+      buildTimestampedFilename(
+        "Liste des attributions",
+        [
+          formatStaffLabel(selectedStaff, false),
+          `Section ${capitalizeSectionName(section)}`,
+        ],
         "csv",
       ),
       [
@@ -463,9 +475,16 @@ const CourseAssignmentManager = () => {
           .finalY + 10;
     }
 
+    if (schoolHeader) {
+      drawPdfSignature(doc, schoolHeader, y);
+    }
     drawPdfFooters(doc);
     doc.save(
-      buildExportFilename([t.printTitle, connection, schoolYear, section], "pdf"),
+      buildTimestampedFilename(
+        "Liste des attributions",
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      ),
     );
   };
 

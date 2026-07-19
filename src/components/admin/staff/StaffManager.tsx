@@ -20,7 +20,7 @@ import {
 } from "../../../utils/textValidation";
 import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
-  buildExportFilename,
+  buildTimestampedFilename,
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
@@ -465,7 +465,7 @@ const StaffManager = () => {
 
   const handleExportExcel = () => {
     exportRowsToCsv(
-      buildExportFilename([t.title, connection, schoolYear], "csv"),
+      buildTimestampedFilename("Liste du personnel", [], "csv"),
       exportColumns,
       staffList,
     );
@@ -474,7 +474,7 @@ const StaffManager = () => {
   const handleExportPdf = () => {
     exportRowsToPdf(
       t.title,
-      buildExportFilename([t.title, connection, schoolYear], "pdf"),
+      buildTimestampedFilename("Liste du personnel", [], "pdf"),
       exportColumns,
       staffList,
       schoolHeader,

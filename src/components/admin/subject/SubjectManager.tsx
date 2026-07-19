@@ -19,7 +19,8 @@ import {
 } from "../../../utils/textValidation";
 import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
-  buildExportFilename,
+  buildTimestampedFilename,
+  capitalizeSectionName,
   exportRowsToCsv,
   exportRowsToPdf,
 } from "../../../utils/exportData";
@@ -333,7 +334,11 @@ const SubjectManager = () => {
 
   const handleExportExcel = () => {
     exportRowsToCsv(
-      buildExportFilename([t.title, connection, schoolYear, section], "csv"),
+      buildTimestampedFilename(
+        "Liste des matières",
+        [`Section ${capitalizeSectionName(section)}`],
+        "csv",
+      ),
       exportColumns,
       subjects,
     );
@@ -342,7 +347,11 @@ const SubjectManager = () => {
   const handleExportPdf = () => {
     exportRowsToPdf(
       t.title,
-      buildExportFilename([t.title, connection, schoolYear, section], "pdf"),
+      buildTimestampedFilename(
+        "Liste des matières",
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      ),
       exportColumns,
       subjects,
       schoolHeader,

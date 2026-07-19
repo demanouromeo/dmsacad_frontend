@@ -15,15 +15,22 @@ import type { Student } from "../../../interfaces/Student";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import StudentPhotoCell from "./StudentPhotoCell";
+import StudentPhotoDialog from "./StudentPhotoDialog";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { sanitizeStudentName, parseStudentImportFile } from "../../../utils/studentImport";
 import { generateUniqueMatricule } from "../../../utils/matricule";
 import { stripHtmlTags } from "../../../utils/apiErrors";
 import {
-  buildExportFilename,
+  buildTimestampedFilename,
+  capitalizeSectionName,
   exportRowsToCsv,
-  exportRowsToPdf,
 } from "../../../utils/exportData";
+import {
+  drawPdfLetterhead,
+  drawPdfFooters,
+  drawPdfSignature,
+} from "../../../utils/exportHeader";
 
 const MIN_NAME_LENGTH = 2;
 
@@ -78,6 +85,12 @@ const StudentManager = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [photoDialogStudent, setPhotoDialogStudent] = useState<Student | null>(null);
+  const [photoVersions, setPhotoVersions] = useState<Record<number, number>>({});
+  const bumpPhotoVersion = (studId: number) => {
+    setPhotoVersions((prev) => ({ ...prev, [studId]: (prev[studId] ?? 0) + 1 }));
+  };
 
   const selectedClasse = classes.find((c) => c.classe_id === selectedClasseId) ?? null;
 
@@ -416,27 +429,119 @@ const StudentManager = () => {
     },
   ];
 
+  // Same columns as exportColumns, with the row index prepended - only the printed PDF needs a
+  // visible Nº column, CSV/Excel already has an implicit row number via the spreadsheet itself.
+  const pdfExportColumns = [
+    { header: t.tableHeaderIndex, accessor: (_s: Student, index: number) => index + 1 },
+    ...exportColumns,
+  ];
+
   const handleExportExcel = () => {
     if (!selectedClasse) {
       return;
     }
     exportRowsToCsv(
-      buildExportFilename([t.title, selectedClasse.classe_name, connection, schoolYear, section], "csv"),
+      buildTimestampedFilename(
+        "Liste des élèves",
+        [
+          `Classe ${selectedClasse.classe_name}`,
+          `Section ${capitalizeSectionName(section)}`,
+        ],
+        "csv",
+      ),
       exportColumns,
       students,
     );
   };
 
-  const handleExportPdf = () => {
+  // Custom layout instead of the generic exportRowsToPdf: this document needs a title block
+  // (title left, "Année Scolaire"/"Classe" labels, a small G/F/T stats grid on the right) inserted
+  // right after the letterhead, which the generic single-line title exporter can't produce.
+  const handleExportPdf = async () => {
     if (!selectedClasse) {
       return;
     }
-    exportRowsToPdf(
-      `${t.title} — ${selectedClasse.classe_name}`,
-      buildExportFilename([t.title, selectedClasse.classe_name, connection, schoolYear, section], "pdf"),
-      exportColumns,
-      students,
-      schoolHeader,
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const blockTop = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(t.printTitle, 14, blockTop + 6);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(t.printYearLabel, 14, blockTop + 14);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      schoolYear,
+      14 + doc.getTextWidth(`${t.printYearLabel} `),
+      blockTop + 14,
+    );
+
+    const classeBlockX = pageWidth * 0.42;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(t.printClasseLabel, classeBlockX, blockTop + 10);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      selectedClasse.classe_name,
+      classeBlockX + doc.getTextWidth(`${t.printClasseLabel} `),
+      blockTop + 10,
+    );
+
+    autoTable(doc, {
+      startY: blockTop,
+      margin: { left: pageWidth - 60 },
+      tableWidth: 46,
+      theme: "grid",
+      styles: {
+        halign: "center",
+        fontSize: 10,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.2,
+        fillColor: [255, 255, 255],
+        textColor: [0, 0, 0],
+      },
+      headStyles: { fontStyle: "bold" },
+      head: [["G", "F", "T"]],
+      body: [[String(stats.garcons), String(stats.filles), String(stats.total)]],
+    });
+    // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime - its published
+    // types don't expose this on the plain jsPDF type this project imports, hence the cast.
+    const statsTableFinalY = (
+      doc as unknown as { lastAutoTable: { finalY: number } }
+    ).lastAutoTable.finalY;
+
+    const listStartY = Math.max(blockTop + 18, statsTableFinalY) + 6;
+    autoTable(doc, {
+      startY: listStartY,
+      head: [pdfExportColumns.map((c) => c.header)],
+      body: students.map((row, index) =>
+        pdfExportColumns.map((c) => String(c.accessor(row, index))),
+      ),
+    });
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
+      .lastAutoTable.finalY;
+
+    if (schoolHeader) {
+      drawPdfSignature(doc, schoolHeader, finalY);
+    }
+    drawPdfFooters(doc);
+
+    doc.save(
+      buildTimestampedFilename(
+        "Liste des élèves",
+        [
+          `Classe ${selectedClasse.classe_name}`,
+          `Section ${capitalizeSectionName(section)}`,
+        ],
+        "pdf",
+      ),
     );
   };
 
@@ -551,6 +656,7 @@ const StudentManager = () => {
                         />
                       </th>
                       <th>{t.tableHeaderIndex}</th>
+                      <th>{t.tableHeaderPhoto}</th>
                       <th>{t.tableHeaderMatricule}</th>
                       <th>{t.tableHeaderName}</th>
                       <th>{t.tableHeaderSurname}</th>
@@ -576,6 +682,13 @@ const StudentManager = () => {
                             />
                           </td>
                           <td>{index + 1}</td>
+                          <td>
+                            <StudentPhotoCell
+                              studId={student.stud_id}
+                              refreshVersion={photoVersions[student.stud_id] ?? 0}
+                              onClick={() => setPhotoDialogStudent(student)}
+                            />
+                          </td>
                           <td>
                             {isEditing ? (
                               <input
@@ -744,14 +857,14 @@ const StudentManager = () => {
                     })}
                     {students.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="text-center opacity-60">
+                        <td colSpan={12} className="text-center opacity-60">
                           {t.emptyList}
                         </td>
                       </tr>
                     )}
                     {students.length > 0 && filteredStudents.length === 0 && (
                       <tr>
-                        <td colSpan={11} className="text-center opacity-60">
+                        <td colSpan={12} className="text-center opacity-60">
                           {t.noSearchResults}
                         </td>
                       </tr>
@@ -872,6 +985,12 @@ const StudentManager = () => {
           </form>
         </>
       )}
+
+      <StudentPhotoDialog
+        student={photoDialogStudent}
+        onClose={() => setPhotoDialogStudent(null)}
+        onSaved={bumpPhotoVersion}
+      />
     </div>
   );
 };

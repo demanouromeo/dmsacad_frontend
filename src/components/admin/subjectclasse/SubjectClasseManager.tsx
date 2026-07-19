@@ -14,7 +14,11 @@ import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import { stripHtmlTags } from "../../../utils/apiErrors";
-import { exportRowsToPdf, buildExportFilename } from "../../../utils/exportData";
+import {
+  exportRowsToPdf,
+  buildTimestampedFilename,
+  capitalizeSectionName,
+} from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const byTitle = <T extends { subject_title: string }>(rows: T[]): T[] =>
@@ -261,8 +265,12 @@ const SubjectClasseManager = () => {
     const title = t.rightPanelTitle(selectedClasse.classe_name);
     exportRowsToPdf(
       title,
-      buildExportFilename(
-        [t.title, selectedClasse.classe_name, connection, schoolYear, section],
+      buildTimestampedFilename(
+        "Liste des matières",
+        [
+          `Classe ${selectedClasse.classe_name}`,
+          `Section ${capitalizeSectionName(section)}`,
+        ],
         "pdf",
       ),
       [

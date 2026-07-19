@@ -563,6 +563,9 @@ export const studentManagerTranslations = {
     sectionHint: (section: string) =>
       `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
     classeLabel: "Classe :",
+    printTitle: "LISTE DES ÉLÈVES",
+    printYearLabel: "Année Scolaire:",
+    printClasseLabel: "Classe:",
     emptyClasses: "Aucune classe pour cette section.",
     emptyList: "Aucun élève dans cette classe.",
     searchPlaceholder: "Rechercher un élève (nom, prénom, matricule, lieu de naissance)…",
@@ -633,12 +636,24 @@ export const studentManagerTranslations = {
     importFailure: "Échec de l'import des élèves.",
     importFailureDetail: (detail: string) =>
       `Échec de l'import des élèves. Détails : ${detail}`,
+    tableHeaderPhoto: "Photo",
+    photoDialogTitle: (name: string) => `Photo de ${name}`,
+    choosePhotoBtn: "Choisir une photo",
+    rotateLeftHint: "Rotation à gauche",
+    rotateRightHint: "Rotation à droite",
+    zoomHint: "Zoom",
+    photoTooLarge: "La photo est trop volumineuse même après compression (max. 500 Ko). Essayez une image plus simple.",
+    photoUploadSuccess: "Photo enregistrée avec succès.",
+    photoUploadFailure: "Échec de l'enregistrement de la photo.",
   },
   en: {
     title: "Students",
     sectionHint: (section: string) =>
       `Section: ${section} — use the section icon in the top bar to switch sections.`,
     classeLabel: "Class:",
+    printTitle: "STUDENT LIST",
+    printYearLabel: "School year:",
+    printClasseLabel: "Class:",
     emptyClasses: "No class for this section.",
     emptyList: "No student in this class.",
     searchPlaceholder: "Search a student (name, surname, matricule, birth place)…",
@@ -709,6 +724,15 @@ export const studentManagerTranslations = {
     importFailure: "Failed to import the students.",
     importFailureDetail: (detail: string) =>
       `Failed to import the students. Details: ${detail}`,
+    tableHeaderPhoto: "Photo",
+    photoDialogTitle: (name: string) => `${name}'s photo`,
+    choosePhotoBtn: "Choose a photo",
+    rotateLeftHint: "Rotate left",
+    rotateRightHint: "Rotate right",
+    zoomHint: "Zoom",
+    photoTooLarge: "The photo is too large even after compression (max. 500KB). Try a simpler image.",
+    photoUploadSuccess: "Photo saved successfully.",
+    photoUploadFailure: "Failed to save the photo.",
   },
 };
 

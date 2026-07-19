@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/xampp/php/php.exe\" -l \"c:\\\\xampp\\\\htdocs\\\\dmsacad_backend_dev\\\\app\\\\Http\\\\Controllers\\\\StudentController.php\")",
+      "Bash(\"/c/xampp/php/php.exe\" -l \"c:\\\\xampp\\\\htdocs\\\\dmsacad_backend_dev\\\\routes\\\\api.php\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5173/src/components/admin/student/StudentManager.tsx\")"
+    ],
+    "additionalDirectories": [
+      "c:\\xampp\\htdocs\\dmsacad_backend_dev\\routes"
+    ]
+  }
+}

@@ -17,6 +17,7 @@ import StaffManager from "./components/admin/staff/StaffManager";
 import StudentManager from "./components/admin/student/StudentManager";
 import CourseAssignmentManager from "./components/admin/courseassignment/CourseAssignmentManager";
 import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
+import EffectifsManager from "./components/admin/effectifs/EffectifsManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -64,6 +65,7 @@ function App() {
                   path="/admin/school-info"
                   element={<SchoolInfoManager />}
                 />
+                <Route path="/admin/effectifs" element={<EffectifsManager />} />
               </Route>
             </Route>
           </Routes>

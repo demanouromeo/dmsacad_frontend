@@ -476,9 +476,78 @@ Excel opens `.csv` natively and the BOM keeps accented characters intact. `expor
 columns, rows)` dynamically `import()`s `jspdf`/`jspdf-autotable` (keeps them out of the main bundle) and
 renders a simple titled table. Both take an `ExportColumn<T>[]` (`{header, accessor: (row: T) => string |
 number}`) — reuse this exact shape for a new screen's export rather than writing a bespoke CSV/PDF builder.
-`buildExportFilename(parts, extension)` joins/sanitizes filename parts (title, connection, year, section) —
-follow the same `[title, connection, schoolYear, section]` convention other screens use so exported filenames
-stay predictable.
+`buildTimestampedFilename(title, extraSegments, extension)` builds every export filename in the app (CSV and
+PDF alike, plus any bespoke document like `EffectifsManager`'s report or `CourseAssignmentManager`'s print) in
+one fixed, human-readable format: `"<Title> - <extra segment> - ... - yyyy mm dd hh mm ss.<ext>"` — e.g.
+`buildTimestampedFilename("Liste de classes", ["Section Francophone"], "pdf")` →
+`"Liste de classes - Section Francophone - 2026 07 18 14 30 05.pdf"`. Unlike a generic sanitizer, it only
+strips characters actually invalid in a filename (`\ / : * ? " < > |`), deliberately preserving spaces,
+dashes, and accented letters — the format depends on them. `extraSegments` are already-labeled strings in
+display order (`` `Section ${capitalizeSectionName(section)}` ``, `` `Classe ${classe_name}` ``,
+`` `Section ${capitalizeSectionName(section)}` `` again for staff-per-teacher exports, ...); pass `[]` for a
+screen whose export isn't scoped to anything beyond its title (Staff — not section-scoped; the whole-school
+`EffectifsManager` report — covers every section at once). `capitalizeSectionName(section)` title-cases the
+raw lowercase `"francophone"/"anglophone"` value for this display purpose only — every other place in the app
+(e.g. `sectionHint` text) still shows the raw lowercase value; don't use it there. The literal title strings
+(`"Liste du personnel"`, `"Liste de classes"`, `"Liste des matières"`, `"Liste des filière"` — singular,
+matching the exact wording requested, not "filières" — `"Liste des specialités"` — without the accent on the
+first e, likewise exact — `"Liste des attributions"`, `"Liste des groupes"`, `"Liste des élèves"`,
+`"Effectifs par classe"`) are hardcoded in each screen's `handleExportExcel`/`handleExportPdf`, independent of
+the app's own FR/EN language toggle — this naming format was specified as fixed text, not translated content,
+same precedent as `exportHeader.ts`'s bilingual government letterhead being fixed regardless of the language
+toggle.
+
+### Effectifs par classe (`/admin/effectifs`, `src/components/admin/effectifs/EffectifsManager.tsx`)
+
+A read-only, whole-school report replicating a paper "EFFECTIFS PAR CLASSE" statement (classe-by-classe
+headcounts grouped by cycle and section) — no CRUD, no edit-in-row, unlike every other admin screen; its
+only actions are "Actualiser" (refetch) and the two `ExportButtons`. Wired to the dashboard's previously-inert
+"Bilan" (`summary`) `AdminMenuGrid` card. Content is hardcoded French only (no per-file translation
+dictionary added to `src/i18n/translations.ts`), by explicit request — the one exception to this app's usual
+per-screen-dictionary convention.
+
+- **Always both sections, never scoped to `useAuth().section`.** Unlike every classe-scoped screen
+  (`ClasseManager`, `StudentManager`, ...), this report always fetches and renders **both**
+  francophone and anglophone (a school-wide statement isn't meaningful scoped to whichever section
+  happens to be selected in `TopBanner`) — it only reads `connection`/`schoolYear`/`accessToken` from
+  `useAuth()`, not `section`. A section is dropped entirely (not rendered as an empty table) only when it
+  has **zero classes** for the year (`ClasseReader.fetchClasses` 404/empty) — a section with classes but zero
+  enrolled students still renders its full classe list with all-zero counts, matching the reference report.
+- **`StudentController::allStudentsSummaryOfSection`** (`GET /api/students/allStudentsSummaryOfSection`,
+  `StudentReader.fetchStudentsSummaryOfSection`) is a new backend endpoint added for this report — returns
+  one flat row (`sexe`, `repeating`, `classe_id`, `classe_name`, `level`) per enrolled student across an
+  **entire section** in a single query (join across `student`/`student_classe`/`classe`/`classe_year`),
+  ordered by `level, classe_name`. Deliberately takes `section` as the literal francophone/anglophone string
+  (via `MyHelper::getSectionID($section)`), the same convention as `allClasse1`/`getAPCLevels`/
+  `fetchClasses`, **not** `section_id` like the pre-existing, differently-shaped
+  `allStudentsOfClasseOfSection` (which returns full `Student` columns for one already-resolved
+  `section_id`, not this report's minimal per-student tally shape). Chosen over looping
+  `fetchStudentsOfClasse`+`fetchStudentClasseOfClasse` per classe (the pattern `StudentManager` uses) because
+  a whole-section report would mean 2×N requests for N classes; this is 1 request per section instead.
+- **`src/utils/effectifs.ts`** is the pure computation layer, independent of the fetch/render code so it's
+  unit-testable in isolation: `cycleOfLevel(level)` — **Cycle 1 = levels 1-4 (6ème..3ème), Cycle 2 = levels
+  5-7 (2nde..Tle)**, per the report's own convention (not `computeMaxClasseLevel`'s CES/short-cycle
+  distinction, which is a different, unrelated cutoff) — `buildClasseEffectifs(classes, summaryRows)` merges
+  the full classe list (including zero-student classes) with the flat summary rows by `classe_id` into one
+  row per classe (`garcons`/`filles`/`redoublants`/`nouveaux`/`total`; `nouveaux` is `total - redoublants`,
+  the same simplification `StudentManager`'s stats bar already uses — no separate "new admission" flag
+  exists in the data model), then `groupByCycle`/`buildSectionEffectif`/`sumSections` roll those up into
+  cycle subtotals, a section subtotal, and a grand total across every section.
+- **`src/utils/exportEffectifs.ts`'s `exportEffectifsToPdf`** is a bespoke PDF builder, not a caller of
+  `exportData.ts`'s generic `exportRowsToPdf` — that generic exporter only knows how to render one flat
+  table, whereas this report needs one table per section with an interleaved bold "RÉSUMÉ DU CYCLE n"
+  subtotal row (light-gray fill) after each cycle's classe rows, a black/white "Bilan section: x" row at
+  each section's end, and a final black/white "BILAN" row across every section — built via
+  `jspdf-autotable`'s per-cell `{content, colSpan, styles}` object shape (`CellDef`) rather than
+  `didParseCell` hooks. It still reuses `exportHeader.ts`'s existing `drawPdfLetterhead`/`drawPdfSignature`/
+  `drawPdfFooters` (the same bilingual government letterhead + "Fait à.../Le {Directeur|Proviseur}"
+  signature block + footer every other screen's PDF export already gets) rather than inventing new
+  letterhead code — only the body table layout is bespoke here.
+- **CSV export** (`ExportButtons`' Excel button) still goes through the existing generic
+  `exportRowsToCsv`/`ExportColumn<T>` shape from `exportData.ts`, flattened to one row per classe (with a
+  `Section`/`Cycle` column added) via a local `buildFlatRows` helper in `EffectifsManager.tsx` — CSV has no
+  need for the PDF's grouped/subtotal layout, matching `exportRowsToCsv`'s existing "raw tabular data" role
+  everywhere else in the app.
 
 ### School basic info (`/admin/school-info`, `src/components/admin/schoolinfo/SchoolInfoManager.tsx`)
 
@@ -588,7 +657,8 @@ set):
 | Staff (Gestion du personnel) — basic CRUD + linked account | Done — `/admin/staffs`, `StaffManager`; roles/schedules/leave from the product's feature overview are not built |
 | Course assignment | Done — `/admin/course-assignment`, `CourseAssignmentManager` |
 | Students (Gestion des élèves) — basic CRUD + import, no parent/phone linkage | Done — `/admin/students`, `StudentManager` (see Architecture) |
-| Marks entry, mark sheets, report cards, fill rate, discipline, summary, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
+| Summary ("Bilan") — read-only "Effectifs par classe" report | Done — `/admin/effectifs`, `EffectifsManager` (see Architecture) |
+| Marks entry, mark sheets, report cards, fill rate, discipline, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
 
 Cross-cutting infra built alongside the modules above, used by all of them: the top banner (global
 year/section/language switch, replacing per-page back buttons), toast notifications, promise-based confirm

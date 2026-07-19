@@ -1,5 +1,6 @@
 import type { jsPDF } from "jspdf";
 import type { SchoolHeaderConfig } from "../interfaces/SchoolHeaderConfig";
+import { computeResponsable } from "./schoolTypes";
 
 // Bundles the two pieces useSchoolHeader() resolves in parallel - the identity/address fields
 // (from allSchoolConfigOfYear) and the logo, already loaded as an <img> element (crossOrigin
@@ -121,6 +122,67 @@ export const drawPdfLetterhead = (doc: jsPDF, header: SchoolHeader): number => {
   doc.setFontSize(12);
 
   return y + 8;
+};
+
+// Every exported PDF except report cards/bulletins/livrets (built directly against
+// basic_school_config's own print layout, not this generic table exporter) ends with this
+// signature block - the school's configured signature place/date, and the "Le X / The Y" title
+// pair computed from the school type (see schoolTypes.ts's computeResponsable, mirroring the
+// mobile app). Placed on the right half of the page, below the last content block. Draws nothing
+// (returns currentY unchanged) if there's no config at all, or the config carries neither a
+// signature place nor date - same "nothing configured yet" fallback as drawPdfLetterhead.
+const SIGNATURE_BLOCK_X_RATIO = 0.55;
+
+export const drawPdfSignature = (
+  doc: jsPDF,
+  header: SchoolHeader,
+  currentY: number,
+): number => {
+  const { config } = header;
+  if (!config || (!config.lieu_signature && !config.date_signature)) {
+    return currentY;
+  }
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const blockX = pageWidth * SIGNATURE_BLOCK_X_RATIO;
+  let y = currentY + 14;
+  // Footer rule sits at pageHeight - 16 (see drawPdfFooters) - push to a new page rather than
+  // overlapping it if the last content block ran close to the bottom.
+  if (y > pageHeight - 40) {
+    doc.addPage();
+    y = 20;
+  }
+
+  const responsable = computeResponsable(config.type ?? "");
+  const place = config.lieu_signature ?? "";
+  const date = config.date_signature ? config.date_signature.slice(0, 10) : "";
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  let x = blockX;
+  doc.text("Fait à ", x, y);
+  x += doc.getTextWidth("Fait à ");
+  doc.setFont("helvetica", "bold");
+  doc.text(place, x, y);
+  x += doc.getTextWidth(place);
+  doc.setFont("helvetica", "normal");
+  doc.text(", le ", x, y);
+  x += doc.getTextWidth(", le ");
+  doc.setFont("helvetica", "bold");
+  doc.text(date, x, y);
+
+  y += 7;
+  doc.setFont("helvetica", "bold");
+  doc.text(`Le ${responsable.fr}`, blockX, y);
+
+  y += 6;
+  doc.setFont("helvetica", "italic");
+  doc.text(`The ${responsable.en}`, blockX, y);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  return y;
 };
 
 // App-level branding, not school-specific data - same on every export regardless of connection.
