@@ -318,6 +318,13 @@ established pattern — when adding a new admin CRUD screen, follow this shape r
   true/false around the async call and renders `{isSaving && <LoadingOverlay />}`; every result (success,
   duplicate-name failure, generic failure) triggers `showToast()` via a per-file translation dictionary
   (`filiereManagerTranslations`, etc., in `src/i18n/translations.ts`).
+- **Search/filter**: every list screen (Filière/Spécialité/Classe/Staff/Subject/Groupe/Student) has a local
+  `searchQuery` state (reset alongside the load effect's `connection`/`schoolYear`/`section` deps, not on a
+  mutation-triggered reload), a case-insensitive substring match across the row's visible text fields into a
+  derived `filtered*` array, a search `<input>` above the table, and a distinct "no search results" empty-state
+  row separate from the "list is empty" one. `toggleSelectAll` operates on the **filtered** subset only (not
+  the full list), and CSV/PDF export always exports the full unfiltered list regardless of an active search —
+  follow this exact shape for a new screen's search box rather than inventing a different filter UI.
 - **`src/utils/apiErrors.ts`'s `isDuplicateNameError(message)`** — regex-matches `/duplicate|already
   exists|already used/i` against the backend's raw (often unlocalized/inconsistent) error message to decide
   whether to show a "name already exists" vs. a generic failure toast. `"already used"` specifically covers
@@ -337,7 +344,13 @@ established pattern — when adding a new admin CRUD screen, follow this shape r
   (`visiblePasswordIds`, a `Set<number>` of `staff_id`s) revealing that row's current password on demand,
   masked (`••••••••`) by default and reset on every reload — this is a separate concern from the `New
   password` column (which only ever holds a not-yet-saved replacement value), and `pwd` must still never
-  appear in `exportColumns`/CSV/PDF export.
+  appear in `exportColumns`/CSV/PDF export. The add-staff form's own password `<input>` has its own
+  independent `Eye`/`EyeOff` show/hide toggle (`showNewPassword`), plus a "Generate login and password" button
+  (`Wand2` icon) that fills both `newLogin`/`newPassword` with a random 6-character `a-zA-Z0-9` string
+  (`randomCredentialString`), retried up to 50 times against the currently-loaded `staffList`'s logins for
+  unique-enough uniqueness (best-effort — `Account.login` is globally unique server-side across the whole
+  school, not just the current year's staff list, but 62^6 combinations plus the existing `addDuplicate` toast
+  path make a residual collision negligible).
 
 ### Subjects hub and the APC / competence-based classe concept
 
@@ -481,8 +494,12 @@ PDF alike, plus any bespoke document like `EffectifsManager`'s report or `Course
 one fixed, human-readable format: `"<Title> - <extra segment> - ... - yyyy mm dd hh mm ss.<ext>"` — e.g.
 `buildTimestampedFilename("Liste de classes", ["Section Francophone"], "pdf")` →
 `"Liste de classes - Section Francophone - 2026 07 18 14 30 05.pdf"`. Unlike a generic sanitizer, it only
-strips characters actually invalid in a filename (`\ / : * ? " < > |`), deliberately preserving spaces,
-dashes, and accented letters — the format depends on them. `extraSegments` are already-labeled strings in
+targets characters actually invalid in a **Windows** filename (`\ / : * ? " < > |`) — the deployed target,
+not just whatever the dev's own OS happens to tolerate — and replaces each one with a literal space rather
+than stripping or underscoring it, so e.g. a "copy to other classes" title built from multiple classe names
+joined by `/` (`"4e ALL/4e ARA'B"`) still reads as separate words (`"4e ALL 4e ARA'B"`) instead of running
+together; it deliberately preserves spaces, dashes, and accented letters — the format depends on them.
+`extraSegments` are already-labeled strings in
 display order (`` `Section ${capitalizeSectionName(section)}` ``, `` `Classe ${classe_name}` ``,
 `` `Section ${capitalizeSectionName(section)}` `` again for staff-per-teacher exports, ...); pass `[]` for a
 screen whose export isn't scoped to anything beyond its title (Staff — not section-scoped; the whole-school
@@ -496,6 +513,85 @@ first e, likewise exact — `"Liste des attributions"`, `"Liste des groupes"`, `
 the app's own FR/EN language toggle — this naming format was specified as fixed text, not translated content,
 same precedent as `exportHeader.ts`'s bilingual government letterhead being fixed regardless of the language
 toggle.
+
+Every PDF export (`exportRowsToPdf` and every bespoke builder like `CourseAssignmentManager`'s Print and
+`exportEffectifsToPdf`) also ends with a signature block via `exportHeader.ts`'s `drawPdfSignature(doc,
+schoolHeader, currentY)`: `Fait à **{lieu_signature}**, le **{date_signature}**` followed by bold
+`Le {responsableFr}` / italic `The {responsableEn}`, positioned right-of-center below the last content block
+(pushed to a new page if it would collide with the footer rule). `responsableFr`/`en` are computed from the
+school config's own `type` column via `computeResponsable()` (see School basic info below) rather than
+trusting `sessionStorage`, so the signature is always correct for the school actually being exported, not
+whichever browser tab last visited `/admin/school-info`. It draws nothing if the config has neither a
+signature place nor date set. `exportRowsToPdf` takes an `includeSignature = true` param to opt out — reserved
+for the future report-card/bulletin/livret exporters, which will use their own print layout and shouldn't get
+this generic block; no caller passes `false` yet.
+
+Student's PDF export is one deviation worth knowing: it prepends a row-index (`Nº`) column via a
+`pdfExportColumns` array that isn't shared with the CSV export (CSV relies on the spreadsheet's own implicit
+row numbers) — follow this same PDF-only-Nº-column split if another screen's PDF export needs a visible index
+the CSV doesn't.
+
+### Assign courses (`/admin/course-assignment`, `src/components/admin/courseassignment/CourseAssignmentManager.tsx`)
+
+Two dropdowns drive the whole screen: staff (alphabetically sorted, `formatStaffLabel` renders `"Name Surname
+(staff_id)"` to disambiguate same-named teachers, defaulting to the first) and subject (defaulting to the
+first), both scoped to `connection`/`schoolYear`/`section`. `StaffReader.fetchAllAttributionsOfSection`
+(`GET /api/staffs/AllAttributionsOfSection`) is fetched once and cached, then reused for **both** panels
+(filtered client-side by subject+classe for the left panel, by staff for the right) rather than making
+narrower per-selection requests — refetched after every mutation.
+
+- **Left panel** — classes teaching the selected subject (`ClasseReader.fetchClassesOfSubject`,
+  `GET /api/classes/allClassesOfSubject`), each annotated with the names of other teachers (excluding the
+  selected one) already assigned to that subject+classe, derived from the cached attributions.
+- **Right panel** — every assignment (Nº/Classe/Subject/Action) the *selected teacher* has across every
+  subject, not just the selected one; a classe can repeat across rows if the teacher teaches multiple subjects
+  there. Per-row delete icon plus checkbox multi-select with a confirm-gated bulk delete, same
+  `useConfirm()`/`showToast()` conventions as every other manager.
+- **Print** — a bespoke multi-table PDF (not `exportRowsToPdf`, same reasoning as `exportEffectifsToPdf`:
+  the generic exporter only renders one flat table) grouping every assignment of the whole section+year by
+  classe, still reusing `drawPdfLetterhead`/`drawPdfSignature`/`drawPdfFooters` for the shared
+  letterhead/signature/footer.
+- **Export to Excel** exports only the currently-displayed right panel (the selected teacher's rows) via the
+  normal `exportRowsToCsv`/`ExportColumn<T>` shape — deliberately narrower scope than Print, which always
+  covers the whole section.
+- **Wipe section** — a red button clearing every assignment of the current section+year (double-confirmed).
+  No dedicated backend endpoint exists for this, so it composes the existing bulk `StaffReader.batchRemoveCourses`
+  endpoint over the full cached attributions list rather than requesting a new backend route — the same
+  "compose existing bulk endpoints client-side" pattern `SubjectClasseManager`'s Copy dialog uses via
+  `calquerSubjects`.
+
+### Student photo (`StudentPhotoCell.tsx`/`StudentPhotoDialog.tsx`, inside `src/components/admin/student/`)
+
+A 40px clickable thumbnail column in `StudentManager`'s table, opening a dialog to view/rotate/zoom-pan/save.
+`student.photo` turned out to already be a `mediumblob` column (confirmed live via `SHOW COLUMNS FROM
+student`) — unused until this feature, but the schema had clearly anticipated DB-stored binary bytes rather
+than a filesystem convention like the school logo's `public/images/{connection}/logo/...`. Storing there
+avoids a new per-connection folder/collision scheme and keeps each photo inside that school's own DB
+backup/restore boundary, so **new photo-adjacent features should keep using this column**, not invent a
+filesystem path.
+
+- Backend: `StudentController::uploadStudentPhoto` (ADMIN, `POST /api/students/uploadStudentPhoto`,
+  multipart, `photo` validated `image|mimes:jpeg,png,jpg|max:500` — 500KB, same unit convention as the logo's
+  `max:2048`) and `StudentController::studentPhoto` (any authenticated role, `GET
+  /api/students/studentPhoto`, streams the raw bytes with a hardcoded `Content-Type: image/jpeg` since the
+  frontend always re-encodes to JPEG before upload; 404 JSON when the student has no photo yet, mirroring
+  `schoolLogo`'s convention).
+- `StudentReader.loadStudentPhotoImage` mirrors `SchoolInfoReader.loadLogoImageForExport`'s fetch-as-Blob →
+  `URL.createObjectURL` → `Image()` pattern exactly — there's no static path for a DB blob, so every read goes
+  through the authenticated endpoint. It already returns a canvas-ready `HTMLImageElement`, so a future
+  report-card PDF exporter can reuse it with no new plumbing, the same way `drawPdfLetterhead` already reuses
+  the logo's `HTMLImageElement`.
+- `StudentPhotoCell` loads its own photo independently per row (its own `useEffect` + `cancelled` guard, same
+  shape as `useSchoolHeader.ts`) so a slow/missing photo never delays the table or any other row — showing the
+  `UserRound` placeholder immediately and swapping in the real image once it resolves *is* the
+  "load asynchronously" behavior; there's no separate loading spinner state. Follow this same
+  one-component-per-row pattern for any other per-row async asset.
+- `StudentPhotoDialog`'s canvas editor (fixed 480×480 internal resolution, ~260px on-screen) supports rotate
+  (±90° buttons), zoom (range slider), and drag-to-pan. Save flattens the canvas via `canvas.toBlob(...,
+  "image/jpeg", quality)`, stepping quality down (`0.85 → 0.7 → 0.55 → 0.4 → 0.25`) until the result is under
+  500KB before uploading, so the client-side output always already satisfies the backend's `max:500` rule.
+- `photoVersions` (a `Record<stud_id, number>` in `StudentManager`, bumped only for the saved student) is how
+  a save signals just one row's `StudentPhotoCell` to refetch, instead of reloading the whole list.
 
 ### Effectifs par classe (`/admin/effectifs`, `src/components/admin/effectifs/EffectifsManager.tsx`)
 
@@ -548,6 +644,69 @@ per-screen-dictionary convention.
   `Section`/`Cycle` column added) via a local `buildFlatRows` helper in `EffectifsManager.tsx` — CSV has no
   need for the PDF's grouped/subtotal layout, matching `exportRowsToCsv`'s existing "raw tabular data" role
   everywhere else in the app.
+
+### Mark entry (`/admin/mark-entry`, `src/components/admin/marks/MarkEntryManager.tsx`)
+
+Classe/subject/term-scoped like `SubjectCompetenceManager`, but the whole screen branches into **two
+independent modes** off the same `isLevelApc(level)` check `ClasseManager`/`SubjectCompetenceManager` already
+use (see "Subjects hub and the APC / competence-based classe concept" above) — a classe's level, not the
+classe itself, decides which mode applies:
+
+- **Non-APC** — a Sequence `<select>` (1 or 2) is shown; marks live in `student_subject`, keyed by a derived
+  `dbsequence` in `[1..6]`: `dbsequence = (term - 1) * 2 + sequence` (`computeDbSequence` in
+  `MarkEntryManager.tsx`). Read/written via `MarkReader.fetchSeqMarks`/`saveSeqMarks` →
+  `GET/POST api/students/{getSeqMarks,saveSeqMarks}`.
+- **APC** — the Sequence `<select>` is replaced by a Competence `<select>` (`SubjectReader.fetchCompetences`
+  for the selected subject+term, defaulting to the first). Marks live in `stud_comp_mark`, keyed by
+  `(term_id, subject_competence_id)`. Read/written via `MarkReader.fetchCompMarks`/`saveCompMarks` →
+  `GET/POST api/students/{getCompMarks,saveCompMarks}`. A level flagged APC with zero competences defined yet
+  for the selected subject+term hides the whole roster/save UI in favor of an empty-state message rather than
+  letting the user type into a table with nothing to save against.
+
+**`StudentController::allStudentsForMarks` is not actually classe-scoped** despite its own comment claiming
+otherwise (no `classe_id` filter in the query — it returns every student of the whole school year) — this
+screen deliberately reuses the already-correct `StudentReader.fetchStudentsOfClasse` for the roster instead
+of that endpoint.
+
+**Locking is genuinely global, not per-classe/subject** — `lock_sequence` is keyed only by `(sy_id, seq)`, so
+the Lock/Unlock button (`MarkReader.fetchLocksOfYear`/`saveLock` → `api/lock/{locksOfYear,saveOrUpdateLocks}`)
+locks that `seq` for every classe and subject at once, by design. Since `seq` has no APC/non-APC axis, APC
+classes reuse the term id (1-3) as `seq` and non-APC classes use the dbsequence (1-6) — a school mixing APC
+and non-APC classes in the same year could see e.g. a term-1 APC lock collide with a dbsequence-1 non-APC
+lock (`effectiveLockSeq` in `MarkEntryManager.tsx`). This is an inherited backend modeling gap, not something
+papered over here.
+
+**Every mark is displayed and stored as `"XX.YY"`** — a fixed 2-digit-integer/2-digit-decimal string (e.g.
+`5` → `"05.00"`, `12.5` → `"12.50"`), via `src/utils/textValidation.ts`'s `formatMarkValue`. This is applied
+in three places, all funneling through the same `commitMarkFormat` helper for the latter two: once when a
+mark is freshly fetched from the server (`loadMarks`, wrapping the raw numeric value), and again "when the
+user is done editing this cell" — on blur and on pressing Enter (`handleMarkKeyDown`) — reformatting whatever
+they typed. While actively typing, the cell instead holds `sanitizeMarkInput`'s raw in-progress string (digits
++ at most one decimal point, immediately dropping the newest keystroke if it would push the value out of
+`[0, MAX_MARK_VALUE]` — see `sanitizeMarkInput`/`isMarkInRange` in `textValidation.ts`) so a partial value like
+`"2"` isn't rejected as too short to be `"20"`; `formatMarkValue` only runs once editing is confirmed done, not
+on every keystroke.
+
+Keyboard navigation: `markInputRefs` (a `Map<stud_id, HTMLInputElement>`, populated/cleared by each mark
+input's own ref callback as `filteredRoster` changes which rows are mounted) lets ArrowUp/ArrowDown jump focus
+directly to the same column in the previous/next *visible* row (respecting the active search filter) without
+requiring a mouse click, in addition to Enter committing the format and staying on the same cell.
+
+The right-side fill-rate panel (`Visualiser le remplissage des notes de '{classe_name}'`) has no backend
+endpoint to pre-aggregate it — it's computed client-side, per subject, via a `Promise.all`: non-APC compares
+`fetchSeqMarks`' filled-row count against roster size; APC fetches that subject's competences and averages
+each competence's own fill rate (confirmed convention — not a single combined query).
+
+The "Clear all marks" action (broom/`Eraser` icon) is confirm-gated (`useConfirm()`) like every other
+destructive action in this app, but — unlike a plain local-buffer clear — persists immediately on confirm: it
+builds an `isEmpty: 1` row for every currently-visible (filtered) student and calls the same
+`saveSeqMarks`/`saveCompMarks` path Save uses.
+
+Unlike every list-based CRUD manager above, the mark grid has **no per-row Modifier/Enregistrer toggle** —
+every mark cell is always directly editable, with one global Save (floppy icon) button collecting every dirty
+row into a single bulk write. With 30-60 students per classe, a per-row edit-toggle would make the common
+"enter marks for the whole roster" case far more tedious, and this was a deliberate, confirmed departure from
+the rest of the app's inline-edit convention rather than an oversight.
 
 ### School basic info (`/admin/school-info`, `src/components/admin/schoolinfo/SchoolInfoManager.tsx`)
 
@@ -658,7 +817,8 @@ set):
 | Course assignment | Done — `/admin/course-assignment`, `CourseAssignmentManager` |
 | Students (Gestion des élèves) — basic CRUD + import, no parent/phone linkage | Done — `/admin/students`, `StudentManager` (see Architecture) |
 | Summary ("Bilan") — read-only "Effectifs par classe" report | Done — `/admin/effectifs`, `EffectifsManager` (see Architecture) |
-| Marks entry, mark sheets, report cards, fill rate, discipline, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
+| Mark entry ("Saisie des notes") — dual APC/non-APC mode, per-subject fill rate | Done — `/admin/mark-entry`, `MarkEntryManager` (see Architecture) |
+| Mark sheets, report cards, fill rate (dedicated module), discipline, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
 
 Cross-cutting infra built alongside the modules above, used by all of them: the top banner (global
 year/section/language switch, replacing per-page back buttons), toast notifications, promise-based confirm

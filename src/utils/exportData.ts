@@ -39,7 +39,10 @@ export const buildTimestampedFilename = (
   const datePart = `${now.getFullYear()} ${pad2(now.getMonth() + 1)} ${pad2(now.getDate())}`;
   const timePart = `${pad2(now.getHours())} ${pad2(now.getMinutes())} ${pad2(now.getSeconds())}`;
   const segments = [title, ...extraSegments, `${datePart} ${timePart}`];
-  return `${segments.join(" - ")}.${extension}`.replace(INVALID_FILENAME_CHARS, "_");
+  // Invalid characters are replaced by a literal space (not stripped/underscored) - e.g.
+  // "4e ALL/4e ARA'B" -> "4e ALL 4e ARA'B" - per explicit request, so a run of them still reads as
+  // separate words rather than colliding together.
+  return `${segments.join(" - ")}.${extension}`.replace(INVALID_FILENAME_CHARS, " ");
 };
 
 const downloadBlob = (blob: Blob, filename: string): void => {

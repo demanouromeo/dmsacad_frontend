@@ -49,7 +49,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     to: "/admin/course-assignment",
   },
   { key: "students", icon: iconStudents, to: "/admin/students" },
-  { key: "marksEntry", icon: iconMarksEntry },
+  { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
   { key: "markSheet", icon: iconMarkSheet },
   { key: "printReportCards", icon: iconPrintReportCards },
   { key: "fillRate", icon: iconFillRate },
