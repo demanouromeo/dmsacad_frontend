@@ -1891,3 +1891,50 @@ export const disciplineManagerTranslations = {
     pdfTitle: (classeName: string, term: number) => `Discipline - ${classeName} - Term ${term}`,
   },
 };
+
+// Landing page for the "settings" dashboard card - only one sub-module built so far
+// ("classifiedParam", see classifiedParamManagerTranslations below). Same SubjectsHub/AccountHub
+// pattern - add a new key here alongside its own *ManagerTranslations dictionary as further settings
+// sub-modules get built.
+export const settingsHubTranslations = {
+  fr: {
+    title: "Paramètres",
+    classifiedParam: "Classement des élèves (Classés/NC)",
+  },
+  en: {
+    title: "Settings",
+    classifiedParam: "Classified / Not Classified (NC) parameter",
+  },
+};
+
+// "Classement des élèves (Classés/NC)" / "Classified / Not Classified (NC) parameter" - ADMIN-only
+// single-record settings screen backing classifiedparam (one row per school year). See the backend
+// CLAUDE.md's "Classified / Not Classified (NC) parameter" section for what classified/
+// nb_matieres_rate mean and how report-card generation will use them. optionRateDescription is a
+// fixed illustrative example (15 subjects, 70%) independent of the slider's current value, matching
+// the reference design - it isn't recomputed from nbMatieresRate.
+export const classifiedParamManagerTranslations = {
+  fr: {
+    title: "Définir comment classer un élève",
+    optionRateTitle: "Classement en fonction du nombre de matières",
+    optionRateDescription:
+      "Si par exemple nous avons 15 matières dans la classe au trimestre 1 et que nous fixons le pourcentage de classement à 70%, l'élève pour être classé doit avoir au moins (70/100)*(15*2) notes. C'est à dire au moins 21 notes",
+    optionAllTitle: "Classer tous les élèves",
+    optionAllDescription:
+      "En choisissant cette option, tous les élèves seront classés",
+    saveBtn: "Enregistrer",
+    saveSuccess: "Paramètres de classement enregistrés avec succès.",
+    saveFailure: "Échec de l'enregistrement des paramètres de classement.",
+  },
+  en: {
+    title: "Define how to classify a student",
+    optionRateTitle: "Classification based on number of subjects",
+    optionRateDescription:
+      "For example, if we have 15 subjects in the class for term 1 and we set the classification percentage to 70%, the student must have at least (70/100)*(15*2) marks to be classified. That is, at least 21 marks",
+    optionAllTitle: "Classify all students",
+    optionAllDescription: "By choosing this option, all students will be classified",
+    saveBtn: "Save",
+    saveSuccess: "Classification parameters saved successfully.",
+    saveFailure: "Failed to save classification parameters.",
+  },
+};

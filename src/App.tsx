@@ -27,6 +27,8 @@ import DisciplineManager from "./components/admin/discipline/DisciplineManager";
 import AccountManager from "./components/admin/account/AccountManager";
 import AccountHub from "./components/admin/account/AccountHub";
 import SelfCredentialsManager from "./components/admin/account/SelfCredentialsManager";
+import SettingsHub from "./components/admin/settings/SettingsHub";
+import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -91,6 +93,11 @@ function App() {
                 <Route
                   path="/admin/manage-accounts/all"
                   element={<AccountManager />}
+                />
+                <Route path="/admin/settings" element={<SettingsHub />} />
+                <Route
+                  path="/admin/settings/classified-param"
+                  element={<ClassifiedParamManager />}
                 />
               </Route>
             </Route>
