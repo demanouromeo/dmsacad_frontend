@@ -25,6 +25,12 @@ export const loginTranslations = {
       `Veuillez sélectionner une école [${school}]`,
     alertBadCredentials: (school: string) =>
       `Login ou mot de passe incorrect \nECOLE:[${school}]`,
+    settingsPrompt: (missingSchool: boolean, missingYear: boolean) =>
+      missingSchool && missingYear
+        ? "Veuillez d'abord définir l'école et l'année scolaire en cliquant sur l'icône ⚙ Paramètres, à côté des drapeaux de langue."
+        : missingSchool
+          ? "Veuillez d'abord sélectionner une école en cliquant sur l'icône ⚙ Paramètres, à côté des drapeaux de langue."
+          : "Veuillez d'abord sélectionner une année scolaire en cliquant sur l'icône ⚙ Paramètres, à côté des drapeaux de langue.",
   },
   en: {
     title: "Login",
@@ -49,6 +55,12 @@ export const loginTranslations = {
     alertNoSchool: (school: string) => `Please select a school [${school}]`,
     alertBadCredentials: (school: string) =>
       `Incorrect username or password \nSCHOOL:[${school}]`,
+    settingsPrompt: (missingSchool: boolean, missingYear: boolean) =>
+      missingSchool && missingYear
+        ? "Please set your school and school year first by clicking the ⚙ Settings icon next to the language flags."
+        : missingSchool
+          ? "Please select a school first by clicking the ⚙ Settings icon next to the language flags."
+          : "Please select a school year first by clicking the ⚙ Settings icon next to the language flags.",
   },
 };
 
@@ -435,6 +447,7 @@ export const staffFunctionLabels = {
 export const staffManagerTranslations = {
   fr: {
     title: "Personnel",
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Nom",
     tableHeaderSurname: "Prénom",
     tableHeaderPhone: "Téléphone",
@@ -513,6 +526,7 @@ export const staffManagerTranslations = {
   },
   en: {
     title: "Staff",
+    tableHeaderIndex: "No.",
     tableHeaderName: "Name",
     tableHeaderSurname: "Surname",
     tableHeaderPhone: "Phone",

@@ -12,6 +12,7 @@ import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 import { loginTranslations } from "../../i18n/translations";
 import { useLanguage } from "../../i18n/useLanguage";
 import { useAuth } from "../../auth/useAuth";
+import { useToast } from "../../toast/useToast";
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
@@ -47,6 +48,9 @@ const LoginForm = () => {
   const settingsDialogRef = useRef<HTMLDialogElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const { login } = useAuth();
+  const showToast = useToast();
+  const missingSchool = selectedSchool === "";
+  const missingSchoolYear = selectedSchoolYear === "";
 
   const openSettings = () => {
     settingsDialogRef.current?.showModal();
@@ -111,12 +115,10 @@ const LoginForm = () => {
     sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
     sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, selectedSchoolYear);
     sessionStorage.setItem(MyConstants.SECTION_KEY, selectedSection);
-    if (selectedSchool === "") {
-      //alert(t.alertNoSchool(selectedSchool));
-      //DISPLAY A BEAUTIFUL BOX RATHER THAN AN ALERT
-      return;
-    }
-    if (selectedSchoolYear === "") {
+    if (missingSchool || missingSchoolYear) {
+      showToast(t.settingsPrompt(missingSchool, missingSchoolYear), {
+        type: "warning",
+      });
       return;
     }
 
@@ -210,11 +212,21 @@ const LoginForm = () => {
           aria-label={t.settingsBtn}
           title={t.settingsBtn}
           onClick={openSettings}
-          className="btn btn-xs btn-ghost btn-circle hover:text-primary"
+          className={`btn btn-xs btn-ghost btn-circle hover:text-primary ${
+            missingSchool || missingSchoolYear ? "text-warning animate-pulse" : ""
+          }`}
         >
           <Settings className="w-4 h-4" />
         </button>
       </div>
+
+      {(missingSchool || missingSchoolYear) && (
+        <div className="relative z-10 flex justify-end mb-2">
+          <p className="text-warning text-xs text-right max-w-xs">
+            {t.settingsPrompt(missingSchool, missingSchoolYear)}
+          </p>
+        </div>
+      )}
 
       <div className="relative z-10 flex-1 flex flex-col justify-center">
         <Title title={t.title} />

@@ -470,6 +470,16 @@ const StaffManager = () => {
     { header: t.tableHeaderLogin, accessor: (s: Staff) => s.login },
   ];
 
+  // PDF-only: prepends a row-index column, same convention as StudentManager's own
+  // pdfExportColumns - CSV relies on the spreadsheet's own implicit row numbers instead.
+  const pdfExportColumns = [
+    {
+      header: t.tableHeaderIndex,
+      accessor: (_s: Staff, index: number) => index + 1,
+    },
+    ...exportColumns,
+  ];
+
   const handleExportExcel = () => {
     exportRowsToCsv(
       buildTimestampedFilename("Liste du personnel", [], "csv"),
@@ -482,7 +492,7 @@ const StaffManager = () => {
     exportRowsToPdf(
       t.title,
       buildTimestampedFilename("Liste du personnel", [], "pdf"),
-      exportColumns,
+      pdfExportColumns,
       staffList,
       schoolHeader,
     );
@@ -491,44 +501,48 @@ const StaffManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <div className="mb-6 flex flex-wrap gap-2 items-center">
-        <ExportButtons
-          onExportExcel={handleExportExcel}
-          onExportPdf={handleExportPdf}
-          excelLabel={et.excelBtn}
-          pdfLabel={et.pdfBtn}
-          disabled={isLoading || staffList.length === 0}
-        />
-        <input
-          ref={importFileInputRef}
-          type="file"
-          accept=".csv,.xlsx"
-          className="hidden"
-          onChange={handleImportFileChange}
-        />
-        <button
-          type="button"
-          className="btn btn-neutral gap-2"
-          disabled={isLoading}
-          onClick={() => importFileInputRef.current?.click()}
-        >
-          <Upload className="w-4 h-4" />
-          {t.importBtn}
-        </button>
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+        <div className="mb-6 flex flex-wrap gap-2 items-center">
+          <ExportButtons
+            onExportExcel={handleExportExcel}
+            onExportPdf={handleExportPdf}
+            excelLabel={et.excelBtn}
+            pdfLabel={et.pdfBtn}
+            disabled={isLoading || staffList.length === 0}
+          />
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            className="hidden"
+            onChange={handleImportFileChange}
+          />
+          <button
+            type="button"
+            className="btn btn-neutral gap-2"
+            disabled={isLoading}
+            onClick={() => importFileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4" />
+            {t.importBtn}
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
         <Loading />
       ) : (
         <>
-          <input
-            type="text"
-            className="input w-full max-w-md mb-4"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="max-w-5xl mx-auto">
+            <input
+              type="text"
+              className="input w-full max-w-md mb-4"
+              placeholder={t.searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <div className="overflow-x-auto w-full mb-4">
             <table className="table w-full">
               <thead>
