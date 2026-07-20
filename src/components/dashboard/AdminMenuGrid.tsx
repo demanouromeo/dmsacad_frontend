@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Search } from "lucide-react";
 import { useLanguage } from "../../i18n/useLanguage";
 import { adminMenuTranslations, subjectsHubTranslations } from "../../i18n/translations";
 import AdminMenuCard from "./AdminMenuCard";
@@ -99,17 +100,20 @@ const AdminMenuGrid = () => {
 
   return (
     <div>
-      <input
-        type="text"
-        className="input w-full max-w-sm mb-6"
-        placeholder={t.searchPlaceholder}
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
+      <label className="input w-full max-w-sm mb-6 flex items-center gap-2">
+        <Search className="w-4 h-4 opacity-50" />
+        <input
+          type="text"
+          className="grow"
+          placeholder={t.searchPlaceholder}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </label>
       {filteredItems.length === 0 ? (
-        <p className="opacity-60">{t.searchNoResults}</p>
+        <p className="opacity-60 text-center py-10">{t.searchNoResults}</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
           {filteredItems.map((item) => (
             <AdminMenuCard
               key={item.key}

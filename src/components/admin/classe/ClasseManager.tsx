@@ -606,32 +606,34 @@ const ClasseManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-      <div className="mb-6 flex flex-wrap gap-2 items-center">
-        <ExportButtons
-          onExportExcel={handleExportExcel}
-          onExportPdf={handleExportPdf}
-          excelLabel={et.excelBtn}
-          pdfLabel={et.pdfBtn}
-          disabled={isLoading || classes.length === 0}
-        />
-        <input
-          ref={importFileInputRef}
-          type="file"
-          accept=".csv,.xlsx"
-          className="hidden"
-          onChange={handleImportFileChange}
-        />
-        <button
-          type="button"
-          className="btn btn-neutral gap-2"
-          disabled={isLoading}
-          onClick={() => importFileInputRef.current?.click()}
-        >
-          <Upload className="w-4 h-4" />
-          {t.importBtn}
-        </button>
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+        <div className="mb-6 flex flex-wrap gap-2 items-center">
+          <ExportButtons
+            onExportExcel={handleExportExcel}
+            onExportPdf={handleExportPdf}
+            excelLabel={et.excelBtn}
+            pdfLabel={et.pdfBtn}
+            disabled={isLoading || classes.length === 0}
+          />
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".csv,.xlsx"
+            className="hidden"
+            onChange={handleImportFileChange}
+          />
+          <button
+            type="button"
+            className="btn btn-neutral gap-2"
+            disabled={isLoading}
+            onClick={() => importFileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4" />
+            {t.importBtn}
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -640,7 +642,7 @@ const ClasseManager = () => {
         <>
           <input
             type="text"
-            className="input w-full max-w-5xl mb-4"
+            className="input w-full max-w-5xl mb-4 mx-auto block"
             placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -844,20 +846,22 @@ const ClasseManager = () => {
             </table>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-error btn-sm mb-6"
-            disabled={selectedIds.size === 0}
-            onClick={handleDeleteSelected}
-          >
-            {t.deleteSelectionBtn(selectedIds.size)}
-          </button>
+          <div className="max-w-5xl mx-auto">
+            <button
+              type="button"
+              className="btn btn-error btn-sm mb-6"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
         </>
       )}
 
       <form
         onSubmit={handleAdd}
-        className="flex flex-wrap gap-2 max-w-2xl items-start"
+        className="flex flex-wrap gap-2 max-w-2xl mx-auto items-start"
       >
         <input
           type="text"

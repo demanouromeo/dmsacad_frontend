@@ -293,7 +293,7 @@ const ReportCardManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="p-10 max-w-4xl mx-auto">
       {isSaving && <LoadingOverlay />}
       <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
       <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>

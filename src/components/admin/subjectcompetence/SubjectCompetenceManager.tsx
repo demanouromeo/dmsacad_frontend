@@ -365,111 +365,113 @@ const SubjectCompetenceManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
 
-      {isLoadingClasses ? (
-        <Loading />
-      ) : apcClasses.length === 0 ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <label className="font-medium">{t.classeLabel}</label>
-            <select
-              className="select w-56"
-              value={selectedClasseId ?? ""}
-              onChange={(e) => setSelectedClasseId(Number(e.target.value))}
-            >
-              {apcClasses.map((c) => (
-                <option key={c.classe_id} value={c.classe_id}>
-                  {c.classe_name}
-                </option>
-              ))}
-            </select>
-
-            {selectedClasse && (
-              <button
-                type="button"
-                className="btn btn-error btn-sm btn-square"
-                title={t.deleteAllOfClasseTooltip(selectedClasse.classe_name)}
-                onClick={handleDeleteAllOfClasse}
+        {isLoadingClasses ? (
+          <Loading />
+        ) : apcClasses.length === 0 ? (
+          <p className="opacity-60">{t.emptyClasses}</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <label className="font-medium">{t.classeLabel}</label>
+              <select
+                className="select w-56"
+                value={selectedClasseId ?? ""}
+                onChange={(e) => setSelectedClasseId(Number(e.target.value))}
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
+                {apcClasses.map((c) => (
+                  <option key={c.classe_id} value={c.classe_id}>
+                    {c.classe_name}
+                  </option>
+                ))}
+              </select>
 
-            <label className="font-medium ml-4">{t.subjectLabel}</label>
-            <select
-              className="select w-56"
-              disabled={isLoadingSubjects || subjects.length === 0}
-              value={selectedSubjectId ?? ""}
-              onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
-            >
-              {subjects.map((s) => (
-                <option key={s.subject_id} value={s.subject_id}>
-                  {s.subject_title}
-                </option>
-              ))}
-            </select>
-
-            <label className="font-medium ml-4">{t.termLabel}</label>
-            <select
-              className="select w-40"
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(Number(e.target.value))}
-            >
-              {TERMS.map((term) => (
-                <option key={term} value={term}>
-                  {t.term(term)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!isLoadingSubjects && subjects.length === 0 && (
-            <p className="opacity-60 mb-4">{t.emptySubjects}</p>
-          )}
-
-          {selectedSubjectId !== null && (
-            <>
-              <div className="flex flex-col sm:flex-row gap-2 mb-4 max-w-3xl">
-                <textarea
-                  className="textarea flex-1"
-                  rows={2}
-                  maxLength={MAX_COMPETENCE_TEXT_LENGTH}
-                  placeholder={t.addPlaceholder}
-                  value={newCompetenceText}
-                  onChange={(e) =>
-                    setNewCompetenceText(
-                      sanitizeSubjectTitle(e.target.value).slice(
-                        0,
-                        MAX_COMPETENCE_TEXT_LENGTH,
-                      ),
-                    )
-                  }
-                />
+              {selectedClasse && (
                 <button
                   type="button"
-                  className="btn btn-neutral self-start"
-                  onClick={handleAddCompetence}
+                  className="btn btn-error btn-sm btn-square"
+                  title={t.deleteAllOfClasseTooltip(selectedClasse.classe_name)}
+                  onClick={handleDeleteAllOfClasse}
                 >
-                  {t.addBtn}
+                  <Trash2 className="w-4 h-4" />
                 </button>
-              </div>
+              )}
 
-              {isLoadingCompetences ? (
-                <Loading />
-              ) : (
-                <>
-                  <input
-                    type="text"
-                    className="input w-full max-w-2xl mb-4"
-                    placeholder={t.searchPlaceholder}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+              <label className="font-medium ml-4">{t.subjectLabel}</label>
+              <select
+                className="select w-56"
+                disabled={isLoadingSubjects || subjects.length === 0}
+                value={selectedSubjectId ?? ""}
+                onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
+              >
+                {subjects.map((s) => (
+                  <option key={s.subject_id} value={s.subject_id}>
+                    {s.subject_title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {!isLoadingSubjects && subjects.length === 0 && (
+              <p className="opacity-60 mb-4">{t.emptySubjects}</p>
+            )}
+
+            {selectedSubjectId !== null && (
+              <>
+                <div className="flex flex-col gap-2 mb-4">
+                  <textarea
+                    className="textarea w-full"
+                    rows={2}
+                    maxLength={MAX_COMPETENCE_TEXT_LENGTH}
+                    placeholder={t.addPlaceholder}
+                    value={newCompetenceText}
+                    onChange={(e) =>
+                      setNewCompetenceText(
+                        sanitizeSubjectTitle(e.target.value).slice(
+                          0,
+                          MAX_COMPETENCE_TEXT_LENGTH,
+                        ),
+                      )
+                    }
                   />
-                  <div className="overflow-x-auto w-full max-w-3xl mb-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="font-medium">{t.termLabel}</label>
+                    <select
+                      className="select w-40"
+                      value={selectedTerm}
+                      onChange={(e) => setSelectedTerm(Number(e.target.value))}
+                    >
+                      {TERMS.map((term) => (
+                        <option key={term} value={term}>
+                          {t.term(term)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn btn-neutral"
+                      onClick={handleAddCompetence}
+                    >
+                      {t.addBtn}
+                    </button>
+                  </div>
+                </div>
+
+                {isLoadingCompetences ? (
+                  <Loading />
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      className="input w-full mb-4"
+                      placeholder={t.searchPlaceholder}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <div className="overflow-x-auto w-full mb-4">
                     <table className="table w-full">
                       <thead>
                         <tr>
@@ -607,7 +609,8 @@ const SubjectCompetenceManager = () => {
             </>
           )}
         </>
-      )}
+        )}
+      </div>
     </div>
   );
 };

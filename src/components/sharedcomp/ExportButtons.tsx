@@ -16,7 +16,7 @@ const ExportButtons = ({
   <div className="flex gap-2">
     <button
       type="button"
-      className="btn btn-outline btn-sm"
+      className="btn btn-outline btn-success btn-sm"
       onClick={onExportExcel}
       disabled={disabled}
     >
@@ -24,7 +24,7 @@ const ExportButtons = ({
     </button>
     <button
       type="button"
-      className="btn btn-outline btn-sm"
+      className="btn btn-outline btn-error btn-sm"
       onClick={onExportPdf}
       disabled={disabled}
     >

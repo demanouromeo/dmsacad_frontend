@@ -148,10 +148,11 @@ const measureStudent = (
 // 15px" ask).
 const MARKS_TO_RESULTS_GAP = 8;
 
-// Fixed-size blocks (title bar, student info, footer grid, signature, effort line) - these don't
-// meaningfully grow with the number of subjects/competences, so they're estimated once rather than
-// re-measured per font-size candidate; only the subject table body scales with content.
-const FIXED_BLOCKS_HEIGHT = 8 + 24 + 34 + 20 + 8 + 6 + (MARKS_TO_RESULTS_GAP - 4);
+// Fixed-size blocks (title bar, student info, footer results grid - header + 6 rows + the taller
+// signature row, 6+36+18=60mm) - these don't meaningfully grow with the number of subjects/
+// competences, so they're estimated once rather than re-measured per font-size candidate; only the
+// subject table body scales with content.
+const FIXED_BLOCKS_HEIGHT = 8 + 24 + 60 + 6 + (MARKS_TO_RESULTS_GAP - 4);
 const BOTTOM_MARGIN = 20;
 const FONT_SIZE_CANDIDATES = [8, 7.5, 7, 6.5, 6, 5.5, 5];
 
@@ -434,21 +435,66 @@ const drawStudentPage = (
 
   y += MARKS_TO_RESULTS_GAP;
 
-  // Footer 3-column grid: DISCIPLINE | TRAVAIL DE L'ÉLÈVE | PROFIL DE LA CLASSE.
+  // Footer results grid: DISCIPLINE | TRAVAIL DE L'ÉLÈVE | PROFIL DE LA CLASSE - a fully bordered
+  // table spanning the same LEFT_X..RIGHT_X width as the marks table above, matching the reference
+  // RC layout: a filled header row, 6 body rows, and one taller row for the visa/signature/effort
+  // line block. "APPRECIATIONS" occupies the Appr column's own header slot on the first body row
+  // (merged with its checkbox column, the one merge in the whole grid), which is why its 5-item
+  // checklist (CTBA..CNA) sits one row lower than the Travail section's own 5 label rows below it.
   const gridTop = y;
   const gridColWidth = (RIGHT_X - LEFT_X) / 3;
   const disciplineX = LEFT_X;
   const travailX = LEFT_X + gridColWidth;
   const profilX = LEFT_X + gridColWidth * 2;
+
+  const footerColBounds = [
+    disciplineX,
+    disciplineX + gridColWidth * 0.42,
+    disciplineX + gridColWidth * 0.52,
+    disciplineX + gridColWidth * 0.9,
+    travailX,
+    travailX + gridColWidth * 0.4,
+    travailX + gridColWidth * 0.6,
+    travailX + gridColWidth * 0.84,
+    profilX,
+    profilX + gridColWidth * 0.55,
+    RIGHT_X,
+  ];
+  const fcx = (i: number): number => footerColBounds[i];
+  const fcCenter = (i: number, j: number): number => (fcx(i) + fcx(j)) / 2;
+
+  const footerHeaderH = 6;
+  const footerRowH = 6;
+  const footerRowCount = 6;
+  const footerSigH = 18;
+  const footerRowTop = (i: number): number => gridTop + footerHeaderH + footerRowH * i;
+  const footerSigTop = footerRowTop(footerRowCount);
+  const footerBottom = footerSigTop + footerSigH;
+
+  doc.setFillColor(219, 234, 254);
+  doc.rect(fcx(0), gridTop, fcx(4) - fcx(0), footerHeaderH, "F");
+  doc.rect(fcx(4), gridTop, fcx(8) - fcx(4), footerHeaderH, "F");
+  doc.rect(fcx(8), gridTop, fcx(10) - fcx(8), footerHeaderH, "F");
+
+  const moyenneTrimRowIndex = 2;
+  const trimPass = student.moyenneTrim >= 10;
+  doc.setFillColor(...(trimPass ? COLOR_GREEN_300 : COLOR_PINK_300));
+  doc.rect(
+    fcx(4),
+    footerRowTop(moyenneTrimRowIndex),
+    fcx(6) - fcx(4),
+    footerRowH,
+    "F",
+  );
+
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text("DISCIPLINE", disciplineX, gridTop);
-  doc.text("TRAVAIL DE L'ÉLÈVE", travailX, gridTop);
-  doc.text("PROFIL DE LA CLASSE", profilX, gridTop);
+  const headerTextY = gridTop + footerHeaderH - 1.5;
+  doc.text("DISCIPLINE", fcCenter(0, 4), headerTextY, { align: "center" });
+  doc.text("TRAVAIL DE L'ÉLÈVE", fcCenter(4, 8), headerTextY, { align: "center" });
+  doc.text("PROFIL DE LA CLASSE", fcCenter(8, 10), headerTextY, { align: "center" });
   doc.setFont("helvetica", "normal");
 
-  const gridLh = 5;
-  const rowTop = gridTop + gridLh;
   const disc = student.discipline;
   const disciplineRows: [string, string, string, string][] = [
     ["Abs non just(h):", String(disc.absNonJust), "Avert.:", String(disc.avertissement)],
@@ -457,9 +503,9 @@ const drawStudentPage = (
     ["Consignes(h):", String(disc.consigne), "Excl déf.:", String(disc.exclusionDefinitive)],
   ];
   disciplineRows.forEach(([l1, v1, l2, v2], i) => {
-    const ry = rowTop + gridLh * i;
-    drawLabelValue(doc, l1, v1, disciplineX, ry);
-    drawLabelValue(doc, l2, v2, disciplineX + gridColWidth / 2, ry);
+    const ry = footerRowTop(i) + footerRowH / 2 + 1;
+    drawLabelValue(doc, l1, v1, fcx(0) + 1, ry);
+    drawLabelValue(doc, l2, v2, fcx(2) + 1, ry);
   });
 
   const apprLabels = ["CTBA", "CBA", "CA", "CMA", "CNA"];
@@ -471,29 +517,26 @@ const drawStudentPage = (
     ["COTE:", student.cote],
     ["RANG:", formatRang(student.rang)],
   ];
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
   travailRows.forEach(([label, value], i) => {
-    const ry = rowTop + gridLh * i;
-    if (label === "MOYENNE TRIM:") {
-      // Fill only the label/value portion of the row, stopping short of the Appr checkbox column
-      // to its right so the fill doesn't paint over it.
-      const pass = student.moyenneTrim >= 10;
-      doc.setFillColor(...(pass ? COLOR_GREEN_300 : COLOR_PINK_300));
-      doc.rect(travailX - 1, ry - 4, gridColWidth * 0.6, 5.5, "F");
-    }
-    drawLabelValue(doc, label, value, travailX, ry);
-    const apprLabel = apprLabels[i];
+    drawLabelValue(doc, label, value, fcx(4) + 1, footerRowTop(i) + footerRowH / 2 + 1);
+  });
+
+  doc.setFont("helvetica", "bold");
+  doc.text("APPRECIATIONS", fcCenter(6, 8), footerRowTop(0) + footerRowH / 2 + 1, {
+    align: "center",
+  });
+  doc.setFont("helvetica", "normal");
+  apprLabels.forEach((apprLabel, i) => {
+    const ry = footerRowTop(i + 1) + footerRowH / 2 + 1;
     const checked = apprLabel === studentApprLabel;
-    doc.rect(travailX + gridColWidth * 0.62, ry - 3, 3, 3, "S");
+    doc.text(apprLabel, fcx(6) + 1, ry);
+    doc.rect(fcx(7) + 2, ry - 3, 3, 3, "S");
     if (checked) {
       doc.setFont("helvetica", "bold");
-      doc.text("X", travailX + gridColWidth * 0.62 + 0.5, ry - 0.6);
+      doc.text("X", fcx(7) + 2.5, ry - 0.6);
       doc.setFont("helvetica", "normal");
     }
-    doc.text(apprLabel, travailX + gridColWidth * 0.62 + 4, ry);
   });
-  doc.setLineWidth(0.15);
 
   const profilRows: [string, string][] = [
     ["Moyenne Générale:", formatRcNumber(classeStats.moyenneGenerale)],
@@ -505,41 +548,67 @@ const drawStudentPage = (
     ["Taux de réussite:", `${formatRcNumber(classeStats.tauxReussite)}%`],
   ];
   profilRows.forEach(([label, value], i) => {
-    drawLabelValue(doc, label, value, profilX, rowTop + gridLh * i);
+    drawLabelValue(doc, label, value, fcx(8) + 1, footerRowTop(i) + footerRowH / 2 + 1);
   });
 
-  y = rowTop + gridLh * 5 + 4;
+  // Bottom signature row: effort line (Discipline section) | Visa parent (Travail label+value) |
+  // Nom et visa prof. principal (Appr columns) | Fait à.../Le X/The Y (Profil section).
+  const sigTextTop = footerSigTop + 4;
+  const effortWrapped: string[] = doc.splitTextToSize(
+    `Un effort s'impose ${student.effortLine.replace(/^Un effort s'impose\s*/i, "")}`,
+    fcx(4) - fcx(0) - 2,
+  );
+  effortWrapped.slice(0, 3).forEach((line, i) => {
+    doc.text(line, fcx(0) + 1, sigTextTop + i * 4);
+  });
 
-  // Visa/signature row - the right-hand block mirrors drawPdfSignature's own wording exactly,
-  // even though that helper is deliberately not called here (RC uses its own compact layout).
-  doc.setFontSize(8);
-  doc.text("Visa du parent / Tuteur", disciplineX, y);
-  doc.text("Nom et visa du professeur principal", travailX, y);
+  doc.text("Visa du parent / Tuteur", fcx(4) + 1, sigTextTop);
+
+  const profWrapped: string[] = doc.splitTextToSize(
+    "Nom et visa du professeur principal",
+    fcx(8) - fcx(6) - 2,
+  );
+  profWrapped.forEach((line, i) => {
+    doc.text(line, fcx(6) + 1, sigTextTop + i * 4);
+  });
+
   const config = schoolHeader.config;
   if (config && (config.lieu_signature || config.date_signature)) {
     const responsable = computeResponsable(config.type ?? "");
     const place = config.lieu_signature ?? "";
     const date = config.date_signature ? config.date_signature.slice(0, 10) : "";
-    doc.text(`Fait à ${place}, le ${date}`, profilX, y);
+    doc.text(`Fait à ${place}, le ${date}`, fcx(8) + 1, sigTextTop);
     doc.setFont("helvetica", "bold");
-    doc.text(`Le ${responsable.fr}`, profilX, y + 5);
+    doc.text(`Le ${responsable.fr}`, fcx(8) + 1, sigTextTop + 5);
     doc.setFont("helvetica", "italic");
-    doc.text(`The ${responsable.en}`, profilX, y + 10);
+    doc.text(`The ${responsable.en}`, fcx(8) + 1, sigTextTop + 10);
     doc.setFont("helvetica", "normal");
   }
 
-  y += 14;
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Un effort s'impose", LEFT_X, y);
-  doc.setFont("helvetica", "normal");
-  const effortValueX = LEFT_X + doc.getTextWidth("Un effort s'impose ");
-  const effortLines = doc.splitTextToSize(
-    student.effortLine.replace(/^Un effort s'impose\s*/i, ""),
-    RIGHT_X - effortValueX,
+  // Grid lines drawn last so they stay crisp on top of the fills/text above rather than being
+  // covered by them (same ordering precedent as the marks table and the MOY cell fill).
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+  [gridTop, ...Array.from({ length: footerRowCount + 1 }, (_, i) => footerRowTop(i)), footerSigTop, footerBottom].forEach(
+    (rowY) => doc.line(fcx(0), rowY, fcx(10), rowY),
   );
-  doc.text(effortLines[0] ?? "", effortValueX, y);
+  [0, 4, 8, 10].forEach((i) => doc.line(fcx(i), gridTop, fcx(i), footerBottom));
+  doc.setLineWidth(0.15);
+  const innerColIndices = [1, 2, 3, 5, 6, 7, 9];
+  for (let rowIndex = 0; rowIndex < footerRowCount; rowIndex++) {
+    const rowT = footerRowTop(rowIndex);
+    const rowB = footerRowTop(rowIndex + 1);
+    innerColIndices.forEach((colIdx) => {
+      // Row 0's Appr column is the merged "APPRECIATIONS" header cell - skip the divider between
+      // its label/checkbox sub-columns there only, so the line doesn't cut through the text.
+      if (rowIndex === 0 && colIdx === 7) {
+        return;
+      }
+      doc.line(fcx(colIdx), rowT, fcx(colIdx), rowB);
+    });
+  }
 
+  y = footerBottom;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
 };

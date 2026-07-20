@@ -100,13 +100,13 @@ const TopBanner = () => {
 
   return (
     <>
-      <div className="navbar bg-base-100 shadow fixed top-0 inset-x-0 z-50 px-4">
-        <div className="flex-1 flex items-center gap-2 min-w-0">
+      <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-4">
+        <div className="flex-1 flex items-center gap-3 min-w-0">
           {logoUrl && (
             <img
               src={logoUrl}
               alt={t.logoAlt}
-              className="h-10 w-10 rounded object-contain shrink-0"
+              className="h-10 w-10 rounded-xl object-contain shrink-0 ring-1 ring-base-content/10"
             />
           )}
           <div className="flex items-center gap-1 shrink-0">
@@ -114,7 +114,7 @@ const TopBanner = () => {
               <div className="tooltip tooltip-bottom" data-tip={t.backHint}>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-circle"
+                  className="btn btn-ghost btn-circle hover:text-primary"
                   onClick={() => navigate(-1)}
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -122,14 +122,18 @@ const TopBanner = () => {
               </div>
             )}
             <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
-              <Link to="/dashboard" className="btn btn-ghost btn-circle">
+              <Link
+                to="/dashboard"
+                className="btn btn-ghost btn-circle hover:text-primary"
+              >
                 <Home className="w-5 h-5" />
               </Link>
             </div>
+            <div className="w-px h-6 bg-base-content/10 mx-1" />
             <div className="tooltip tooltip-bottom" data-tip={t.schoolYearHint}>
               <button
                 type="button"
-                className="btn btn-ghost btn-circle"
+                className="btn btn-ghost btn-circle hover:text-primary"
                 onClick={openSchoolYearDialog}
               >
                 <CalendarDays className="w-5 h-5" />
@@ -138,7 +142,7 @@ const TopBanner = () => {
             <div className="tooltip tooltip-bottom" data-tip={t.sectionHint}>
               <button
                 type="button"
-                className="btn btn-ghost btn-circle"
+                className="btn btn-ghost btn-circle hover:text-primary"
                 onClick={openSectionDialog}
               >
                 <GraduationCap className="w-5 h-5" />
@@ -159,22 +163,22 @@ const TopBanner = () => {
                 className="btn btn-ghost btn-circle"
               >
                 {language === "fr" ? (
-                  <FlagFR className="w-6 h-4" />
+                  <FlagFR className="w-6 h-4 rounded-xs" />
                 ) : (
-                  <FlagGB className="w-6 h-4" />
+                  <FlagGB className="w-6 h-4 rounded-xs" />
                 )}
               </div>
             </div>
-            <ul className="dropdown-content menu bg-base-100 rounded-box z-10 w-32 p-2 shadow">
+            <ul className="dropdown-content menu bg-base-100 border border-base-content/10 rounded-box z-10 w-36 p-2 shadow-xl">
               <li>
                 <button type="button" onClick={() => setLanguage("fr")}>
-                  <FlagFR className="w-6 h-4" />
+                  <FlagFR className="w-6 h-4 rounded-xs" />
                   Français
                 </button>
               </li>
               <li>
                 <button type="button" onClick={() => setLanguage("en")}>
-                  <FlagGB className="w-6 h-4" />
+                  <FlagGB className="w-6 h-4 rounded-xs" />
                   English
                 </button>
               </li>
@@ -188,14 +192,14 @@ const TopBanner = () => {
                 role="button"
                 className="avatar avatar-placeholder"
               >
-                <div className="bg-neutral text-neutral-content w-10 rounded-full">
+                <div className="bg-primary text-primary-content w-10 rounded-full ring-2 ring-primary/30 ring-offset-2 ring-offset-base-100 hover:ring-primary/60 transition-all">
                   <UserRound className="w-5 h-5" />
                 </div>
               </div>
             </div>
-            <ul className="dropdown-content menu bg-base-100 rounded-box z-10 w-64 p-2 shadow">
+            <ul className="dropdown-content menu bg-base-100 border border-base-content/10 rounded-box z-10 w-64 p-2 shadow-xl">
               <li>
-                <button type="button" disabled className="text-base-content/50">
+                <button type="button" disabled className="text-base-content/40">
                   <SlidersHorizontal className="w-4 h-4" />
                   {t.profileMenuPreferences}
                   <span className="opacity-60 text-xs ml-auto">
@@ -204,7 +208,7 @@ const TopBanner = () => {
                 </button>
               </li>
               <li>
-                <button type="button" disabled className="text-base-content/50">
+                <button type="button" disabled className="text-base-content/40">
                   <UserCog className="w-4 h-4" />
                   {t.profileMenuEditProfile}
                   <span className="opacity-60 text-xs ml-auto">
@@ -232,8 +236,13 @@ const TopBanner = () => {
                   </button>
                 </li>
               )}
+              <div className="divider my-1" />
               <li>
-                <button type="button" onClick={handleLogout}>
+                <button
+                  type="button"
+                  className="text-error hover:bg-error/10"
+                  onClick={handleLogout}
+                >
                   <LogOut className="w-4 h-4" />
                   {t.profileMenuLogout}
                 </button>
@@ -244,10 +253,13 @@ const TopBanner = () => {
       </div>
 
       <dialog ref={schoolYearDialogRef} className="modal">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">
-            {t.schoolYearDialogTitle}
-          </h3>
+        <div className="modal-box border border-base-content/10">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 text-primary">
+              <CalendarDays className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-lg">{t.schoolYearDialogTitle}</h3>
+          </div>
           <select
             className="select w-full"
             value={draftSchoolYear}
@@ -283,8 +295,13 @@ const TopBanner = () => {
       </dialog>
 
       <dialog ref={sectionDialogRef} className="modal">
-        <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">{t.sectionDialogTitle}</h3>
+        <div className="modal-box border border-base-content/10">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary/10 text-primary">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-lg">{t.sectionDialogTitle}</h3>
+          </div>
           <div className="flex gap-4">
             <label className="label gap-2">
               <input

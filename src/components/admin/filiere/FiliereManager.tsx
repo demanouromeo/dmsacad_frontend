@@ -238,16 +238,18 @@ const FiliereManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-      <div className="mb-6">
-        <ExportButtons
-          onExportExcel={handleExportExcel}
-          onExportPdf={handleExportPdf}
-          excelLabel={et.excelBtn}
-          pdfLabel={et.pdfBtn}
-          disabled={isLoading || filieres.length === 0}
-        />
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+        <div className="mb-6">
+          <ExportButtons
+            onExportExcel={handleExportExcel}
+            onExportPdf={handleExportPdf}
+            excelLabel={et.excelBtn}
+            pdfLabel={et.pdfBtn}
+            disabled={isLoading || filieres.length === 0}
+          />
+        </div>
       </div>
 
       {isLoading ? (
@@ -256,7 +258,7 @@ const FiliereManager = () => {
         <>
           <input
             type="text"
-            className="input w-full max-w-2xl mb-4"
+            className="input w-full max-w-2xl mb-4 mx-auto block"
             placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -360,18 +362,20 @@ const FiliereManager = () => {
             </tbody>
           </table>
 
-          <button
-            type="button"
-            className="btn btn-error btn-sm mb-6"
-            disabled={selectedIds.size === 0}
-            onClick={handleDeleteSelected}
-          >
-            {t.deleteSelectionBtn(selectedIds.size)}
-          </button>
+          <div className="max-w-2xl mx-auto">
+            <button
+              type="button"
+              className="btn btn-error btn-sm mb-6"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
         </>
       )}
 
-      <form onSubmit={handleAdd} className="flex gap-2 max-w-xs">
+      <form onSubmit={handleAdd} className="flex gap-2 max-w-xs mx-auto">
         <input
           type="text"
           className="input w-full"

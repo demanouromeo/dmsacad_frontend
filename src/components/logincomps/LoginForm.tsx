@@ -160,17 +160,33 @@ const LoginForm = () => {
   }, []);
 
   return (
-    <div className=" md:h-screen bg-base-300 p-10 mb-10 md:mb-32" id="About">
-      <div className="flex justify-end items-center gap-2 mb-2">
+    <div
+      className="relative min-h-screen overflow-hidden bg-base-300 p-6 md:p-10 flex flex-col"
+      id="About"
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 rounded-full bg-primary/20 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-accent/20 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/3 right-1/4 w-72 h-72 rounded-full bg-secondary/10 blur-3xl"
+      />
+
+      <div className="relative z-10 flex justify-end items-center gap-2 mb-2">
         <button
           type="button"
           aria-label="Français"
           title="Français"
           onClick={() => setLanguage("fr")}
-          className={`w-8 h-6 rounded overflow-hidden border-2 cursor-pointer ${
+          className={`w-8 h-6 rounded-sm overflow-hidden border-2 cursor-pointer transition-colors ${
             language === "fr"
               ? "border-primary"
-              : "border-transparent opacity-60"
+              : "border-transparent opacity-60 hover:opacity-100"
           }`}
         >
           <FlagFR className="w-full h-full" />
@@ -180,10 +196,10 @@ const LoginForm = () => {
           aria-label="English"
           title="English"
           onClick={() => setLanguage("en")}
-          className={`w-8 h-6 rounded overflow-hidden border-2 cursor-pointer ${
+          className={`w-8 h-6 rounded-sm overflow-hidden border-2 cursor-pointer transition-colors ${
             language === "en"
               ? "border-primary"
-              : "border-transparent opacity-60"
+              : "border-transparent opacity-60 hover:opacity-100"
           }`}
         >
           <FlagGB className="w-full h-full" />
@@ -194,113 +210,118 @@ const LoginForm = () => {
           aria-label={t.settingsBtn}
           title={t.settingsBtn}
           onClick={openSettings}
-          className="btn btn-xs btn-ghost btn-circle"
+          className="btn btn-xs btn-ghost btn-circle hover:text-primary"
         >
           <Settings className="w-4 h-4" />
         </button>
       </div>
-      <Title title={t.title} />
-      <div className="flex justify-center items-center ">
-        <div className="hidden md:block md:h-120 w-96">
-          <img
-            src={img}
-            alt=""
-            className=" h-full w-full object-cover rounded-tl-xl rounded-bl-xl"
-          />
-        </div>
 
-        <form onSubmit={handleSubmit} autoComplete="off">
-          <div className="flex items-center md:h-120 bg-base-10 border-base-500  rounded-xl md:rounded-tr-xl md:rounded-br-xl md:md:rounded-bl-none md:md:rounded-tl-none w-sm md:w-95 border p-4">
-            <div className="w-full">
-              <label className="label" htmlFor="login">
-                {t.loginLabel}
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  className="input w-full"
-                  placeholder={t.loginPlaceholder}
-                  required
-                  id="login"
-                  autoComplete="off"
-                  value={loginVal}
-                  onChange={(e) => setLoginVal(e.target.value)}
-                />
-                <UsersRound className="absolute w-5 h-5 top-2.5 right-2.5 text-slate-600" />
-              </div>
-
-              <label className="label mt-5" htmlFor="password">
-                {t.passwordLabel}
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className="input w-full"
-                  placeholder={t.passwordPlaceholder}
-                  required
-                  id="password"
-                  autoComplete="new-password"
-                  value={passwordVal}
-                  onChange={(e) => setPasswordVal(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute top-2.5 right-2.5 text-slate-600 cursor-pointer"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-
-              <label className="label mt-5">{t.sectionLabel}</label>
-              <div className="flex gap-4">
-                <label className="label gap-2">
-                  <input
-                    type="radio"
-                    name="section"
-                    className="radio"
-                    value="francophone"
-                    checked={selectedSection === "francophone"}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                  />
-                  {t.francoLabel}
-                </label>
-                <label className="label gap-2">
-                  <input
-                    type="radio"
-                    name="section"
-                    className="radio"
-                    value="anglophone"
-                    checked={selectedSection === "anglophone"}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                  />
-                  {t.anglophoneLabel}
-                </label>
-              </div>
-
-              <div className="flex justify-center">
-                {isLoading ? <Loading /> : <p></p>}
-              </div>
-              <button
-                className="btn btn-neutral mb-4 w-full mt-6"
-                type="submit"
-              >
-                {t.submitBtn}
-              </button>
-              {loginError && (
-                <p className="text-error text-sm text-center -mt-2 mb-4">
-                  {loginError}
-                </p>
-              )}
-            </div>
+      <div className="relative z-10 flex-1 flex flex-col justify-center">
+        <Title title={t.title} />
+        <div className="flex justify-center items-center">
+          <div className="hidden md:block md:h-120 w-96">
+            <img
+              src={img}
+              alt=""
+              className="h-full w-full object-cover rounded-l-2xl shadow-2xl"
+            />
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} autoComplete="off">
+            <div className="flex items-center md:h-120 bg-base-100/95 backdrop-blur border border-base-content/10 shadow-2xl rounded-2xl md:rounded-l-none w-sm md:w-95 p-6">
+              <div className="w-full">
+                <label className="label" htmlFor="login">
+                  {t.loginLabel}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="input w-full pr-10"
+                    placeholder={t.loginPlaceholder}
+                    required
+                    id="login"
+                    autoComplete="off"
+                    value={loginVal}
+                    onChange={(e) => setLoginVal(e.target.value)}
+                  />
+                  <UsersRound className="absolute w-5 h-5 top-2.5 right-2.5 text-base-content/40" />
+                </div>
+
+                <label className="label mt-5" htmlFor="password">
+                  {t.passwordLabel}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input w-full pr-10"
+                    placeholder={t.passwordPlaceholder}
+                    required
+                    id="password"
+                    autoComplete="new-password"
+                    value={passwordVal}
+                    onChange={(e) => setPasswordVal(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    className="absolute top-2.5 right-2.5 text-base-content/40 hover:text-base-content cursor-pointer transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+
+                <label className="label mt-5">{t.sectionLabel}</label>
+                <div className="flex gap-4">
+                  <label className="label gap-2">
+                    <input
+                      type="radio"
+                      name="section"
+                      className="radio radio-primary"
+                      value="francophone"
+                      checked={selectedSection === "francophone"}
+                      onChange={(e) => setSelectedSection(e.target.value)}
+                    />
+                    {t.francoLabel}
+                  </label>
+                  <label className="label gap-2">
+                    <input
+                      type="radio"
+                      name="section"
+                      className="radio radio-primary"
+                      value="anglophone"
+                      checked={selectedSection === "anglophone"}
+                      onChange={(e) => setSelectedSection(e.target.value)}
+                    />
+                    {t.anglophoneLabel}
+                  </label>
+                </div>
+
+                <div className="flex justify-center mt-2">
+                  {isLoading ? <Loading /> : <p></p>}
+                </div>
+                <button
+                  className="btn btn-primary mb-4 w-full mt-6 shadow-lg shadow-primary/20"
+                  type="submit"
+                >
+                  {t.submitBtn}
+                </button>
+                {loginError && (
+                  <p className="text-error text-sm text-center -mt-2 mb-4">
+                    {loginError}
+                  </p>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
 
       <dialog
@@ -308,7 +329,7 @@ const LoginForm = () => {
         className="modal"
         onClose={handleSettingsDialogClose}
       >
-        <div className="modal-box">
+        <div className="modal-box border border-base-content/10">
           <button
             type="button"
             aria-label={t.closeBtn}

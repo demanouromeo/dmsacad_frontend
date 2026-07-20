@@ -297,16 +297,18 @@ const SpecialityManager = () => {
   return (
     <div className="p-10">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-      <div className="mb-6">
-        <ExportButtons
-          onExportExcel={handleExportExcel}
-          onExportPdf={handleExportPdf}
-          excelLabel={et.excelBtn}
-          pdfLabel={et.pdfBtn}
-          disabled={isLoading || specialities.length === 0}
-        />
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+        <div className="mb-6">
+          <ExportButtons
+            onExportExcel={handleExportExcel}
+            onExportPdf={handleExportPdf}
+            excelLabel={et.excelBtn}
+            pdfLabel={et.pdfBtn}
+            disabled={isLoading || specialities.length === 0}
+          />
+        </div>
       </div>
 
       {isLoading ? (
@@ -315,7 +317,7 @@ const SpecialityManager = () => {
         <>
           <input
             type="text"
-            className="input w-full max-w-3xl mb-4"
+            className="input w-full max-w-3xl mb-4 mx-auto block"
             placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -468,20 +470,22 @@ const SpecialityManager = () => {
             </table>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-error btn-sm mb-6"
-            disabled={selectedIds.size === 0}
-            onClick={handleDeleteSelected}
-          >
-            {t.deleteSelectionBtn(selectedIds.size)}
-          </button>
+          <div className="max-w-3xl mx-auto">
+            <button
+              type="button"
+              className="btn btn-error btn-sm mb-6"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
         </>
       )}
 
       <form
         onSubmit={handleAdd}
-        className="flex flex-wrap gap-2 max-w-2xl items-start"
+        className="flex flex-wrap gap-2 max-w-2xl mx-auto items-start"
       >
         <select
           className="select"
@@ -531,7 +535,9 @@ const SpecialityManager = () => {
         </button>
       </form>
       {filieres.length === 0 && (
-        <p className="text-sm opacity-60 mt-2">{t.createFiliereFirst}</p>
+        <p className="text-sm opacity-60 mt-2 max-w-2xl mx-auto text-center">
+          {t.createFiliereFirst}
+        </p>
       )}
     </div>
   );

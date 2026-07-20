@@ -124,9 +124,11 @@ export const exportTranslations = {
 export const dashboardTranslations = {
   fr: {
     manageCredentialsBtn: "Gérer mes identifiants",
+    welcomeBack: "Bienvenue,",
   },
   en: {
     manageCredentialsBtn: "Manage my credentials",
+    welcomeBack: "Welcome back,",
   },
 };
 
