@@ -64,7 +64,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: "students", icon: iconStudents, to: "/admin/students" },
   { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
   { key: "markSheet", icon: iconMarkSheet, to: "/admin/mark-sheet" },
-  { key: "printReportCards", icon: iconPrintReportCards },
+  { key: "printReportCards", icon: iconPrintReportCards, to: "/admin/report-cards" },
   { key: "fillRate", icon: iconFillRate, to: "/admin/fill-rate" },
   { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
   { key: "summary", icon: iconSummary, to: "/admin/effectifs" },

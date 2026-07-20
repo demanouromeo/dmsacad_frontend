@@ -21,11 +21,21 @@ const MOTTO_EN = "Peace - Work - Fatherland";
 const formatPhone = (phone: SchoolHeaderConfig["phone1"] | undefined): string =>
   phone !== null && phone !== undefined && phone !== "" ? String(phone) : "";
 
+export interface DrawPdfLetterheadOptions {
+  // Report cards/bulletins omit the phone line - every other export keeps it (default true).
+  includePhone?: boolean;
+}
+
 // Draws the letterhead (both language columns, centered logo + matricule, separator rule) at the
 // top of the PDF and returns the Y coordinate the caller should start the title/table from. If
 // there's no config and no logo yet (still loading, or nothing configured for this school), this
 // draws nothing and returns a plain top margin so exports still work without a header.
-export const drawPdfLetterhead = (doc: jsPDF, header: SchoolHeader): number => {
+export const drawPdfLetterhead = (
+  doc: jsPDF,
+  header: SchoolHeader,
+  options?: DrawPdfLetterheadOptions,
+): number => {
+  const includePhone = options?.includePhone ?? true;
   const { config, logoImage } = header;
   if (!config && !logoImage) {
     return 15;
@@ -77,12 +87,17 @@ export const drawPdfLetterhead = (doc: jsPDF, header: SchoolHeader): number => {
     doc.text(config.name_en, rightBlockCenterX, y, { align: "center" });
   }
 
-  y += 5;
-  doc.setFont("helvetica", "normal");
-  const phone = formatPhone(config?.phone1);
-  if (phone) {
-    doc.text(`Tel.: ${phone}`, leftBlockCenterX, y, { align: "center" });
-    doc.text(`Phone: ${phone}`, rightBlockCenterX, y, { align: "center" });
+  // Report cards omit the phone line entirely (includePhone: false) - skip reserving its 5mm row
+  // too, rather than leaving a blank gap above the separator rule, to keep the RC's own header
+  // compact. Every other export keeps the reserved row so its layout is unaffected.
+  if (includePhone) {
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    const phone = formatPhone(config?.phone1);
+    if (phone) {
+      doc.text(`Tel.: ${phone}`, leftBlockCenterX, y, { align: "center" });
+      doc.text(`Phone: ${phone}`, rightBlockCenterX, y, { align: "center" });
+    }
   }
 
   const logoSize = 18;
@@ -121,7 +136,9 @@ export const drawPdfLetterhead = (doc: jsPDF, header: SchoolHeader): number => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
 
-  return y + 8;
+  // Report cards sit closer under the separator rule than every other export (which uses the
+  // full 8mm gap below) - saves vertical space on a document that must fit one student per page.
+  return y + (includePhone ? 8 : 4);
 };
 
 // Every exported PDF except report cards/bulletins/livrets (built directly against

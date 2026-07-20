@@ -67,6 +67,12 @@ export const bannerTranslations = {
     anglophoneLabel: "Anglophone",
     saveBtn: "Enregistrer",
     cancelBtn: "Annuler",
+    profileMenuPreferences: "Préférences",
+    profileMenuEditProfile: "Modifier le profil",
+    profileMenuCredentials: "Modifier identifiants / mot de passe",
+    profileMenuSettings: "Paramètres",
+    profileMenuLogout: "Déconnexion",
+    comingSoonTooltip: "Bientôt disponible",
   },
   en: {
     logoAlt: "School logo",
@@ -82,6 +88,12 @@ export const bannerTranslations = {
     anglophoneLabel: "Anglophone",
     saveBtn: "Save",
     cancelBtn: "Cancel",
+    profileMenuPreferences: "Preferences",
+    profileMenuEditProfile: "Edit profile",
+    profileMenuCredentials: "Change login / password",
+    profileMenuSettings: "Settings",
+    profileMenuLogout: "Logout",
+    comingSoonTooltip: "Coming soon",
   },
 };
 
@@ -111,11 +123,9 @@ export const exportTranslations = {
 
 export const dashboardTranslations = {
   fr: {
-    logoutBtn: "Déconnexion",
     manageCredentialsBtn: "Gérer mes identifiants",
   },
   en: {
-    logoutBtn: "Logout",
     manageCredentialsBtn: "Manage my credentials",
   },
 };
@@ -2016,5 +2026,65 @@ export const thParamManagerTranslations = {
     saveSuccess: "Honors Roll parameters saved successfully.",
     saveFailure: "Failed to save Honors Roll parameters.",
     rangeError: "The lower bound must be strictly less than the upper bound.",
+  },
+};
+
+// "Bulletins" (Print report cards) - ADMIN-only, APC classes / term RC only for this phase (see
+// ReportCardManager.tsx). Annual RC is out of scope this phase - its two buttons render but stay
+// disabled ("coming soon").
+export const reportCardManagerTranslations = {
+  fr: {
+    title: "Impression des bulletins",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    classeLabel: "Classe :",
+    termLabel: "Trimestre :",
+    term: (term: number) => `Trimestre ${term}`,
+    emptyClasses: "Aucune classe APC (à compétences) n'a été trouvée pour cette année/section.",
+    searchPlaceholder: "Rechercher un élève (nom, prénom, matricule)...",
+    tableHeaderRang: "Rang",
+    tableHeaderName: "Nom et prénom",
+    tableHeaderMatricule: "Matricule",
+    tableHeaderMoyenne: "Moyenne",
+    tableHeaderClassified: "Classé",
+    classifiedYes: "Oui",
+    classifiedNo: "NC",
+    emptyStudents: "Aucun élève trouvé pour cette classe.",
+    noSearchResults: "Aucun élève ne correspond à la recherche.",
+    printBtn: "Imprimer",
+    printSelectionBtn: (count: number) => `Imprimer la sélection (${count})`,
+    printAnnualBtn: "Imprimer le bulletin annuel",
+    printSelectionAnnualBtn: "Imprimer la sélection - bulletin annuel",
+    comingSoonTooltip: "Bientôt disponible",
+    printSuccess: "Bulletin(s) généré(s) avec succès.",
+    printFailure: "Échec de la génération du/des bulletin(s).",
+    noSelectionWarning: "Veuillez sélectionner au moins un élève.",
+  },
+  en: {
+    title: "Print report cards",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to change section.`,
+    classeLabel: "Classe:",
+    termLabel: "Term:",
+    term: (term: number) => `Term ${term}`,
+    emptyClasses: "No APC (competence-based) classe was found for this year/section.",
+    searchPlaceholder: "Search a student (name, surname, matricule)...",
+    tableHeaderRang: "Rank",
+    tableHeaderName: "Name and surname",
+    tableHeaderMatricule: "Matricule",
+    tableHeaderMoyenne: "Average",
+    tableHeaderClassified: "Classified",
+    classifiedYes: "Yes",
+    classifiedNo: "NC",
+    emptyStudents: "No student found for this classe.",
+    noSearchResults: "No student matches the search.",
+    printBtn: "Print",
+    printSelectionBtn: (count: number) => `Print selection (${count})`,
+    printAnnualBtn: "Print Annual RC",
+    printSelectionAnnualBtn: "Print Selection - Annual RC",
+    comingSoonTooltip: "Coming soon",
+    printSuccess: "Report card(s) generated successfully.",
+    printFailure: "Failed to generate the report card(s).",
+    noSelectionWarning: "Please select at least one student.",
   },
 };

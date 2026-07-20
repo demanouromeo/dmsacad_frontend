@@ -11,11 +11,6 @@ const Dashboard = () => {
   const t = dashboardTranslations[language];
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
   // Dashboard is the first authenticated screen after login (LoginForm pushes "/dashboard" onto
   // "/"'s history entry) - browser Back from here would otherwise silently land back on "/" while
   // the access token stays live in memory (AuthContext.logout() is never called), letting the
@@ -51,13 +46,10 @@ const Dashboard = () => {
           unconditional rather than nested in that block. ADMIN users can reach the same screen from
           here too, or via AccountHub's second card. */}
       <button
-        className="btn btn-neutral mr-2"
+        className="btn btn-neutral"
         onClick={() => navigate("/account/credentials")}
       >
         {t.manageCredentialsBtn}
-      </button>
-      <button className="btn btn-neutral" onClick={handleLogout}>
-        {t.logoutBtn}
       </button>
     </div>
   );

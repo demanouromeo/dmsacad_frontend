@@ -31,6 +31,7 @@ import SettingsHub from "./components/admin/settings/SettingsHub";
 import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamManager";
 import AnnualRcAvgManager from "./components/admin/settings/AnnualRcAvgManager";
 import ThParamManager from "./components/admin/settings/ThParamManager";
+import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -108,6 +109,10 @@ function App() {
                 <Route
                   path="/admin/settings/th-param"
                   element={<ThParamManager />}
+                />
+                <Route
+                  path="/admin/report-cards"
+                  element={<ReportCardManager />}
                 />
               </Route>
             </Route>

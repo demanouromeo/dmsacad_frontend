@@ -6,6 +6,11 @@ import {
   CalendarDays,
   GraduationCap,
   Home,
+  KeyRound,
+  LogOut,
+  Settings,
+  SlidersHorizontal,
+  UserCog,
   UserRound,
 } from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
@@ -19,8 +24,15 @@ import type { SchoolHeaderConfig } from "../../interfaces/SchoolHeaderConfig";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 
 const TopBanner = () => {
-  const { connection, schoolYear, section, setSchoolYear, setSection } =
-    useAuth();
+  const {
+    connection,
+    schoolYear,
+    section,
+    setSchoolYear,
+    setSection,
+    authPayload,
+    logout,
+  } = useAuth();
   const [language, setLanguage] = useLanguage();
   const t = bannerTranslations[language];
   const navigate = useNavigate();
@@ -79,6 +91,11 @@ const TopBanner = () => {
   const saveSection = () => {
     setSection(draftSection);
     sectionDialogRef.current?.close();
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
   return (
@@ -164,12 +181,64 @@ const TopBanner = () => {
             </ul>
           </div>
 
-          <div className="tooltip tooltip-bottom" data-tip={t.profileHint}>
-            <div className="avatar avatar-placeholder">
-              <div className="bg-neutral text-neutral-content w-10 rounded-full">
-                <UserRound className="w-5 h-5" />
+          <div className="dropdown dropdown-end">
+            <div className="tooltip tooltip-bottom" data-tip={t.profileHint}>
+              <div
+                tabIndex={0}
+                role="button"
+                className="avatar avatar-placeholder"
+              >
+                <div className="bg-neutral text-neutral-content w-10 rounded-full">
+                  <UserRound className="w-5 h-5" />
+                </div>
               </div>
             </div>
+            <ul className="dropdown-content menu bg-base-100 rounded-box z-10 w-64 p-2 shadow">
+              <li>
+                <button type="button" disabled className="text-base-content/50">
+                  <SlidersHorizontal className="w-4 h-4" />
+                  {t.profileMenuPreferences}
+                  <span className="opacity-60 text-xs ml-auto">
+                    {t.comingSoonTooltip}
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" disabled className="text-base-content/50">
+                  <UserCog className="w-4 h-4" />
+                  {t.profileMenuEditProfile}
+                  <span className="opacity-60 text-xs ml-auto">
+                    {t.comingSoonTooltip}
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => navigate("/account/credentials")}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  {t.profileMenuCredentials}
+                </button>
+              </li>
+              {authPayload?.role === "ADMIN" && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admin/settings")}
+                  >
+                    <Settings className="w-4 h-4" />
+                    {t.profileMenuSettings}
+                  </button>
+                </li>
+              )}
+              <li>
+                <button type="button" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4" />
+                  {t.profileMenuLogout}
+                </button>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
