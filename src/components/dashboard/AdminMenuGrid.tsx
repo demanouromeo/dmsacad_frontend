@@ -72,7 +72,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: "schoolReport", icon: iconSchoolReport },
   { key: "parents", icon: iconParents },
   { key: "manageAccount", icon: iconManageAccount, to: "/admin/manage-accounts" },
-  { key: "settings", icon: iconSettings },
+  { key: "settings", icon: iconSettings, to: "/admin/settings" },
   { key: "promotions", icon: iconPromotions },
   { key: "basculement", icon: iconBasculement },
   { key: "scholarship", icon: iconScholarship },

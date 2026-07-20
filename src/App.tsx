@@ -29,6 +29,7 @@ import AccountHub from "./components/admin/account/AccountHub";
 import SelfCredentialsManager from "./components/admin/account/SelfCredentialsManager";
 import SettingsHub from "./components/admin/settings/SettingsHub";
 import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamManager";
+import AnnualRcAvgManager from "./components/admin/settings/AnnualRcAvgManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -98,6 +99,10 @@ function App() {
                 <Route
                   path="/admin/settings/classified-param"
                   element={<ClassifiedParamManager />}
+                />
+                <Route
+                  path="/admin/settings/annual-rc-avg"
+                  element={<AnnualRcAvgManager />}
                 />
               </Route>
             </Route>

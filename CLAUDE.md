@@ -882,6 +882,57 @@ dashboard card — one row per (connection, school year) in the backend's `basic
   deliberately **not** applied to the Email field (a `type="email"` input plus a format regex check on submit
   instead), since the allowlist has no `@` and would make typing a valid address impossible.
 
+### Settings hub and Classified / Not Classified (NC) parameter
+
+`/admin/settings` (`SettingsHub.tsx`) is a landing page for the "settings" `AdminMenuGrid` card, same
+`SubjectsHub`/`AccountHub` pattern, currently with a single tile: "Classified / Not Classified (NC) parameter"
+(`classifiedParam` → `/admin/settings/classified-param`, `ClassifiedParamManager`). Add further settings
+sub-modules here the same way `SubjectsHub`'s other sub-modules were added, rather than growing this one
+screen.
+
+`ClassifiedParamManager` is a **single-record radio+slider form**, closer in shape to `SchoolInfoManager` than
+to the list-based CRUD managers — no table, no search, one Save action. It reads/writes the backend's
+`classifiedparam` table (one row per school year — see the backend `CLAUDE.md`'s "Classified / Not Classified
+(NC) parameter" section for the table/endpoints) via `ClassifiedParamReader.fetchClassifiedParamOfYear`/
+`saveClassifiedParamOfYear`. Two radio options map directly onto the backend's `classified` column (note the
+inverted naming — this is the backend's own convention, not a frontend quirk): "Classification based on number
+of subjects" (`classified=1`) reveals a `range` slider (`nb_matieres_rate`, integer 1-100, default 40) below it
+when selected; "Classify all students" (`classified=0`) has no slider. A missing/never-saved row is treated the
+same as `classified=0` (defaults to "Classify all students" selected, slider defaulted to 40 but hidden) —
+matching the backend doc's own "missing row = classify everyone" convention.
+
+**The classification algorithm itself (student → classified or NC per term) is not implemented anywhere yet** —
+report-card generation, the only consumer, isn't built. It's documented here now (ported directly from the
+product's existing mobile-app algorithm) so whoever builds report cards later reuses it instead of re-deriving
+it, following this app's established convention of computing this kind of thing client-side from already-fetched
+marks (`MarkEntryManager`'s fill-rate panel, `EffectifsManager`'s report) rather than adding a new backend
+aggregation endpoint:
+
+- Fetch `ClassifiedParamReader.fetchClassifiedParamOfYear` once per report-card run. If it's `null`, or its
+  `classified` is `0`, every student is classified — skip the rest of this algorithm entirely for every
+  student/term. Only when `classified === 1` does the per-student, per-term check below run.
+- **Non-APC classes**: `nbMatieres = subjectsOfSelectedClasse.length * 2` (each subject counts twice — once
+  per sequence of the term, same `getSequence1(term)`/`getSequence2(term)` → `1,2` / `3,4` / `5,6` mapping
+  already implemented as `computeDbSequence` in `MarkEntryManager.tsx`: `(term - 1) * 2 + sequence`).
+  Participation count = number of that student's `student_subject` rows (via `MarkReader.fetchSeqMarks`, the
+  same reader Mark entry already uses) across both of the term's `dbsequence`s where `isEmpty === 0` — a row
+  existing with `isEmpty === 1` does not count as a participation, same "isEmpty is the truth" precedent Mark
+  entry and `deleteCompetencesWithNoMarks` already rely on. `rate = (participations / nbMatieres) * 100`;
+  classified for that term iff `rate >= nb_matieres_rate`.
+- **APC classes**: `nbMatieres = subjectsOfSelectedClasse.length` (not doubled — competences, not sequences,
+  are the per-subject unit). Participation count = number of that student's `stud_comp_mark` rows (via
+  `MarkReader.fetchCompMarks`, scoped to the term) with `isEmpty === 0`, summed across every competence of
+  every subject of the classe for that term. Same `rate`/threshold comparison as non-APC.
+- **Edge cases, both branches**: `nbMatieres === 0` (the classe/level has no subjects yet) → **not classified**
+  (NC), the one case where a zero denominator doesn't fail open. Any unexpected error while computing (a
+  missing param, a malformed row, etc.) should fail open to **classified** — never let a computation error
+  silently NC a student. This mirrors the original mobile-app algorithm's own try/catch-defaults-to-true
+  behavior; preserve it rather than tightening it when this gets implemented, since a false NC on a report
+  card is a more visible, more disruptive mistake than a false classified.
+- Whether a classe/level is APC or non-APC is the same `ClasseReader.fetchApcLevels` + `isLevelApc(level)`
+  check already used throughout the app (see "Subjects hub and the APC / competence-based classe concept"
+  above) — don't add a second way to answer that question.
+
 ### Routing and state
 
 `src/App.tsx` (React Router v7, `BrowserRouter`) defines `/` → `LoginForm`, `/dashboard` → `Dashboard`, and
@@ -946,7 +997,11 @@ set):
 | Students (Gestion des élèves) — basic CRUD + import, no parent/phone linkage | Done — `/admin/students`, `StudentManager` (see Architecture) |
 | Summary ("Bilan") — read-only "Effectifs par classe" report | Done — `/admin/effectifs`, `EffectifsManager` (see Architecture) |
 | Mark entry ("Saisie des notes") — dual APC/non-APC mode, per-subject fill rate | Done — `/admin/mark-entry`, `MarkEntryManager` (see Architecture) |
-| Mark sheets, report cards, fill rate (dedicated module), discipline, SMS, school reports (livrets), parents, account management, settings, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
+| Discipline | Done — `/admin/discipline`, `DisciplineManager` |
+| Fill rate (dedicated module) | Done — `/admin/fill-rate`, `FillRateHub` (`FillRateGlobalManager`/`FillRateClassManager`) |
+| Account management (Gestion des comptes) — all-users credential CRUD + self-service "manage my credentials" | Done — `/admin/manage-accounts`, `AccountHub` (`AccountManager`, `SelfCredentialsManager` — the latter also reachable by any authenticated role from `Dashboard`, not just ADMIN) |
+| Settings — "Classified / Not Classified (NC) parameter" | Done — `/admin/settings`, `SettingsHub` (`ClassifiedParamManager`); further settings sub-modules not started |
+| Mark sheets, report cards, SMS, school reports (livrets), parents, promotions, basculement, scholarships, insolvents | Not started — inert `AdminMenuGrid` cards (no `to`) |
 
 Cross-cutting infra built alongside the modules above, used by all of them: the top banner (global
 year/section/language switch, replacing per-page back buttons), toast notifications, promise-based confirm

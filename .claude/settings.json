@@ -12,7 +12,12 @@
       "Bash(curl -s -c /tmp/cookies.txt -X POST http://localhost/dmsacad_backend_dev/api/accounts/connect -H 'Content-Type: application/json' -d '{\"login\":\"test1\",\"pwd\":\"test1\",\"connection\":\"mysql\"}' -o /tmp/login_resp.json)",
       "Read(//tmp/**)",
       "Bash(curl -s -i -b /tmp/cookies.txt -X POST http://localhost/dmsacad_backend_dev/api/accounts/refresh -H 'Content-Type: application/json' -d '{\"connection\":\"mysql\"}')",
-      "Bash(curl -s -i -X POST \"http://localhost/dmsacad_backend_dev/api/accounts/connect\" -H \"Content-Type: application/json\" -d '{\"login\":\"admin\",\"pwd\":\"admin\",\"connection\":\"mysql\"}')"
+      "Bash(curl -s -i -X POST \"http://localhost/dmsacad_backend_dev/api/accounts/connect\" -H \"Content-Type: application/json\" -d '{\"login\":\"admin\",\"pwd\":\"admin\",\"connection\":\"mysql\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(npm ls *)",
+      "Bash(node test2.js)"
     ],
     "additionalDirectories": [
       "c:\\xampp\\htdocs\\dmsacad_backend_dev\\routes"

@@ -1900,10 +1900,12 @@ export const settingsHubTranslations = {
   fr: {
     title: "Paramètres",
     classifiedParam: "Classement des élèves (Classés/NC)",
+    annualRcAvgParam: "Paramètres du bulletin annuel",
   },
   en: {
     title: "Settings",
     classifiedParam: "Classified / Not Classified (NC) parameter",
+    annualRcAvgParam: "Annual report card parameters",
   },
 };
 
@@ -1936,5 +1938,39 @@ export const classifiedParamManagerTranslations = {
     saveBtn: "Save",
     saveSuccess: "Classification parameters saved successfully.",
     saveFailure: "Failed to save classification parameters.",
+  },
+};
+
+// "Paramètres du bulletin annuel" / "Annual report card parameters" - drives how a student's annual
+// average is computed from their 3 term averages (see AnnualRcAvgManager.tsx). Unlike
+// classifiedParamManagerTranslations' backing table, this setting is session-only
+// (MyConstants.ANNUAL_RC_AVG_SETTING_KEY, sessionStorage) - saveSuccess/saveFailure still exist since
+// Save is still an explicit user action, but there's no network round trip behind it.
+export const annualRcAvgManagerTranslations = {
+  fr: {
+    title: "Paramètres du bulletin annuel",
+    description:
+      "Ce paramètre est utilisé pour calculer la moyenne annuelle. Il indique comment le calcul est effectué à partir des moyennes de l'élève aux trimestres 1, 2 et 3.",
+    optionSimpleTitle: "Calcul simple",
+    optionSimpleDescription:
+      "Sommer les moyennes obtenu dans chaque trimestre et diviser par 3. (trim1+trim2+trim3)/3",
+    optionComplexTitle: "Calcul complexe",
+    optionComplexDescription:
+      "Avec cette option, certains coefficients seront annullés si la matière n'a pas de notes",
+    saveBtn: "Save",
+    saveSuccess: "Paramètres enregistrés avec succès.",
+  },
+  en: {
+    title: "Annual report card parameters",
+    description:
+      "This parameter is used to compute the annual average. It indicates how the computation is done given the student's average in terms 1, 2 and 3.",
+    optionSimpleTitle: "Simple computation",
+    optionSimpleDescription:
+      "Sum the averages obtained in each term and divide by 3. (term1+term2+term3)/3",
+    optionComplexTitle: "Complex computation",
+    optionComplexDescription:
+      "With this option, some coefficients will be cancelled if the subject has no marks",
+    saveBtn: "Save",
+    saveSuccess: "Settings saved successfully.",
   },
 };

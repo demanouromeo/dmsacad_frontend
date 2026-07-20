@@ -23,6 +23,23 @@ export class MyConstants {
   public static DEFAULT_SCHOOL_TYPE = "LYCEE";
   public static DEFAULT_RESPONSABLE_FR = "Proviseur";
   public static DEFAULT_RESPONSABLE_EN = "Principal";
+  // Annual report card average computation mode - "1" = Calcul simple ((trim1+trim2+trim3)/3),
+  // "0" = Calcul complexe (coefficients cancelled for subjects with no marks). Session-only by
+  // design (not persisted server-side, resets to the default each session) - see
+  // AnnualRcAvgManager.tsx.
+  public static ANNUAL_RC_AVG_SETTING_KEY = "ANNUAL_RC_AVG_SETTING";
+  public static DEFAULT_ANNUAL_RC_AVG_SETTING = "1";
+
+  public static getAnnualRcAvgSetting = (): string => {
+    return (
+      sessionStorage.getItem(MyConstants.ANNUAL_RC_AVG_SETTING_KEY) ||
+      MyConstants.DEFAULT_ANNUAL_RC_AVG_SETTING
+    );
+  };
+
+  public static setAnnualRcAvgSetting = (value: string) => {
+    sessionStorage.setItem(MyConstants.ANNUAL_RC_AVG_SETTING_KEY, value);
+  };
 
   public static getBackendTarget = (): BackendTarget => {
     return (

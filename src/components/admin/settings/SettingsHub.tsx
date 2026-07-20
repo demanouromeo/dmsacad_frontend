@@ -3,9 +3,9 @@ import { settingsHubTranslations } from "../../../i18n/translations";
 import AdminMenuCard from "../../dashboard/AdminMenuCard";
 import iconSettings from "../../../assets/menu/Settings.svg";
 
-// Landing page for the "settings" dashboard card - only one sub-module built so far
-// ("classifiedParam" -> ClassifiedParamManager). Same SubjectsHub/AccountHub pattern. Reuses the
-// generic Settings.svg icon since there's no dedicated icon asset for this sub-module yet.
+// Landing page for the "settings" dashboard card - sub-modules: "classifiedParam" ->
+// ClassifiedParamManager, "annualRcAvgParam" -> AnnualRcAvgManager. Same SubjectsHub/AccountHub
+// pattern. Reuses the generic Settings.svg icon since there's no dedicated icon asset per sub-module yet.
 const SettingsHub = () => {
   const [language] = useLanguage();
   const t = settingsHubTranslations[language];
@@ -16,6 +16,12 @@ const SettingsHub = () => {
       label: t.classifiedParam,
       icon: iconSettings,
       to: "/admin/settings/classified-param",
+    },
+    {
+      key: "annualRcAvgParam",
+      label: t.annualRcAvgParam,
+      icon: iconSettings,
+      to: "/admin/settings/annual-rc-avg",
     },
   ];
 
