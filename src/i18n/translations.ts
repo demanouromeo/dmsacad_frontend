@@ -1901,11 +1901,13 @@ export const settingsHubTranslations = {
     title: "Paramètres",
     classifiedParam: "Classement des élèves (Classés/NC)",
     annualRcAvgParam: "Paramètres du bulletin annuel",
+    thParam: "Paramètres du tableau d'honneur",
   },
   en: {
     title: "Settings",
     classifiedParam: "Classified / Not Classified (NC) parameter",
     annualRcAvgParam: "Annual report card parameters",
+    thParam: "Honors Roll parameters",
   },
 };
 
@@ -1972,5 +1974,47 @@ export const annualRcAvgManagerTranslations = {
       "With this option, some coefficients will be cancelled if the subject has no marks",
     saveBtn: "Save",
     saveSuccess: "Settings saved successfully.",
+  },
+};
+
+// "Paramètres du tableau d'honneur" / "Honors Roll parameters" - ADMIN-only single-record settings
+// screen backing thparam (one row per school year, ThParamController). A student makes the Honors
+// Roll (Tableau d'honneur / TH) for a term if: their average falls within [lb, ub], they're
+// "classified" for that term (see classifiedParamManagerTranslations/ClassifiedParamManager), and
+// their total absences are below seuil_abs - the actual TH generation isn't built yet, this screen
+// only captures the parameters it will read. val1 (1/2/3) sets the PDF print resolution of the
+// generated TH document (Faible/Moyenne/Haute résolution -> low/medium/high).
+export const thParamManagerTranslations = {
+  fr: {
+    title: "Paramètres du tableau d'honneur",
+    description:
+      "Un élève figure au tableau d'honneur si sa moyenne se situe dans l'intervalle défini, qu'il est classé, et que son nombre total d'absences est inférieur au seuil défini.",
+    lbLabel: "Borne inférieure de la moyenne",
+    ubLabel: "Borne supérieure de la moyenne",
+    seuilAbsLabel: "Seuil d'absences (nombre maximum d'absences autorisées)",
+    resolutionTitle: "Résolution d'impression du tableau d'honneur",
+    resolutionLow: "Faible résolution",
+    resolutionMedium: "Moyenne résolution",
+    resolutionHigh: "Haute résolution",
+    saveBtn: "Enregistrer",
+    saveSuccess: "Paramètres du tableau d'honneur enregistrés avec succès.",
+    saveFailure: "Échec de l'enregistrement des paramètres du tableau d'honneur.",
+    rangeError: "La borne inférieure doit être strictement inférieure à la borne supérieure.",
+  },
+  en: {
+    title: "Honors Roll parameters",
+    description:
+      "A student makes the Honors Roll if their average falls within the defined range, they are classified, and their total number of absences is below the defined threshold.",
+    lbLabel: "Average lower bound",
+    ubLabel: "Average upper bound",
+    seuilAbsLabel: "Absence threshold (maximum allowed absences)",
+    resolutionTitle: "Honors Roll print resolution",
+    resolutionLow: "Low resolution",
+    resolutionMedium: "Medium resolution",
+    resolutionHigh: "High resolution",
+    saveBtn: "Save",
+    saveSuccess: "Honors Roll parameters saved successfully.",
+    saveFailure: "Failed to save Honors Roll parameters.",
+    rangeError: "The lower bound must be strictly less than the upper bound.",
   },
 };

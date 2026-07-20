@@ -30,6 +30,7 @@ import SelfCredentialsManager from "./components/admin/account/SelfCredentialsMa
 import SettingsHub from "./components/admin/settings/SettingsHub";
 import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamManager";
 import AnnualRcAvgManager from "./components/admin/settings/AnnualRcAvgManager";
+import ThParamManager from "./components/admin/settings/ThParamManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -103,6 +104,10 @@ function App() {
                 <Route
                   path="/admin/settings/annual-rc-avg"
                   element={<AnnualRcAvgManager />}
+                />
+                <Route
+                  path="/admin/settings/th-param"
+                  element={<ThParamManager />}
                 />
               </Route>
             </Route>
