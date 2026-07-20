@@ -12,6 +12,8 @@ import {
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Staff } from "../../../interfaces/Staff";
 import Loading from "../../sharedcomp/Loading";
+import StaffPhotoCell from "./StaffPhotoCell";
+import StaffPhotoDialog from "./StaffPhotoDialog";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import {
@@ -103,6 +105,11 @@ const StaffManager = () => {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const [photoDialogStaff, setPhotoDialogStaff] = useState<Staff | null>(null);
+  const [photoVersions, setPhotoVersions] = useState<Record<number, number>>({});
+  const bumpPhotoVersion = (staffId: number) => {
+    setPhotoVersions((prev) => ({ ...prev, [staffId]: (prev[staffId] ?? 0) + 1 }));
+  };
 
   const loadStaff = async () => {
     setIsLoading(true);
@@ -540,6 +547,7 @@ const StaffManager = () => {
                     />
                   </th>
                   <th>#</th>
+                  <th>{t.tableHeaderPhoto}</th>
                   <th>{t.tableHeaderName}</th>
                   <th>{t.tableHeaderSurname}</th>
                   <th>{t.tableHeaderPhone}</th>
@@ -566,6 +574,13 @@ const StaffManager = () => {
                         />
                       </td>
                       <td>{index + 1}</td>
+                      <td>
+                        <StaffPhotoCell
+                          staffId={staff.staff_id}
+                          refreshVersion={photoVersions[staff.staff_id] ?? 0}
+                          onClick={() => setPhotoDialogStaff(staff)}
+                        />
+                      </td>
                       <td>
                         {isEditing ? (
                           <input
@@ -741,14 +756,14 @@ const StaffManager = () => {
                 })}
                 {staffList.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="text-center opacity-60">
+                    <td colSpan={13} className="text-center opacity-60">
                       {t.emptyList}
                     </td>
                   </tr>
                 )}
                 {staffList.length > 0 && filteredStaffList.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="text-center opacity-60">
+                    <td colSpan={13} className="text-center opacity-60">
                       {t.noSearchResults}
                     </td>
                   </tr>
@@ -862,6 +877,12 @@ const StaffManager = () => {
           {t.addBtn}
         </button>
       </form>
+
+      <StaffPhotoDialog
+        staff={photoDialogStaff}
+        onClose={() => setPhotoDialogStaff(null)}
+        onSaved={bumpPhotoVersion}
+      />
     </div>
   );
 };

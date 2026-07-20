@@ -32,6 +32,22 @@ export const sanitizeSchoolInfoText = (value: string): string =>
 export const sanitizePhoneNumber = (value: string): string =>
   value.replace(/[^0-9]/g, "");
 
+// Discipline's Absences/Exclusion/Lateness/Consigne/Warning counters - plain non-negative integers
+// (the `discipline` table's own columns are `int`, no decimals), unlike sanitizeMarkInput which
+// allows a single decimal point.
+export const sanitizeNonNegativeIntegerInput = (value: string): string =>
+  value.replace(/[^0-9]/g, "");
+
+// An empty value is always valid (every Discipline field can be left blank) - same "blank is fine,
+// only a genuinely out-of-range number is rejected" convention as isMarkInRange.
+export const isNonNegativeIntegerInRange = (value: string, max: number): boolean => {
+  if (value.trim() === "") {
+    return true;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= max;
+};
+
 // Mark entry cells accept a double in [0, MAX_MARK_VALUE] - strips anything but digits and a single
 // decimal point while typing. Range clamping to [0, MAX_MARK_VALUE] is a separate check
 // (isMarkInRange) rather than folded into sanitizing, since "2" is a valid in-progress prefix of "20"

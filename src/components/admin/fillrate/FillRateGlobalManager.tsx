@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BarChart3, RefreshCw, Table2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useLanguage } from "../../../i18n/useLanguage";
-import { fillRateManagerTranslations } from "../../../i18n/translations";
+import { fillRateGlobalManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { MarkReader } from "../../../dbmanger/MarkReader";
 import { StaffReader } from "../../../dbmanger/StaffReader";
@@ -65,17 +65,19 @@ const sortByRateAscending = (rows: FillRatePivotRow[]): FillRatePivotRow[] =>
     return a.rate - b.rate;
   });
 
-// "Taux de remplissage des notes" - a whole-school, read-only report on how completely marks have
-// been entered, distinct from MarkEntryManager's own small per-classe fill-rate side panel (which
-// only ever looks at one classe at a time). Backed by two dedicated aggregation endpoints
-// (StudentController::fillRateNonApc/fillRateApc) that return the whole section+year's roster/filled
-// counts in one query each - looping the single-classe fetchSeqMarks/fetchCompMarks calls
-// MarkEntryManager uses across every classe of the school would mean hundreds of sequential HTTP
-// round trips. See utils/fillRateAggregation.ts for the pivoting logic shared across every axis.
-const FillRateManager = () => {
+// "Global visualization" submodule of the Fill rate module (see FillRateHub) - a whole-school,
+// read-only report on how completely marks have been entered, distinct from both MarkEntryManager's
+// own small per-classe fill-rate side panel and this module's "Class visualization" sibling
+// (FillRateClassManager), which only ever looks at one classe at a time. Backed by two dedicated
+// aggregation endpoints (StudentController::fillRateNonApc/fillRateApc) that return the whole
+// section+year's roster/filled counts in one query each - looping the single-classe
+// fetchSeqMarks/fetchCompMarks calls MarkEntryManager uses across every classe of the school would
+// mean hundreds of sequential HTTP round trips. See utils/fillRateAggregation.ts for the pivoting
+// logic shared across every axis (and reused by FillRateClassManager).
+const FillRateGlobalManager = () => {
   const { connection, schoolYear, accessToken } = useAuth();
   const [language] = useLanguage();
-  const t = fillRateManagerTranslations[language];
+  const t = fillRateGlobalManagerTranslations[language];
   const schoolHeader = useSchoolHeader();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -359,4 +361,4 @@ const FillRateManager = () => {
   );
 };
 
-export default FillRateManager;
+export default FillRateGlobalManager;

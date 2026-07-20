@@ -20,7 +20,13 @@ import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
 import EffectifsManager from "./components/admin/effectifs/EffectifsManager";
 import MarkEntryManager from "./components/admin/marks/MarkEntryManager";
 import MarkSheetManager from "./components/admin/marksheet/MarkSheetManager";
-import FillRateManager from "./components/admin/fillrate/FillRateManager";
+import FillRateHub from "./components/admin/fillrate/FillRateHub";
+import FillRateGlobalManager from "./components/admin/fillrate/FillRateGlobalManager";
+import FillRateClassManager from "./components/admin/fillrate/FillRateClassManager";
+import DisciplineManager from "./components/admin/discipline/DisciplineManager";
+import AccountManager from "./components/admin/account/AccountManager";
+import AccountHub from "./components/admin/account/AccountHub";
+import SelfCredentialsManager from "./components/admin/account/SelfCredentialsManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -34,6 +40,12 @@ function App() {
             <Route path="/" element={<LoginForm />} />
             <Route element={<RequireAuth />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              {/* Any authenticated role, not ADMIN-gated - see SelfCredentialsManager's own comment
+                  and Dashboard.tsx's new button, the only entry point non-ADMIN roles have. */}
+              <Route
+                path="/account/credentials"
+                element={<SelfCredentialsManager />}
+              />
               <Route element={<RequireRole allow={["ADMIN"]} />}>
                 <Route path="/admin/filieres" element={<FiliereManager />} />
                 <Route
@@ -71,7 +83,15 @@ function App() {
                 <Route path="/admin/effectifs" element={<EffectifsManager />} />
                 <Route path="/admin/mark-entry" element={<MarkEntryManager />} />
                 <Route path="/admin/mark-sheet" element={<MarkSheetManager />} />
-                <Route path="/admin/fill-rate" element={<FillRateManager />} />
+                <Route path="/admin/fill-rate" element={<FillRateHub />} />
+                <Route path="/admin/fill-rate/global" element={<FillRateGlobalManager />} />
+                <Route path="/admin/fill-rate/class" element={<FillRateClassManager />} />
+                <Route path="/admin/discipline" element={<DisciplineManager />} />
+                <Route path="/admin/manage-accounts" element={<AccountHub />} />
+                <Route
+                  path="/admin/manage-accounts/all"
+                  element={<AccountManager />}
+                />
               </Route>
             </Route>
           </Routes>

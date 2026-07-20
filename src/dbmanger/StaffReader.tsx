@@ -9,6 +9,16 @@ const NETWORK_ERROR_RESULT: ApiResult = {
   message: "Network error. Please try again later.",
 };
 
+// Same helper as StudentReader.tsx's loadImageElement - duplicated rather than shared since it's
+// ~8 lines and this codebase keeps each *Reader file independent.
+const loadImageElement = (url: string): Promise<HTMLImageElement | null> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+
 export class StaffReader {
   // Staff aren't section-scoped the way classes/specialities are (allStaffs1 only takes
   // connection+year) - a staff member can be attached to courses/classes across sections.
@@ -392,6 +402,67 @@ export class StaffReader {
       },
       "batchRemoveCourses",
     );
+  };
+
+  // staff.photo is a mediumblob (raw bytes, not a filesystem path) - every read has to go through
+  // this authenticated endpoint rather than a static <img src>. Mirrors
+  // StudentReader.loadStudentPhotoImage exactly: fetch the bytes as a Blob, turn them into a
+  // same-origin blob: object URL, then load that into an Image element. Returns null both when the
+  // staff member has no photo yet (404) and on any network failure - callers show the same
+  // placeholder icon either way.
+  public static loadStaffPhotoImage = async (
+    accessToken: string | null,
+    connection: string,
+    staffId: number,
+  ): Promise<HTMLImageElement | null> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/staffs/staffPhoto` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&staff_id=${staffId}`;
+    try {
+      const response = await fetch(targetUrl, {
+        headers: {
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const blob = await response.blob();
+      return loadImageElement(URL.createObjectURL(blob));
+    } catch (error) {
+      console.error(`StaffReader.loadStaffPhotoImage(): Error: ${error}`);
+      return null;
+    }
+  };
+
+  // Unlike every other write in this file, the body is multipart FormData (the photo is an uploaded
+  // file), so this bypasses postJson the same way StudentReader.uploadStudentPhoto does.
+  public static uploadStaffPhoto = async (
+    accessToken: string | null,
+    connection: string,
+    staffId: number,
+    photo: Blob,
+  ): Promise<ApiResult> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/staffs/uploadStaffPhoto`;
+    const formData = new FormData();
+    formData.append("connection", connection);
+    formData.append("staff_id", String(staffId));
+    formData.append("photo", photo, "photo.jpg");
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: formData,
+      });
+      return await response.json();
+    } catch (error) {
+      console.error(`StaffReader.uploadStaffPhoto(): Error: ${error}`);
+      return NETWORK_ERROR_RESULT;
+    }
   };
 
   private static postJson = async (

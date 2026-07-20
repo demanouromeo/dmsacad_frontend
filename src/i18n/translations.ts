@@ -112,9 +112,11 @@ export const exportTranslations = {
 export const dashboardTranslations = {
   fr: {
     logoutBtn: "Déconnexion",
+    manageCredentialsBtn: "Gérer mes identifiants",
   },
   en: {
     logoutBtn: "Logout",
+    manageCredentialsBtn: "Manage my credentials",
   },
 };
 
@@ -487,6 +489,15 @@ export const staffManagerTranslations = {
     importFailure: "Échec de l'import du personnel.",
     importFailureDetail: (detail: string) =>
       `Échec de l'import du personnel. Détails : ${detail}`,
+    tableHeaderPhoto: "Photo",
+    photoDialogTitle: (name: string) => `Photo de ${name}`,
+    choosePhotoBtn: "Choisir une photo",
+    rotateLeftHint: "Rotation à gauche",
+    rotateRightHint: "Rotation à droite",
+    zoomHint: "Zoom",
+    photoTooLarge: "La photo est trop volumineuse même après compression (max. 500 Ko). Essayez une image plus simple.",
+    photoUploadSuccess: "Photo enregistrée avec succès.",
+    photoUploadFailure: "Échec de l'enregistrement de la photo.",
   },
   en: {
     title: "Staff",
@@ -554,6 +565,15 @@ export const staffManagerTranslations = {
     importFailure: "Failed to import the staff.",
     importFailureDetail: (detail: string) =>
       `Failed to import the staff. Details: ${detail}`,
+    tableHeaderPhoto: "Photo",
+    photoDialogTitle: (name: string) => `${name}'s photo`,
+    choosePhotoBtn: "Choose a photo",
+    rotateLeftHint: "Rotate left",
+    rotateRightHint: "Rotate right",
+    zoomHint: "Zoom",
+    photoTooLarge: "The photo is too large even after compression (max. 500KB). Try a simpler image.",
+    photoUploadSuccess: "Photo saved successfully.",
+    photoUploadFailure: "Failed to save the photo.",
   },
 };
 
@@ -1549,7 +1569,62 @@ export const adminMenuTranslations = {
   },
 };
 
-export const fillRateManagerTranslations = {
+export const fillRateClassManagerTranslations = {
+  fr: {
+    title: "Taux de remplissage par classe",
+    classeLabel: "Classe :",
+    termLabel: "Trimestre :",
+    term: (n: number) => `Trimestre ${n}`,
+    sequenceLabel: "Séquence :",
+    sequence: (n: number) => `Séquence ${n}`,
+    refreshBtn: "Rafraîchir",
+    emptyClasses: "Aucune classe pour cette section.",
+    emptySubjects: "Aucune matière assignée à cette classe.",
+    panelTitle: (classeName: string) =>
+      `Visualiser le remplissage des notes de '${classeName}'`,
+    exportPdfTooltip: "Exporter le taux de remplissage en PDF",
+    pdfTitle: (classeName: string) => `Taux de remplissage des notes - ${classeName}`,
+    pdfColIndex: "Nº",
+    pdfColSubject: "Matière",
+    pdfColRate: "Taux de remplissage (%)",
+    chartTooltip: "Visualiser le taux de remplissage sous forme de graphique",
+    chartTitle: (classeName: string) => `Graphique du taux de remplissage de '${classeName}'`,
+  },
+  en: {
+    title: "Class fill rate",
+    classeLabel: "Class:",
+    termLabel: "Term:",
+    term: (n: number) => `Term ${n}`,
+    sequenceLabel: "Sequence:",
+    sequence: (n: number) => `Sequence ${n}`,
+    refreshBtn: "Refresh",
+    emptyClasses: "No classes for this section.",
+    emptySubjects: "No subject assigned to this class.",
+    panelTitle: (classeName: string) => `View the fill rate of '${classeName}''s marks`,
+    exportPdfTooltip: "Export the fill rate to PDF",
+    pdfTitle: (classeName: string) => `Marks fill rate - ${classeName}`,
+    pdfColIndex: "No.",
+    pdfColSubject: "Subject",
+    pdfColRate: "Fill rate (%)",
+    chartTooltip: "View the fill rate as a chart",
+    chartTitle: (classeName: string) => `Fill rate chart of '${classeName}'`,
+  },
+};
+
+export const fillRateHubTranslations = {
+  fr: {
+    title: "Taux de remplissage des notes",
+    global: "Visualisation globale",
+    class: "Visualisation par classe",
+  },
+  en: {
+    title: "Marks fill rate",
+    global: "Global visualization",
+    class: "Class visualization",
+  },
+};
+
+export const fillRateGlobalManagerTranslations = {
   fr: {
     title: "Taux de remplissage des notes",
     axisLabel: "Vue :",
@@ -1613,5 +1688,206 @@ export const fillRateManagerTranslations = {
     exportExcelLabel: "Excel",
     exportPdfLabel: "PDF",
     exportPdfTitle: "Marks fill rate",
+  },
+};
+
+// account.type codes (see backend MyHelper::findRole) - only the roles that can actually be
+// linked from this screen's two sources (staff or administrateur) are offered as editable
+// options; PARENT(6)/STUDENT(7) are structurally tied to StudParent/Student, not Staff/
+// Administrateur, so they're never selectable here even though the column can technically hold
+// any of the 8 values.
+export const accountRoleLabels = {
+  fr: {
+    1: "Administrateur",
+    2: "Direction (Proviseur/Directeur)",
+    3: "Surveillant Général (SG)",
+    4: "Économe",
+    5: "Enseignant(e)",
+    8: "Censeur",
+  },
+  en: {
+    1: "Administrator",
+    2: "Management (Principal/Director)",
+    3: "Senior Supervisor (SG)",
+    4: "Bursar",
+    5: "Teacher",
+    8: "Deputy Principal (Censeur)",
+  },
+};
+
+export const accountManagerTranslations = {
+  fr: {
+    title: "Gestion des comptes utilisateurs",
+    tableHeaderName: "Nom",
+    tableHeaderLogin: "Login",
+    tableHeaderPassword: "Mot de passe",
+    tableHeaderRole: "Rôle",
+    tableHeaderNewPassword: "Nouveau mot de passe",
+    emptyList: "Aucun compte lié au personnel ou à un administrateur.",
+    searchPlaceholder: "Rechercher un compte…",
+    noSearchResults: "Aucun compte ne correspond à cette recherche.",
+    showPasswordHint: "Afficher le mot de passe",
+    hidePasswordHint: "Masquer le mot de passe",
+    saveBtn: "Enregistrer",
+    cancelBtn: "Annuler",
+    editBtn: "Modifier",
+    newPasswordPlaceholder: "Laisser vide pour ne pas changer",
+    loginTooShort: (min: number) =>
+      `Le login doit contenir au moins ${min} caractères.`,
+    passwordTooShort: (min: number) =>
+      `Le nouveau mot de passe doit contenir au moins ${min} caractères.`,
+    updateSuccess: "Compte mis à jour avec succès.",
+    updateDuplicate:
+      "Échec de la mise à jour : ce login est déjà utilisé par un autre compte.",
+    updateFailure: "Échec de la mise à jour du compte.",
+  },
+  en: {
+    title: "Manage user accounts",
+    tableHeaderName: "Name",
+    tableHeaderLogin: "Login",
+    tableHeaderPassword: "Password",
+    tableHeaderRole: "Role",
+    tableHeaderNewPassword: "New password",
+    emptyList: "No account linked to staff or an administrator.",
+    searchPlaceholder: "Search an account…",
+    noSearchResults: "No account matches this search.",
+    showPasswordHint: "Show password",
+    hidePasswordHint: "Hide password",
+    saveBtn: "Save",
+    cancelBtn: "Cancel",
+    editBtn: "Edit",
+    newPasswordPlaceholder: "Leave blank to keep unchanged",
+    loginTooShort: (min: number) =>
+      `The login must contain at least ${min} characters.`,
+    passwordTooShort: (min: number) =>
+      `The new password must contain at least ${min} characters.`,
+    updateSuccess: "Account updated successfully.",
+    updateDuplicate:
+      "Update failed: this login is already used by another account.",
+    updateFailure: "Failed to update the account.",
+  },
+};
+
+export const accountHubTranslations = {
+  fr: {
+    title: "Gestion des comptes",
+    allCredentials: "Gérer tous les identifiants",
+    myCredential: "Gérer mes identifiants",
+  },
+  en: {
+    title: "Manage accounts",
+    allCredentials: "Manage all users credentials",
+    myCredential: "Manage credential",
+  },
+};
+
+export const selfCredentialsManagerTranslations = {
+  fr: {
+    title: "Gérer mes identifiants",
+    oldPasswordLabel: "Ancien mot de passe :",
+    newLoginLabel: "Nouveau login :",
+    newPasswordLabel: "Nouveau mot de passe :",
+    newPasswordPlaceholder: "Laisser vide pour ne pas changer",
+    showPasswordHint: "Afficher le mot de passe",
+    hidePasswordHint: "Masquer le mot de passe",
+    oldPasswordRequired: "Veuillez saisir votre ancien mot de passe.",
+    oldPasswordWrong: "Ancien mot de passe incorrect.",
+    saveBtn: "Enregistrer",
+    loginTooShort: (min: number) => `Le login doit contenir au moins ${min} caractères.`,
+    passwordTooShort: (min: number) =>
+      `Le nouveau mot de passe doit contenir au moins ${min} caractères.`,
+    updateSuccess: "Identifiants mis à jour avec succès.",
+    updateDuplicate: "Échec de la mise à jour : ce login est déjà utilisé par un autre compte.",
+    updateFailure: "Échec de la mise à jour de vos identifiants.",
+  },
+  en: {
+    title: "Manage my credentials",
+    oldPasswordLabel: "Old password:",
+    newLoginLabel: "New login:",
+    newPasswordLabel: "New password:",
+    newPasswordPlaceholder: "Leave blank to keep unchanged",
+    showPasswordHint: "Show password",
+    hidePasswordHint: "Hide password",
+    oldPasswordRequired: "Please enter your old password.",
+    oldPasswordWrong: "Old password is incorrect.",
+    saveBtn: "Save",
+    loginTooShort: (min: number) => `The login must contain at least ${min} characters.`,
+    passwordTooShort: (min: number) =>
+      `The new password must contain at least ${min} characters.`,
+    updateSuccess: "Credentials updated successfully.",
+    updateDuplicate: "Update failed: this login is already used by another account.",
+    updateFailure: "Failed to update your credentials.",
+  },
+};
+
+export const disciplineManagerTranslations = {
+  fr: {
+    title: "Gestion de la discipline",
+    classeLabel: "Classe :",
+    termLabel: "Trimestre :",
+    term: (n: number) => `Trimestre ${n}`,
+    refreshBtn: "Rafraîchir",
+    filterPlaceholder: "Filtrer par nom…",
+    emptyClasses: "Aucune classe pour cette section.",
+    emptyRoster: "Aucun élève dans cette classe.",
+    noSearchResults: "Aucun élève ne correspond à cette recherche.",
+    statFilles: "Filles",
+    statGarcons: "Garçons",
+    statTotal: "Total",
+    statRedoublants: "Redoublants",
+    statNouveaux: "Nouveaux",
+    tableHeaderIndex: "Nº",
+    tableHeaderName: "Nom",
+    tableHeaderAbsences: "Absences (H)",
+    tableHeaderExclusion: "Exclusion (J)",
+    tableHeaderLateness: "Retards",
+    tableHeaderConsigne: "Consigne (J)",
+    tableHeaderWarning: "Avertissement",
+    tableHeaderDismiss: "Exclu ?",
+    tableHeaderComment: "Commentaire sur la discipline",
+    dismissYes: "Oui",
+    dismissNo: "Non",
+    saveTooltip: "Enregistrer les modifications",
+    saveSuccess: "Discipline enregistrée avec succès.",
+    saveFailure: "Échec de l'enregistrement de la discipline.",
+    noChangesToSave: "Aucune modification à enregistrer.",
+    exportExcelLabel: "Excel",
+    exportPdfLabel: "PDF",
+    pdfTitle: (classeName: string, term: number) =>
+      `Discipline - ${classeName} - Trimestre ${term}`,
+  },
+  en: {
+    title: "Discipline management",
+    classeLabel: "Class:",
+    termLabel: "Term:",
+    term: (n: number) => `Term ${n}`,
+    refreshBtn: "Refresh",
+    filterPlaceholder: "Filter by name…",
+    emptyClasses: "No classes for this section.",
+    emptyRoster: "No students in this class.",
+    noSearchResults: "No students match this search.",
+    statFilles: "Girls",
+    statGarcons: "Boys",
+    statTotal: "Total",
+    statRedoublants: "Repeating",
+    statNouveaux: "New",
+    tableHeaderIndex: "No.",
+    tableHeaderName: "Name",
+    tableHeaderAbsences: "Absences (H)",
+    tableHeaderExclusion: "Exclusion (D)",
+    tableHeaderLateness: "Lateness",
+    tableHeaderConsigne: "Consigne (D)",
+    tableHeaderWarning: "Warning",
+    tableHeaderDismiss: "Dismiss",
+    tableHeaderComment: "Comment on discipline",
+    dismissYes: "Yes",
+    dismissNo: "No",
+    saveTooltip: "Save changes",
+    saveSuccess: "Discipline saved successfully.",
+    saveFailure: "Failed to save discipline.",
+    noChangesToSave: "No changes to save.",
+    exportExcelLabel: "Excel",
+    exportPdfLabel: "PDF",
+    pdfTitle: (classeName: string, term: number) => `Discipline - ${classeName} - Term ${term}`,
   },
 };
