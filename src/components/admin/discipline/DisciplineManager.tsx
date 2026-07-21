@@ -352,53 +352,58 @@ const DisciplineManager = () => {
         <p className="opacity-60">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <label className="font-medium">{t.classeLabel}</label>
-            <select
-              className="select w-48"
-              value={selectedClasseId ?? ""}
-              onChange={(e) => setSelectedClasseId(Number(e.target.value))}
-            >
-              {classes.map((c) => (
-                <option key={c.classe_id} value={c.classe_id}>
-                  {c.classe_name}
-                </option>
-              ))}
-            </select>
+          <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.classeLabel}</label>
+                <select
+                  className="select w-48"
+                  value={selectedClasseId ?? ""}
+                  onChange={(e) => setSelectedClasseId(Number(e.target.value))}
+                >
+                  {classes.map((c) => (
+                    <option key={c.classe_id} value={c.classe_id}>
+                      {c.classe_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <label className="font-medium ml-2">{t.termLabel}</label>
-            <select
-              className="select w-36"
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(Number(e.target.value))}
-            >
-              {TERMS.map((term) => (
-                <option key={term} value={term}>
-                  {t.term(term)}
-                </option>
-              ))}
-            </select>
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.termLabel}</label>
+                <select
+                  className="select w-36"
+                  value={selectedTerm}
+                  onChange={(e) => setSelectedTerm(Number(e.target.value))}
+                >
+                  {TERMS.map((term) => (
+                    <option key={term} value={term}>
+                      {t.term(term)}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <button
-              type="button"
-              className="btn btn-neutral btn-sm gap-2 ml-2"
-              onClick={() => {
-                loadEntries();
-              }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t.refreshBtn}
-            </button>
+              <input
+                type="text"
+                className="input w-64"
+                placeholder={t.filterPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
 
-            <input
-              type="text"
-              className="input w-64 ml-2"
-              placeholder={t.filterPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-
-            <div className="ml-auto">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="btn btn-neutral btn-sm gap-2"
+                onClick={() => {
+                  loadEntries();
+                }}
+              >
+                <RefreshCw className="w-4 h-4" />
+                {t.refreshBtn}
+              </button>
               <ExportButtons
                 onExportExcel={handleExportExcel}
                 onExportPdf={handleExportPdf}
@@ -407,27 +412,27 @@ const DisciplineManager = () => {
                 disabled={roster.length === 0}
               />
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-base-200 rounded px-4 py-2">
-            <div className="flex flex-wrap items-center gap-4">
-              <span>
-                {t.statFilles}: <strong>{stats.filles}</strong>
-              </span>
-              <span>
-                {t.statGarcons}: <strong>{stats.garcons}</strong>
-              </span>
-              <span>
-                {t.statTotal}: <strong>{stats.total}</strong>
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <span>
-                {t.statRedoublants}: <strong>{stats.redoublants}</strong>
-              </span>
-              <span>
-                {t.statNouveaux}: <strong>{nouveaux}</strong>
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-base-100 rounded-xl px-4 py-2">
+              <div className="flex flex-wrap items-center gap-4">
+                <span>
+                  {t.statFilles}: <strong>{stats.filles}</strong>
+                </span>
+                <span>
+                  {t.statGarcons}: <strong>{stats.garcons}</strong>
+                </span>
+                <span>
+                  {t.statTotal}: <strong>{stats.total}</strong>
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <span>
+                  {t.statRedoublants}: <strong>{stats.redoublants}</strong>
+                </span>
+                <span>
+                  {t.statNouveaux}: <strong>{nouveaux}</strong>
+                </span>
+              </div>
             </div>
           </div>
 

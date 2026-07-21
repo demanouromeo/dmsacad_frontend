@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Printer } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -11,6 +11,7 @@ import { StudentReader } from "../../../dbmanger/StudentReader";
 import { MarkReader } from "../../../dbmanger/MarkReader";
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import { ClassifiedParamReader } from "../../../dbmanger/ClassifiedParamReader";
+import { ThParamReader } from "../../../dbmanger/ThParamReader";
 import { DisciplineReader } from "../../../dbmanger/DisciplineReader";
 import { computeDbSequence } from "../../../utils/markSequence";
 import type { Classe } from "../../../interfaces/Classe";
@@ -96,28 +97,30 @@ const ReportCardManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
-  useEffect(() => {
-    const load = async () => {
-      if (selectedClasseId === null) {
-        setReportCardData(null);
-        return;
-      }
-      const classeId = selectedClasseId;
-      const term = selectedTerm;
-      const isApc = isSelectedClasseApc;
-      setIsLoadingData(true);
-      setSelectedIds(new Set());
-
-      const [studentsRaw, studentClasseRaw, subjectsRaw, attributions, staffList, classifiedParam, disciplineRows] =
-        await Promise.all([
-          StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
-          StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
-          SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classeId),
-          StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
-          StaffReader.fetchStaff(accessToken, connection, schoolYear),
-          ClassifiedParamReader.fetchClassifiedParamOfYear(accessToken, connection, schoolYear),
-          DisciplineReader.fetchDisciplineOfClasse(accessToken, connection, schoolYear, term, classeId),
-        ]);
+  // Fetches + assembles one classe's full ReportCardData for a given term - shared by the
+  // single-classe load effect below and by handlePrintAllClasses, which just loops this over
+  // every classe of the section instead of only the currently selected one.
+  const loadReportCardDataForClasse = useCallback(
+    async (classeId: number, term: number, isApc: boolean) => {
+      const [
+        studentsRaw,
+        studentClasseRaw,
+        subjectsRaw,
+        attributions,
+        staffList,
+        classifiedParam,
+        thParam,
+        disciplineRows,
+      ] = await Promise.all([
+        StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
+        StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
+        SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classeId),
+        StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
+        StaffReader.fetchStaff(accessToken, connection, schoolYear),
+        ClassifiedParamReader.fetchClassifiedParamOfYear(accessToken, connection, schoolYear),
+        ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear),
+        DisciplineReader.fetchDisciplineOfClasse(accessToken, connection, schoolYear, term, classeId),
+      ]);
 
       const infoByStudId = new Map(studentClasseRaw.map((info) => [info.stud_id, info]));
       const roster: ReportCardRosterEntry[] = studentsRaw.map((s) => ({
@@ -226,15 +229,28 @@ const ReportCardManager = () => {
 
       const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
 
-      setReportCardData(
-        buildReportCardData({
-          roster,
-          subjectsData,
-          classifiedParam,
-          disciplineByStudId,
-          language,
-        }),
-      );
+      return buildReportCardData({
+        roster,
+        subjectsData,
+        classifiedParam,
+        thParam,
+        disciplineByStudId,
+        language,
+      });
+    },
+    [accessToken, connection, schoolYear, section, language],
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      if (selectedClasseId === null) {
+        setReportCardData(null);
+        return;
+      }
+      setIsLoadingData(true);
+      setSelectedIds(new Set());
+      const data = await loadReportCardDataForClasse(selectedClasseId, selectedTerm, isSelectedClasseApc);
+      setReportCardData(data);
       setIsLoadingData(false);
     };
     load();
@@ -282,59 +298,110 @@ const ReportCardManager = () => {
     });
   };
 
+  // Generates + saves one classe's PDF (APC vs non-APC branch, same exporters either way) - shared
+  // by handlePrint (current classe/current selection) and handlePrintAllClasses below, which just
+  // calls this once per classe of the section instead of once for the selected classe.
+  const exportClasseReportCards = async (
+    classe: { classe_name: string; classe_master_name: string | null },
+    isApc: boolean,
+    term: number,
+    classeStats: ReportCardData["classeStats"],
+    subset: typeof students,
+  ) => {
+    const filename = buildTimestampedFilename(
+      `Bulletin ${classe.classe_name} TRIM${term}`,
+      [`Section ${capitalizeSectionName(section)}`],
+      "pdf",
+    );
+    const photosByStudId = new Map<number, HTMLImageElement | null>(
+      await Promise.all(
+        subset.map(
+          async (s): Promise<[number, HTMLImageElement | null]> => [
+            s.studId,
+            await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
+          ],
+        ),
+      ),
+    );
+    const classeArg = {
+      classe_name: classe.classe_name,
+      classe_master_name: classe.classe_master_name,
+    };
+    if (isApc) {
+      await exportReportCardsToPdf(
+        subset,
+        classeStats,
+        classeArg,
+        term,
+        schoolYear,
+        schoolHeader,
+        filename,
+        photosByStudId,
+        language,
+      );
+    } else {
+      await exportNonApcReportCardsToPdf(
+        subset,
+        classeStats,
+        classeArg,
+        term,
+        schoolYear,
+        schoolHeader,
+        filename,
+        photosByStudId,
+        language,
+      );
+    }
+  };
+
   const handlePrint = async (subset: typeof students) => {
     if (!reportCardData || !selectedClasse || subset.length === 0) {
       return;
     }
     setIsSaving(true);
-    const filename = buildTimestampedFilename(
-      `Bulletin ${selectedClasse.classe_name} TRIM${selectedTerm}`,
-      [`Section ${capitalizeSectionName(section)}`],
-      "pdf",
-    );
     try {
-      const photosByStudId = new Map<number, HTMLImageElement | null>(
-        await Promise.all(
-          subset.map(
-            async (s): Promise<[number, HTMLImageElement | null]> => [
-              s.studId,
-              await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-            ],
-          ),
-        ),
+      await exportClasseReportCards(
+        selectedClasse,
+        isSelectedClasseApc,
+        selectedTerm,
+        reportCardData.classeStats,
+        subset,
       );
-      const classeArg = {
-        classe_name: selectedClasse.classe_name,
-        classe_master_name: selectedClasse.classe_master_name,
-      };
-      if (isSelectedClasseApc) {
-        await exportReportCardsToPdf(
-          subset,
-          reportCardData.classeStats,
-          classeArg,
-          selectedTerm,
-          schoolYear,
-          schoolHeader,
-          filename,
-          photosByStudId,
-          language,
-        );
-      } else {
-        await exportNonApcReportCardsToPdf(
-          subset,
-          reportCardData.classeStats,
-          classeArg,
-          selectedTerm,
-          schoolYear,
-          schoolHeader,
-          filename,
-          photosByStudId,
-          language,
-        );
-      }
       showToast(t.printSuccess, { type: "info" });
     } catch (error) {
       console.error("ReportCardManager.handlePrint(): Error", error);
+      showToast(t.printFailure, { type: "danger" });
+    }
+    setIsSaving(false);
+  };
+
+  // Prints one PDF per classe of the current section (same load-then-export pipeline as the
+  // single-classe path above, just looped sequentially - matches MarkEntryManager's own
+  // whole-section export precedent of fetching one classe at a time rather than firing every
+  // request at once). Classes with an empty roster for the selected term are skipped entirely.
+  const handlePrintAllClasses = async () => {
+    if (classes.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    let anyPrinted = false;
+    try {
+      for (const classe of classes) {
+        const isApc = apcLevels.get(classe.level) === true;
+        const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, isApc);
+        if (data.students.length === 0) {
+          continue;
+        }
+        anyPrinted = true;
+        await exportClasseReportCards(classe, isApc, selectedTerm, data.classeStats, data.students);
+      }
+      if (anyPrinted) {
+        showToast(t.printSuccess, { type: "info" });
+      } else {
+        showToast(t.printAllClassesEmpty, { type: "warning" });
+      }
+    } catch (error) {
+      console.error("ReportCardManager.handlePrintAllClasses(): Error", error);
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
@@ -361,59 +428,74 @@ const ReportCardManager = () => {
         <p className="opacity-60">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <label className="font-medium">{t.classeLabel}</label>
-            <select
-              className="select w-56"
-              value={selectedClasseId ?? ""}
-              onChange={(e) => setSelectedClasseId(Number(e.target.value))}
-            >
-              {classes.map((c) => (
-                <option key={c.classe_id} value={c.classe_id}>
-                  {c.classe_name}
-                </option>
-              ))}
-            </select>
+          <div className="w-full max-w-4xl bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.classeLabel}</label>
+                <select
+                  className="select w-56"
+                  value={selectedClasseId ?? ""}
+                  onChange={(e) => setSelectedClasseId(Number(e.target.value))}
+                >
+                  {classes.map((c) => (
+                    <option key={c.classe_id} value={c.classe_id}>
+                      {c.classe_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <label className="font-medium ml-4">{t.termLabel}</label>
-            <select
-              className="select w-40"
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(Number(e.target.value))}
-            >
-              {TERMS.map((term) => (
-                <option key={term} value={term}>
-                  {t.term(term)}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.termLabel}</label>
+                <select
+                  className="select w-40"
+                  value={selectedTerm}
+                  onChange={(e) => setSelectedTerm(Number(e.target.value))}
+                >
+                  {TERMS.map((term) => (
+                    <option key={term} value={term}>
+                      {t.term(term)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          <div className="flex flex-wrap gap-2 mb-6">
-            <button
-              type="button"
-              className="btn btn-primary gap-2"
-              disabled={!reportCardData || students.length === 0}
-              onClick={handlePrintAll}
-            >
-              <Printer className="w-4 h-4" />
-              {t.printBtn}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline gap-2"
-              disabled={!reportCardData || selectedIds.size === 0}
-              onClick={handlePrintSelection}
-            >
-              <Printer className="w-4 h-4" />
-              {t.printSelectionBtn(selectedIds.size)}
-            </button>
-            <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
-              {t.printAnnualBtn}
-            </button>
-            <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
-              {t.printSelectionAnnualBtn}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="btn btn-primary gap-2"
+                disabled={!reportCardData || students.length === 0}
+                onClick={handlePrintAll}
+              >
+                <Printer className="w-4 h-4" />
+                {t.printBtn}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline gap-2"
+                disabled={!reportCardData || selectedIds.size === 0}
+                onClick={handlePrintSelection}
+              >
+                <Printer className="w-4 h-4" />
+                {t.printSelectionBtn(selectedIds.size)}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary gap-2"
+                disabled={classes.length === 0}
+                onClick={handlePrintAllClasses}
+              >
+                <Printer className="w-4 h-4" />
+                {t.printAllClassesBtn}
+              </button>
+              <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
+                {t.printAnnualBtn}
+              </button>
+              <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
+                {t.printSelectionAnnualBtn}
+              </button>
+            </div>
           </div>
 
           {isLoadingData ? (

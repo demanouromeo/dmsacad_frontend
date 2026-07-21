@@ -155,7 +155,7 @@ const EffectifsManager = () => {
       <h1 className="text-2xl font-bold mb-4">Effectifs par classe</h1>
       <p className="mb-4 opacity-70 text-sm">Année Scolaire: {schoolYear}</p>
 
-      <div className="mb-6 flex flex-wrap gap-2 items-center">
+      <div className="w-full max-w-4xl bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-wrap gap-3 items-center">
         <ExportButtons
           onExportExcel={handleExportExcel}
           onExportPdf={handleExportPdf}

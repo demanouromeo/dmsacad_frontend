@@ -1,4 +1,7 @@
 import type { jsPDF } from "jspdf";
+import goodProgressImg from "../../assets/compo/rc/good.png";
+import badProgressImg from "../../assets/compo/rc/bad.png";
+import baisseProgressImg from "../../assets/compo/rc/baisse.png";
 import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "../exportHeader";
 import { computeResponsable } from "../schoolTypes";
 import {
@@ -87,12 +90,12 @@ const groupSubjects = (subjects: ReportCardSubjectRow[]): GroupedSubjects[] => {
 
 const FONT_SIZE_CANDIDATES = [8, 7.5, 7, 6.5, 6, 5.5, 5];
 const MARKS_TO_RESULTS_GAP = 8;
-const BLOCK_GAP = 5;
-// MARKS_TO_RESULTS_GAP + Block A (6 header + 10 content) + BLOCK_GAP + Block B (6 header + 5*5
-// rows) + BLOCK_GAP + Block C (6 header + 20 content) - estimated once, same "only the subject
-// table body scales with content" precedent as the APC layout's FIXED_BLOCKS_HEIGHT.
-const FIXED_BLOCKS_HEIGHT =
-  MARKS_TO_RESULTS_GAP + (6 + 10) + BLOCK_GAP + (6 + 25) + BLOCK_GAP + (6 + 20);
+// Blocks A/B/C butt directly against each other (no gap) so they read as one continuous table,
+// matching the sample RC's own layout - only MARKS_TO_RESULTS_GAP separates the subject-marks
+// table above from this merged block. MARKS_TO_RESULTS_GAP + Block A (6 header + 10 content) +
+// Block B (6 header + 5*5 rows) + Block C (6 header + 20 content) - estimated once, same "only the
+// subject table body scales with content" precedent as the APC layout's FIXED_BLOCKS_HEIGHT.
+const FIXED_BLOCKS_HEIGHT = MARKS_TO_RESULTS_GAP + (6 + 10) + (6 + 25) + (6 + 20);
 const BOTTOM_MARGIN = 20;
 
 interface TableLayout {
@@ -152,6 +155,34 @@ const noteText = (row: ReportCardSubjectRow, subjectCompetenceId: number): strin
 // recorded incidents is left empty, not stamped with a literal zero).
 const disciplineCell = (value: number): string => (value === 0 ? "" : String(value));
 
+// good.png/bad.png are bundled static assets (same origin as the app), unlike the school
+// logo/student photo which are fetched from the backend - no crossOrigin/canvas-CORS concern here,
+// just a plain onload/onerror probe.
+const loadStaticImage = (url: string): Promise<HTMLImageElement | null> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+
+// Scales an image down to fit within maxW x maxH (never up), preserving its aspect ratio, so the
+// eval/exam progress icon never gets stretched or overflows its merged cell.
+const fitImageInBox = (
+  img: HTMLImageElement,
+  maxW: number,
+  maxH: number,
+): { w: number; h: number } => {
+  const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) {
+    h = maxH;
+    w = h * ratio;
+  }
+  return { w, h };
+};
+
 const drawStudentPage = (
   doc: jsPDF,
   student: ReportCardStudentData,
@@ -162,6 +193,11 @@ const drawStudentPage = (
   schoolHeader: SchoolHeader,
   photoImage: HTMLImageElement | null,
   language: "fr" | "en",
+  progressImages: {
+    good: HTMLImageElement | null;
+    baisse: HTMLImageElement | null;
+    bad: HTMLImageElement | null;
+  },
 ): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
@@ -245,8 +281,8 @@ const drawStudentPage = (
   // and Rang+Appréciation into one left-aligned cell ("Moyenne du groupe: X/20") - tracked here so
   // the vertical separator loop below can skip those dividers specifically across these row ranges.
   const subtotalRanges: { top: number; bottom: number }[] = [];
-  const groupNameCellCenter = (LEFT_X + colX("moy")) / 2;
-  const groupNameCellWidth = colX("moy") - LEFT_X - 2;
+  const groupNameCellCenter = (LEFT_X + colX("coef")) / 2;
+  const groupNameCellWidth = colX("coef") - LEFT_X - 2;
 
   groups.forEach((group) => {
     group.rows.forEach((row) => {
@@ -306,7 +342,7 @@ const drawStudentPage = (
     });
 
     // Group subtotal row - bold. The group name spans and centers across the merged
-    // Matières+Note1+Note2 columns; "Moyenne du groupe: X/20" spans and right-aligns across the
+    // Matières+Note1+Note2+Moy columns; "Moyenne du groupe: X/20" spans and right-aligns across the
     // merged Rang+Appréciation columns.
     const subtotal = computeGroupSubtotal(group.rows);
     const subtotalTop = y;
@@ -336,13 +372,13 @@ const drawStudentPage = (
   });
 
   // Vertical column separators for the whole table, drawn once the table's total height is known.
-  // Matières|Note1, Note1|Note2, and Rang|Appréciation dividers are each skipped across every
-  // subtotal row's height so those columns read as merged cells there (group name centered across
-  // Matières+Note1+Note2, "Moyenne du groupe" left-aligned across Rang+Appréciation).
+  // Matières|Note1, Note1|Note2, Note2|Moy, and Rang|Appréciation dividers are each skipped across
+  // every subtotal row's height so those columns read as merged cells there (group name centered
+  // across Matières+Note1+Note2+Moy, "Moyenne du groupe" left-aligned across Rang+Appréciation).
   doc.setLineWidth(0.3);
   doc.line(LEFT_X, tableTop, LEFT_X, y);
   doc.line(RIGHT_X, tableTop, RIGHT_X, y);
-  const mergedOnSubtotalRow = new Set([colX("note1"), colX("note2"), colX("appr")]);
+  const mergedOnSubtotalRow = new Set([colX("note1"), colX("note2"), colX("moy"), colX("appr")]);
   COL_BOUNDS.slice(1, -1).forEach((x) => {
     doc.setLineWidth(0.15);
     if (mergedOnSubtotalRow.has(x)) {
@@ -361,26 +397,30 @@ const drawStudentPage = (
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
 
-  // Block A: APPRÉCIATION DU TRAVAIL (comment/Eval/Exam/Moy.Trimestre/Rang) + VISA DU PARENT.
+  // Block A: APPRÉCIATION DU TRAVAIL (comment/Eval/[progress icon]/Exam/Moy.Trimestre/Rang) + VISA
+  // DU PARENT. The progress-icon column (index 2-3) sits between Eval and Exam and, like the Visa
+  // du parent column at the far end, merges the header+content rows into one bordered cell (no
+  // horizontal divider, no header label) so the icon can be centered across the full cell height.
   const blockAW = RIGHT_X - LEFT_X;
-  const aBounds = [0, 0.4, 0.5, 0.6, 0.75, 0.85, 1].map((f) => LEFT_X + f * blockAW);
+  const aBounds = [0, 0.34, 0.44, 0.5, 0.6, 0.75, 0.85, 1].map((f) => LEFT_X + f * blockAW);
   const aTop = y;
   const aHeaderH = 6;
   const aRowH = 10;
+  const aFullH = aHeaderH + aRowH;
   doc.setFillColor(219, 234, 254);
-  doc.rect(aBounds[0], aTop, aBounds[6] - aBounds[0], aHeaderH, "F");
+  doc.rect(aBounds[0], aTop, aBounds[7] - aBounds[0], aHeaderH, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   doc.text("APPRÉCIATION DU TRAVAIL", (aBounds[0] + aBounds[1]) / 2, aTop + aHeaderH - 1.5, {
     align: "center",
   });
   doc.text("Eval", (aBounds[1] + aBounds[2]) / 2, aTop + aHeaderH - 1.5, { align: "center" });
-  doc.text("EXAM", (aBounds[2] + aBounds[3]) / 2, aTop + aHeaderH - 1.5, { align: "center" });
-  doc.text("Moy.Trimestre/20", (aBounds[3] + aBounds[4]) / 2, aTop + aHeaderH - 1.5, {
+  doc.text("EXAM", (aBounds[3] + aBounds[4]) / 2, aTop + aHeaderH - 1.5, { align: "center" });
+  doc.text("Moy.Trimestre/20", (aBounds[4] + aBounds[5]) / 2, aTop + aHeaderH - 1.5, {
     align: "center",
   });
-  doc.text("Rang", (aBounds[4] + aBounds[5]) / 2, aTop + aHeaderH - 1.5, { align: "center" });
-  doc.text("Visa du parent", (aBounds[5] + aBounds[6]) / 2, aTop + aHeaderH - 1.5, {
+  doc.text("Rang", (aBounds[5] + aBounds[6]) / 2, aTop + aHeaderH - 1.5, { align: "center" });
+  doc.text("Visa du parent", (aBounds[6] + aBounds[7]) / 2, aTop + aHeaderH - 1.5, {
     align: "center",
   });
   doc.setFont("helvetica", "normal");
@@ -392,39 +432,67 @@ const drawStudentPage = (
     getNonApcComment(student.moyenneTrim, language),
     aBounds[1] - aBounds[0] - 2,
   );
-  commentLines.slice(0, 2).forEach((line: string, i: number) => {
+  // thText ("Tableau d'honneur", possibly suffixed "+Encouragements"/"& F.") prints on the next
+  // available line right under the comment, sharing the same 2-line budget - "" (doesn't deserve
+  // Honor Roll this term) adds nothing, same as every sample RC.
+  const thLines = student.thText
+    ? doc.splitTextToSize(student.thText, aBounds[1] - aBounds[0] - 2)
+    : [];
+  [...commentLines, ...thLines].slice(0, 2).forEach((line: string, i: number) => {
     doc.text(line, aBounds[0] + 1, aContentY + 4 + i * 4);
   });
   doc.setFontSize(9);
   doc.text(formatRcNumber(student.evalAvg), (aBounds[1] + aBounds[2]) / 2, aContentMidY, {
     align: "center",
   });
-  doc.text(formatRcNumber(student.examAvg), (aBounds[2] + aBounds[3]) / 2, aContentMidY, {
+  doc.text(formatRcNumber(student.examAvg), (aBounds[3] + aBounds[4]) / 2, aContentMidY, {
     align: "center",
   });
   const trimPass = student.moyenneTrim >= 10;
   doc.setFillColor(...(trimPass ? COLOR_GREEN_300 : COLOR_PINK_300));
-  doc.rect(aBounds[3], aContentY, aBounds[4] - aBounds[3], aRowH, "F");
+  doc.rect(aBounds[4], aContentY, aBounds[5] - aBounds[4], aRowH, "F");
   doc.setFont("helvetica", "bold");
-  doc.text(formatRcNumber(student.moyenneTrim), (aBounds[3] + aBounds[4]) / 2, aContentMidY, {
+  doc.text(formatRcNumber(student.moyenneTrim), (aBounds[4] + aBounds[5]) / 2, aContentMidY, {
     align: "center",
   });
   doc.text(
     formatRangText(student.rang, student.sexe, language),
-    (aBounds[4] + aBounds[5]) / 2,
+    (aBounds[5] + aBounds[6]) / 2,
     aContentMidY,
     { align: "center" },
   );
   doc.setFont("helvetica", "normal");
 
+  // Progress icon, scaled to fit and centered both horizontally and vertically in its merged
+  // cell: passing the term (moyenneTrim >= 10) with eval<=exam is good.png, passing but with
+  // eval>exam (a decline despite still passing) is baisse.png, anything else (failing the term)
+  // is bad.png.
+  const progressImage = !trimPass
+    ? progressImages.bad
+    : student.evalAvg <= student.examAvg
+      ? progressImages.good
+      : progressImages.baisse;
+  if (progressImage) {
+    const cellW = aBounds[3] - aBounds[2];
+    const cellCx = (aBounds[2] + aBounds[3]) / 2;
+    const cellCy = aTop + aFullH / 2;
+    const { w: imgW, h: imgH } = fitImageInBox(progressImage, cellW - 2, aFullH - 2);
+    try {
+      doc.addImage(progressImage, "PNG", cellCx - imgW / 2, cellCy - imgH / 2, imgW, imgH);
+    } catch (error) {
+      console.error("drawStudentPage(): failed to embed progress icon", error);
+    }
+  }
+
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
-  doc.rect(aBounds[0], aTop, aBounds[6] - aBounds[0], aHeaderH + aRowH);
+  doc.rect(aBounds[0], aTop, aBounds[7] - aBounds[0], aFullH);
   doc.setLineWidth(0.15);
-  aBounds.slice(1, -1).forEach((x) => doc.line(x, aTop, x, aTop + aHeaderH + aRowH));
-  doc.line(aBounds[0], aContentY, aBounds[5], aContentY);
+  aBounds.slice(1, -1).forEach((x) => doc.line(x, aTop, x, aTop + aFullH));
+  doc.line(aBounds[0], aContentY, aBounds[2], aContentY);
+  doc.line(aBounds[3], aContentY, aBounds[6], aContentY);
 
-  y = aTop + aHeaderH + aRowH + BLOCK_GAP;
+  y = aTop + aFullH;
 
   // Block B: DISCIPLINE (Eval/Exam duplicate columns, matching every sample) + PROFIL DE LA CLASSE.
   const bTop = y;
@@ -490,7 +558,7 @@ const drawStudentPage = (
     doc.line(discX, bRowTop(i), RIGHT_X, bRowTop(i));
   }
 
-  y = bBottom + BLOCK_GAP;
+  y = bBottom;
 
   // Block C: DÉCISION DU CONSEIL DE CLASSE | OBSERVATIONS GENERALES | VISA DU CHEF D'ÉTABLISSEMENT.
   const cTop = y;
@@ -559,6 +627,14 @@ export const exportNonApcReportCardsToPdf = async (
   const { default: JsPdfCtor } = await import("jspdf");
   const doc = new JsPdfCtor();
 
+  // Same icons for every student on every page - loaded once up front rather than per page.
+  const [goodImage, baisseImage, badImage] = await Promise.all([
+    loadStaticImage(goodProgressImg),
+    loadStaticImage(baisseProgressImg),
+    loadStaticImage(badProgressImg),
+  ]);
+  const progressImages = { good: goodImage, baisse: baisseImage, bad: badImage };
+
   students.forEach((student, index) => {
     if (index > 0) {
       doc.addPage();
@@ -573,6 +649,7 @@ export const exportNonApcReportCardsToPdf = async (
       schoolHeader,
       photosByStudId.get(student.studId) ?? null,
       language,
+      progressImages,
     );
   });
 

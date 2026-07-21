@@ -870,100 +870,108 @@ const MarkEntryManager = () => {
         <p className="opacity-60">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <label className="font-medium">{t.classeLabel}</label>
-            <select
-              className="select w-48"
-              value={selectedClasseId ?? ""}
-              onChange={(e) => setSelectedClasseId(Number(e.target.value))}
-            >
-              {classes.map((c) => (
-                <option key={c.classe_id} value={c.classe_id}>
-                  {c.classe_name}
-                </option>
-              ))}
-            </select>
-
-            <label className="font-medium ml-2">{t.subjectLabel}</label>
-            <select
-              className="select w-48"
-              disabled={isLoadingSubjects || subjects.length === 0}
-              value={selectedSubjectId ?? ""}
-              onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
-            >
-              {subjects.map((s) => (
-                <option key={s.subject_id} value={s.subject_id}>
-                  {s.subject_title}
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="button"
-              className={`btn btn-sm gap-2 ml-2 ${isLocked ? "btn-error" : "btn-neutral"}`}
-              onClick={handleToggleLock}
-            >
-              {isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-              {isLocked ? t.unlockBtn : t.lockBtn}
-            </button>
-
-            <label className="font-medium ml-2">{t.termLabel}</label>
-            <select
-              className="select w-36"
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(Number(e.target.value))}
-            >
-              {TERMS.map((term) => (
-                <option key={term} value={term}>
-                  {t.term(term)}
-                </option>
-              ))}
-            </select>
-
-            {isApc ? (
-              <>
-                <label className="font-medium ml-2">{t.competenceLabel}</label>
+          <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.classeLabel}</label>
                 <select
-                  className="select w-64"
-                  disabled={isLoadingCompetences || competences.length === 0}
-                  value={selectedCompetenceId ?? ""}
-                  onChange={(e) => setSelectedCompetenceId(Number(e.target.value))}
+                  className="select w-48"
+                  value={selectedClasseId ?? ""}
+                  onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
-                  {competences.map((c) => (
-                    <option key={c.subject_competence_id} value={c.subject_competence_id}>
-                      {c.competence_text.length > 40
-                        ? `${c.competence_text.slice(0, 40)}…`
-                        : c.competence_text}
+                  {classes.map((c) => (
+                    <option key={c.classe_id} value={c.classe_id}>
+                      {c.classe_name}
                     </option>
                   ))}
                 </select>
-              </>
-            ) : (
-              <>
-                <label className="font-medium ml-2">{t.sequenceLabel}</label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.subjectLabel}</label>
+                <select
+                  className="select w-48"
+                  disabled={isLoadingSubjects || subjects.length === 0}
+                  value={selectedSubjectId ?? ""}
+                  onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
+                >
+                  {subjects.map((s) => (
+                    <option key={s.subject_id} value={s.subject_id}>
+                      {s.subject_title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                className={`btn btn-sm gap-2 ${isLocked ? "btn-error" : "btn-neutral"}`}
+                onClick={handleToggleLock}
+              >
+                {isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                {isLocked ? t.unlockBtn : t.lockBtn}
+              </button>
+
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.termLabel}</label>
                 <select
                   className="select w-36"
-                  value={selectedSequence}
-                  onChange={(e) => setSelectedSequence(Number(e.target.value))}
+                  value={selectedTerm}
+                  onChange={(e) => setSelectedTerm(Number(e.target.value))}
                 >
-                  {SEQUENCES.map((seq) => (
-                    <option key={seq} value={seq}>
-                      {t.sequence(seq)}
+                  {TERMS.map((term) => (
+                    <option key={term} value={term}>
+                      {t.term(term)}
                     </option>
                   ))}
                 </select>
-              </>
-            )}
+              </div>
 
-            <input
-              type="text"
-              className="input w-56 ml-2"
-              placeholder={t.filterPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+              {isApc ? (
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">{t.competenceLabel}</label>
+                  <select
+                    className="select w-64"
+                    disabled={isLoadingCompetences || competences.length === 0}
+                    value={selectedCompetenceId ?? ""}
+                    onChange={(e) => setSelectedCompetenceId(Number(e.target.value))}
+                  >
+                    {competences.map((c) => (
+                      <option key={c.subject_competence_id} value={c.subject_competence_id}>
+                        {c.competence_text.length > 40
+                          ? `${c.competence_text.slice(0, 40)}…`
+                          : c.competence_text}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">{t.sequenceLabel}</label>
+                  <select
+                    className="select w-36"
+                    value={selectedSequence}
+                    onChange={(e) => setSelectedSequence(Number(e.target.value))}
+                  >
+                    {SEQUENCES.map((seq) => (
+                      <option key={seq} value={seq}>
+                        {t.sequence(seq)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            <div className="flex items-center gap-2 ml-auto">
+              <input
+                type="text"
+                className="input w-56"
+                placeholder={t.filterPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
               <input
                 ref={importFileInputRef}
                 type="file"

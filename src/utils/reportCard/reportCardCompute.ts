@@ -2,6 +2,7 @@ import type { SubjectClasseRow } from "../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../interfaces/SubjectCompetence";
 import type { Mark } from "../../interfaces/Mark";
 import type { ClassifiedParam } from "../../interfaces/ClassifiedParam";
+import type { ThParam } from "../../interfaces/ThParam";
 import type { DisciplineOfClasseRow } from "../../interfaces/DisciplineOfClasseRow";
 import { formatMarkValue } from "../textValidation";
 import type {
@@ -57,6 +58,7 @@ export interface BuildReportCardDataInput {
   roster: ReportCardRosterEntry[];
   subjectsData: ReportCardSubjectBundle[];
   classifiedParam: ClassifiedParam | null;
+  thParam: ThParam | null;
   disciplineByStudId: Map<number, DisciplineOfClasseRow>;
   language: "fr" | "en";
 }
@@ -138,6 +140,40 @@ export const formatRangText = (
     return sexe.toLowerCase() === "f" ? "1ère" : "1er";
   }
   return `${rang}ème`;
+};
+
+// getThText() - ported from the user's reference Tableau d'honneur (Honor Roll) algorithm.
+// thText === "" means this student doesn't deserve it this term; a future whole-classe Honor Roll
+// printout will filter on that same emptiness check rather than a separate boolean. thParam.lb/ub
+// are the school's own encouragement/félicitations thresholds; thParam.lb_default is the actual
+// minimum term average required to make the roll at all (independent of lb/ub).
+export const getThText = (
+  thParam: ThParam | null,
+  absUnjust: number,
+  avgTerm: number,
+  isClassified: boolean,
+  language: "fr" | "en",
+): string => {
+  if (!thParam) {
+    return "";
+  }
+  if (!(avgTerm >= thParam.lb_default && isClassified && absUnjust < thParam.seuil_abs)) {
+    return "";
+  }
+  // encouragement/felicitation deliberately compare avgTerm against the algorithm's own
+  // hardcoded 14/16 thresholds, not thParam.lb/thParam.ub - ported as-is from the reference
+  // implementation, which computes these two flags before reassigning its working thresholds
+  // from thParam at all.
+  const encouragement = avgTerm >= 14 && absUnjust < thParam.seuil_abs;
+  const felicitation = avgTerm >= 16 && absUnjust < thParam.seuil_abs;
+  let thText = language === "en" ? "Honor roll" : "Tableau d'honneur";
+  if (encouragement) {
+    thText += "+Encouragements";
+  }
+  if (felicitation) {
+    thText += language === "en" ? "& Congrat." : " & F.";
+  }
+  return thText;
 };
 
 // Matches the reference RC's own number formatting for MOY/MOYENNE TRIM/Total général/[Min-Max]
@@ -420,7 +456,7 @@ export const computeGroupSubtotal = (
 // fetched (one SubjectReader.fetchCompetences + one MarkReader.fetchCompMarks per competence, mirroring
 // MarkEntryManager's own fill-rate/handleExportAllClassesMarks nested-fetch pattern).
 export const buildReportCardData = (input: BuildReportCardDataInput): ReportCardData => {
-  const { roster, subjectsData, classifiedParam, disciplineByStudId, language } = input;
+  const { roster, subjectsData, classifiedParam, thParam, disciplineByStudId, language } = input;
   // nbMatieres weighting differs by kind (see computeClassified's comment): 1 per subject for
   // APC (competence-based participation), 2 per subject for non-APC (one per sequence).
   const nbMatieres = subjectsData.reduce((sum, b) => sum + (b.kind === "apc" ? 1 : 2), 0);
@@ -501,6 +537,13 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
       language,
     );
     const { evalAvg, examAvg } = computeEvalExam(subjectsData, student.stud_id);
+    const thText = getThText(
+      thParam,
+      discipline?.absunjust ?? 0,
+      moyenneTrim,
+      isClassified,
+      language,
+    );
 
     return {
       studId: student.stud_id,
@@ -531,6 +574,7 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
       effortLine,
       evalAvg,
       examAvg,
+      thText,
     };
   });
 

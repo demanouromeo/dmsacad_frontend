@@ -1,12 +1,13 @@
 import { useLanguage } from "../../../i18n/useLanguage";
 import { settingsHubTranslations } from "../../../i18n/translations";
 import AdminMenuCard from "../../dashboard/AdminMenuCard";
-import iconSettings from "../../../assets/menu/Settings.svg";
+import iconClassifiedParam from "../../../assets/compo/settings/classified_settings.svg";
+import iconAnnualRcAvgParam from "../../../assets/compo/settings/bulletin_settings.svg";
+import iconThParam from "../../../assets/compo/settings/th_settings.svg";
 
 // Landing page for the "settings" dashboard card - sub-modules: "classifiedParam" ->
 // ClassifiedParamManager, "annualRcAvgParam" -> AnnualRcAvgManager, "thParam" -> ThParamManager.
-// Same SubjectsHub/AccountHub pattern. Reuses the generic Settings.svg icon since there's no
-// dedicated icon asset per sub-module yet.
+// Same SubjectsHub/AccountHub pattern.
 const SettingsHub = () => {
   const [language] = useLanguage();
   const t = settingsHubTranslations[language];
@@ -15,19 +16,19 @@ const SettingsHub = () => {
     {
       key: "classifiedParam",
       label: t.classifiedParam,
-      icon: iconSettings,
+      icon: iconClassifiedParam,
       to: "/admin/settings/classified-param",
     },
     {
       key: "annualRcAvgParam",
       label: t.annualRcAvgParam,
-      icon: iconSettings,
+      icon: iconAnnualRcAvgParam,
       to: "/admin/settings/annual-rc-avg",
     },
     {
       key: "thParam",
       label: t.thParam,
-      icon: iconSettings,
+      icon: iconThParam,
       to: "/admin/settings/th-param",
     },
   ];
@@ -35,9 +36,11 @@ const SettingsHub = () => {
   return (
     <div className="p-10 flex flex-col items-center">
       <h1 className="text-2xl font-bold mb-6">{t.title}</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-3xl justify-items-center">
+      <div className="flex flex-wrap justify-center gap-6 max-w-3xl">
         {items.map((item) => (
-          <AdminMenuCard key={item.key} label={item.label} icon={item.icon} to={item.to} />
+          <div key={item.key} className="w-40">
+            <AdminMenuCard label={item.label} icon={item.icon} to={item.to} />
+          </div>
         ))}
       </div>
     </div>

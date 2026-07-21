@@ -375,44 +375,48 @@ const SubjectCompetenceManager = () => {
           <p className="opacity-60">{t.emptyClasses}</p>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <label className="font-medium">{t.classeLabel}</label>
-              <select
-                className="select w-56"
-                value={selectedClasseId ?? ""}
-                onChange={(e) => setSelectedClasseId(Number(e.target.value))}
-              >
-                {apcClasses.map((c) => (
-                  <option key={c.classe_id} value={c.classe_id}>
-                    {c.classe_name}
-                  </option>
-                ))}
-              </select>
-
-              {selectedClasse && (
-                <button
-                  type="button"
-                  className="btn btn-error btn-sm btn-square"
-                  title={t.deleteAllOfClasseTooltip(selectedClasse.classe_name)}
-                  onClick={handleDeleteAllOfClasse}
+            <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-wrap items-center gap-x-8 gap-y-3">
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.classeLabel}</label>
+                <select
+                  className="select w-56"
+                  value={selectedClasseId ?? ""}
+                  onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
+                  {apcClasses.map((c) => (
+                    <option key={c.classe_id} value={c.classe_id}>
+                      {c.classe_name}
+                    </option>
+                  ))}
+                </select>
 
-              <label className="font-medium ml-4">{t.subjectLabel}</label>
-              <select
-                className="select w-56"
-                disabled={isLoadingSubjects || subjects.length === 0}
-                value={selectedSubjectId ?? ""}
-                onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
-              >
-                {subjects.map((s) => (
-                  <option key={s.subject_id} value={s.subject_id}>
-                    {s.subject_title}
-                  </option>
-                ))}
-              </select>
+                {selectedClasse && (
+                  <button
+                    type="button"
+                    className="btn btn-error btn-sm btn-square"
+                    title={t.deleteAllOfClasseTooltip(selectedClasse.classe_name)}
+                    onClick={handleDeleteAllOfClasse}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.subjectLabel}</label>
+                <select
+                  className="select w-56"
+                  disabled={isLoadingSubjects || subjects.length === 0}
+                  value={selectedSubjectId ?? ""}
+                  onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
+                >
+                  {subjects.map((s) => (
+                    <option key={s.subject_id} value={s.subject_id}>
+                      {s.subject_title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {!isLoadingSubjects && subjects.length === 0 && (

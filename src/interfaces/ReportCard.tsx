@@ -86,6 +86,11 @@ export interface ReportCardStudentData {
   // for APC ones since APC subjects have no sequence concept.
   evalAvg: number;
   examAvg: number;
+  // Tableau d'honneur (Honor Roll) text - "" means this student doesn't deserve it this term. See
+  // getThText in reportCardCompute.ts. Computed for every student regardless of classe kind, but
+  // only rendered by the non-APC RC layout today (under APPRÉCIATION DU TRAVAIL) - will also drive
+  // a future whole-classe Honor Roll printout's student filter (empty thText = excluded).
+  thText: string;
 }
 
 export interface ReportCardClasseStats {

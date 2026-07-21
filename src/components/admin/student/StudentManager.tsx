@@ -557,76 +557,80 @@ const StudentManager = () => {
         <p className="opacity-60">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <label className="font-medium">{t.classeLabel}</label>
-            <select
-              className="select w-56"
-              value={selectedClasseId ?? ""}
-              onChange={(e) => setSelectedClasseId(Number(e.target.value))}
-            >
-              {classes.map((c) => (
-                <option key={c.classe_id} value={c.classe_id}>
-                  {c.classe_name}
-                </option>
-              ))}
-            </select>
+          <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <label className="font-medium">{t.classeLabel}</label>
+              <select
+                className="select w-56"
+                value={selectedClasseId ?? ""}
+                onChange={(e) => setSelectedClasseId(Number(e.target.value))}
+              >
+                {classes.map((c) => (
+                  <option key={c.classe_id} value={c.classe_id}>
+                    {c.classe_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <input
-              ref={importFileInputRef}
-              type="file"
-              accept=".csv,.xlsx"
-              className="hidden"
-              onChange={handleImportFileChange}
-            />
-            <button
-              type="button"
-              className="btn btn-neutral btn-sm gap-2"
-              disabled={isLoadingStudents}
-              onClick={() => importFileInputRef.current?.click()}
-            >
-              <Upload className="w-4 h-4" />
-              {t.importBtn}
-            </button>
-            <ExportButtons
-              onExportExcel={handleExportExcel}
-              onExportPdf={handleExportPdf}
-              excelLabel={et.excelBtn}
-              pdfLabel={et.pdfBtn}
-              disabled={isLoadingStudents || students.length === 0}
-            />
-            <button
-              type="button"
-              className="btn btn-neutral btn-sm gap-2"
-              disabled={isLoadingStudents || selectedClasseId === null}
-              onClick={() => selectedClasseId && loadStudents(selectedClasseId)}
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t.refreshBtn}
-            </button>
-          </div>
+            <div className="flex flex-wrap gap-3">
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".csv,.xlsx"
+                className="hidden"
+                onChange={handleImportFileChange}
+              />
+              <button
+                type="button"
+                className="btn btn-neutral btn-sm gap-2"
+                disabled={isLoadingStudents}
+                onClick={() => importFileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4" />
+                {t.importBtn}
+              </button>
+              <ExportButtons
+                onExportExcel={handleExportExcel}
+                onExportPdf={handleExportPdf}
+                excelLabel={et.excelBtn}
+                pdfLabel={et.pdfBtn}
+                disabled={isLoadingStudents || students.length === 0}
+              />
+              <button
+                type="button"
+                className="btn btn-neutral btn-sm gap-2"
+                disabled={isLoadingStudents || selectedClasseId === null}
+                onClick={() => selectedClasseId && loadStudents(selectedClasseId)}
+              >
+                <RefreshCw className="w-4 h-4" />
+                {t.refreshBtn}
+              </button>
+            </div>
 
-          <div className="flex flex-wrap gap-4 mb-4 text-sm bg-base-200 rounded px-4 py-2">
-            <span>
-              {t.statFilles}: <b>{stats.filles}</b>
-            </span>
-            <span>
-              {t.statGarcons}: <b>{stats.garcons}</b>
-            </span>
-            <span>
-              {t.statTotal}: <b>{stats.total}</b>
-            </span>
-            <span>
-              {t.statRedoublants}: <b>{stats.redoublants}</b>
-            </span>
-            <span>
-              {t.statNouveaux}: <b>{nouveaux}</b>
-            </span>
-            <span>
-              {t.statHandicapes}: <b>{stats.handicapes}</b>
-            </span>
-            <span>
-              {t.statCasSocial}: <b>{stats.casSocial}</b>
-            </span>
+            <div className="flex flex-wrap gap-4 text-sm bg-base-100 rounded-xl px-4 py-2">
+              <span>
+                {t.statFilles}: <b>{stats.filles}</b>
+              </span>
+              <span>
+                {t.statGarcons}: <b>{stats.garcons}</b>
+              </span>
+              <span>
+                {t.statTotal}: <b>{stats.total}</b>
+              </span>
+              <span>
+                {t.statRedoublants}: <b>{stats.redoublants}</b>
+              </span>
+              <span>
+                {t.statNouveaux}: <b>{nouveaux}</b>
+              </span>
+              <span>
+                {t.statHandicapes}: <b>{stats.handicapes}</b>
+              </span>
+              <span>
+                {t.statCasSocial}: <b>{stats.casSocial}</b>
+              </span>
+            </div>
           </div>
 
           {isLoadingStudents ? (
