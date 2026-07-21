@@ -2,32 +2,29 @@ import type { jsPDF } from "jspdf";
 import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "../exportHeader";
 import { computeResponsable } from "../schoolTypes";
 import {
+  formatRangText,
   formatRcFixed2,
   formatRcMarkDisplay,
   formatRcMoyDisplay,
   formatRcNumber,
   getCompComment,
 } from "./reportCardCompute";
+import {
+  buildReportCardTitle,
+  centerTextY,
+  drawLabelValue,
+  drawStudentPhoto,
+  lineHeightMm,
+  PHOTO_WIDTH,
+  truncateToWidth,
+} from "./reportCardPdfShared";
 import type { ReportCardClasseStats, ReportCardStudentData } from "../../interfaces/ReportCard";
-
-const TERM_ORDINALS_FR = ["PREMIER", "DEUXIEME", "TROISIEME"];
 
 // Tailwind green-300 / pink-300, plus a red-600-ish text color - used to color-code the per-subject
 // MOY cell and the MOYENNE TRIM cell based on the pass/fail threshold (10/20).
 const COLOR_GREEN_300: [number, number, number] = [134, 239, 172];
 const COLOR_PINK_300: [number, number, number] = [249, 168, 212];
 const COLOR_RED_TEXT: [number, number, number] = [220, 38, 38];
-
-export const buildReportCardTitle = (term: number): string =>
-  `BULLETIN DE NOTES DU ${TERM_ORDINALS_FR[term - 1] ?? term} TRIMESTRE`;
-
-// French ordinal for the RANG cell - "1er", "2ème", "3ème", ... matching every sample RC exactly.
-const formatRang = (rang: number | null): string => {
-  if (rang === null) {
-    return "-";
-  }
-  return rang === 1 ? "1er" : `${rang}ème`;
-};
 
 // 9 logical table columns, widths in mm, summing to the 182mm content width used everywhere else
 // in the app (14mm margins on an A4/210mm page).
@@ -68,9 +65,6 @@ const colX = (key: (typeof COL_KEYS)[number]): number => COL_BOUNDS[COL_KEYS.ind
 const colWidth = (key: (typeof COL_KEYS)[number]): number => COLS[key];
 const colCenter = (key: (typeof COL_KEYS)[number]): number => colX(key) + colWidth(key) / 2;
 
-const lineHeightMm = (doc: jsPDF, fontSize: number): number =>
-  (fontSize * 1.15) / doc.internal.scaleFactor;
-
 // Wraps competence text to at most maxLines, ellipsizing the last line if it doesn't fit - bounds
 // the worst-case height of any single competence row regardless of how long the text is, which is
 // what makes the shrink-to-fit loop below guaranteed to terminate on a sane page count.
@@ -88,17 +82,6 @@ const wrapCompetenceText = (
   const last = truncated[maxLines - 1];
   truncated[maxLines - 1] = last.length > 3 ? `${last.slice(0, -3)}...` : `${last}...`;
   return truncated;
-};
-
-const truncateToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
-  if (doc.getTextWidth(text) <= maxWidth) {
-    return text;
-  }
-  let truncated = text;
-  while (truncated.length > 1 && doc.getTextWidth(`${truncated}...`) > maxWidth) {
-    truncated = truncated.slice(0, -1);
-  }
-  return `${truncated}...`;
 };
 
 interface SubjectLayout {
@@ -175,67 +158,6 @@ const chooseLayout = (
   return best as StudentLayout;
 };
 
-const centerTextY = (top: number, height: number, fontSize: number): number =>
-  top + height / 2 + fontSize * 0.12;
-
-// Passport-photo-style box in the top-right corner of the student info block, matching every
-// sample RC's layout. Draws the student's actual photo when one was loaded (see
-// StudentReader.loadStudentPhotoImage), otherwise a hand-drawn grey silhouette - same "no icon
-// asset in the bundle, draw it with jsPDF's own vector primitives" precedent as exportHeader.ts's
-// drawMailIcon, since jsPDF can't embed an actual .svg without an extra plugin.
-const PHOTO_WIDTH = 20;
-const PHOTO_HEIGHT = 24;
-
-const drawDefaultPersonIcon = (doc: jsPDF, x: number, y: number, w: number, h: number): void => {
-  doc.setFillColor(225, 225, 225);
-  doc.rect(x, y, w, h, "F");
-  doc.setFillColor(175, 175, 175);
-  const cx = x + w / 2;
-  const headR = w * 0.22;
-  const headCy = y + h * 0.34;
-  doc.circle(cx, headCy, headR, "F");
-  const shoulderRy = h * 0.2;
-  const shoulderCy = y + h - shoulderRy;
-  doc.ellipse(cx, shoulderCy, w * 0.4, shoulderRy, "F");
-};
-
-const drawStudentPhoto = (
-  doc: jsPDF,
-  photoImage: HTMLImageElement | null,
-  x: number,
-  y: number,
-): void => {
-  if (photoImage) {
-    try {
-      doc.addImage(photoImage, "JPEG", x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
-    } catch (error) {
-      // Same fallback precedent as drawPdfLetterhead's logo embed - a blocked/failed canvas read
-      // shouldn't stop the export, just fall back to the default silhouette.
-      console.error("drawStudentPhoto(): failed to embed student photo", error);
-      drawDefaultPersonIcon(doc, x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
-    }
-  } else {
-    drawDefaultPersonIcon(doc, x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
-  }
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
-  doc.rect(x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
-};
-
-const drawLabelValue = (
-  doc: jsPDF,
-  label: string,
-  value: string,
-  x: number,
-  y: number,
-): void => {
-  doc.setFont("helvetica", "normal");
-  doc.text(label, x, y);
-  doc.setFont("helvetica", "bold");
-  doc.text(value, x + doc.getTextWidth(`${label} `), y);
-  doc.setFont("helvetica", "normal");
-};
-
 const drawStudentPage = (
   doc: jsPDF,
   student: ReportCardStudentData,
@@ -245,6 +167,7 @@ const drawStudentPage = (
   year: string,
   schoolHeader: SchoolHeader,
   photoImage: HTMLImageElement | null,
+  language: "fr" | "en",
 ): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
@@ -530,7 +453,7 @@ const drawStudentPage = (
     ["COEF:", student.coefSum.toFixed(1)],
     ["MOYENNE TRIM:", formatRcNumber(student.moyenneTrim)],
     ["COTE:", student.cote],
-    ["RANG:", formatRang(student.rang)],
+    ["RANG:", formatRangText(student.rang, student.sexe, language)],
   ];
   // Same fcx(N)/fcx(N+1) label|value split as Discipline/Profil - Travail's own value sub-column is
   // fcx(5)-fcx(6) (matching the divider already drawn there, right before the Appr section starts).
@@ -667,6 +590,7 @@ export const exportReportCardsToPdf = async (
   schoolHeader: SchoolHeader,
   filename: string,
   photosByStudId: Map<number, HTMLImageElement | null>,
+  language: "fr" | "en",
 ): Promise<void> => {
   const { default: JsPdfCtor } = await import("jspdf");
   const doc = new JsPdfCtor();
@@ -684,6 +608,7 @@ export const exportReportCardsToPdf = async (
       year,
       schoolHeader,
       photosByStudId.get(student.studId) ?? null,
+      language,
     );
   });
 

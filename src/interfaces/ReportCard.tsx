@@ -37,6 +37,14 @@ export interface ReportCardSubjectRow {
   // student's RC for the same (classe, subject, term), per the reference getMinMax().
   subjectMin: number;
   subjectMax: number;
+  // Copied straight from SubjectClasseRow.groupe_id/groupe_name - only consumed by the non-APC RC
+  // layout's per-group subtotal rows (see exportReportCardNonApcPdf.ts), unused by the APC layout.
+  groupeId: number;
+  groupeName: string;
+  // 1-based dense/competition rank (ties share a rank) of this student's subjectAverage among the
+  // whole roster for this subject - independent of isClassified, missing marks ranked as 0 (same
+  // convention as subjectMin/subjectMax above). Only rendered by the non-APC layout.
+  rang: number;
 }
 
 export interface ReportCardDiscipline {
@@ -73,6 +81,11 @@ export interface ReportCardStudentData {
   rang: number | null;
   discipline: ReportCardDiscipline;
   effortLine: string;
+  // Coefficient-weighted average using only sequence-1 ("Eval") / sequence-2 ("Exam") marks across
+  // every non-APC subject - only meaningful for non-APC classes (see computeEvalExam), 0/unused
+  // for APC ones since APC subjects have no sequence concept.
+  evalAvg: number;
+  examAvg: number;
 }
 
 export interface ReportCardClasseStats {
@@ -81,6 +94,9 @@ export interface ReportCardClasseStats {
   minMax: [number, number];
   nombreMoyennes: number;
   tauxReussite: number;
+  // Population standard deviation of every student's moyenneTrim - only rendered by the non-APC
+  // layout's "Ecart type" field, computed regardless of classe kind since it's cheap.
+  ecartType: number;
 }
 
 export interface ReportCardData {

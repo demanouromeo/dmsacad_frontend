@@ -88,6 +88,58 @@ export const getCompComment = (avg: number): string => {
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
+// getNonApcComment() - ported from the user's reference getCommentFR()/getCommentEN(), a distinct
+// threshold/label table from getCote/getCompComment above - used only by the non-APC RC layout,
+// both for its per-subject "Appréciation" column and its overall "APPRÉCIATION DU TRAVAIL" box.
+const NON_APC_PASS_MARK = 10;
+
+export const getNonApcComment = (avg: number, language: "fr" | "en"): string => {
+  if (avg < 0 || avg > 20) {
+    return "";
+  }
+  if (avg < NON_APC_PASS_MARK) {
+    return language === "en" ? "Not acquired (NA)" : "Compétences non acquises (NA)";
+  }
+  if (avg < 14) {
+    return language === "en" ? "Under acquisition (UA)" : "En cours d'aquisition (ECA)";
+  }
+  if (avg < 17) {
+    return language === "en" ? "Acquired (A)" : "Compétences acquises (A)";
+  }
+  return "Expert (A+)";
+};
+
+// formatRangText() - ported from the user's reference getSuperScriptFR()/getSuperScriptEN(),
+// replacing the old bare "1er"/"Nème"/"-" formatting - shared by both the APC and non-APC PDF
+// layouts (and by the non-APC layout's per-subject Rang column too). rang === null (NC student -
+// see buildReportCardData's rank assignment below) always renders the literal "NC".
+export const formatRangText = (
+  rang: number | null,
+  sexe: string,
+  language: "fr" | "en",
+): string => {
+  if (rang === null) {
+    return "NC";
+  }
+  if (language === "en") {
+    // Ported verbatim from the user's reference getSuperScriptEN() - deliberately no
+    // 11th/12th/13th exception (matches the reference's own last-digit-only rule for rang >= 10).
+    if (rang === 1) return "1st";
+    if (rang === 2) return "2nd";
+    if (rang === 3) return "3rd";
+    if (rang < 10) return `${rang}th`;
+    const lastDigit = rang % 10;
+    if (lastDigit === 1) return `${rang}st`;
+    if (lastDigit === 2) return `${rang}nd`;
+    if (lastDigit === 3) return `${rang}rd`;
+    return `${rang}th`;
+  }
+  if (rang === 1) {
+    return sexe.toLowerCase() === "f" ? "1ère" : "1er";
+  }
+  return `${rang}ème`;
+};
+
 // Matches the reference RC's own number formatting for MOY/MOYENNE TRIM/Total général/[Min-Max]
 // values: always at least 1 decimal digit, at most 2 - i.e. toFixed(2) with exactly one trailing
 // zero trimmed off when present (never trimmed down to a bare integer, e.g. "18.00" -> "18.0", not
@@ -158,6 +210,48 @@ export const computeSeqAverage = (
   return count > 0 ? round2(sum / count) : null;
 };
 
+// computeEvalExam() - non-APC-only "Eval"/"Exam" split shown in the footer's APPRÉCIATION DU
+// TRAVAIL box: the student's coefficient-weighted average using only sequence-1 marks (Eval) vs.
+// only sequence-2 marks (Exam) across every non-APC subject. The two sequences are independent -
+// a subject missing only one of its two marks still contributes to whichever sequence it does
+// have (unlike computeSeqAverage's per-subject MOY, which averages across both together). APC
+// bundles are skipped entirely (0/0 result if subjectsData has no nonApc bundles).
+export const computeEvalExam = (
+  subjectsData: ReportCardSubjectBundle[],
+  studId: number,
+): { evalAvg: number; examAvg: number } => {
+  let evalSum = 0;
+  let evalCoef = 0;
+  let examSum = 0;
+  let examCoef = 0;
+  subjectsData.forEach((bundle) => {
+    if (bundle.kind !== "nonApc") {
+      return;
+    }
+    const { coef } = bundle.subject;
+    const seq1Mark = bundle.marksBySeq.get(1)?.get(studId);
+    if (seq1Mark && Number(seq1Mark.isEmpty) === 0) {
+      const parsed = Number(seq1Mark.mark);
+      if (!Number.isNaN(parsed)) {
+        evalSum += parsed * coef;
+        evalCoef += coef;
+      }
+    }
+    const seq2Mark = bundle.marksBySeq.get(2)?.get(studId);
+    if (seq2Mark && Number(seq2Mark.isEmpty) === 0) {
+      const parsed = Number(seq2Mark.mark);
+      if (!Number.isNaN(parsed)) {
+        examSum += parsed * coef;
+        examCoef += coef;
+      }
+    }
+  });
+  return {
+    evalAvg: evalCoef > 0 ? round2(evalSum / evalCoef) : 0,
+    examAvg: examCoef > 0 ? round2(examSum / examCoef) : 0,
+  };
+};
+
 // Dispatches to computeSubjectAverage/computeSeqAverage depending on the bundle's kind - the one
 // place that needs to know which of the two shapes a bundle is to compute a per-student average.
 export const computeSubjectAverageForBundle = (
@@ -181,6 +275,31 @@ const computeSubjectMinMax = (
     .map((s) => computeSubjectAverageForBundle(bundle, s.stud_id) ?? 0)
     .sort((a, b) => a - b);
   return [averages[0], averages[averages.length - 1]];
+};
+
+// computeSubjectRank() - non-APC-only per-subject class rank (the marks table's own "Rang" column,
+// not to be confused with the student's overall term rang). Dense/competition ranking: sort every
+// student's subjectAverage (missing treated as 0, same convention as computeSubjectMinMax above)
+// descending, ties share a rank. Independent of isClassified - unlike the overall term rank, a
+// subject's own rank ranks the whole roster regardless of classification status.
+const computeSubjectRank = (
+  roster: ReportCardRosterEntry[],
+  bundle: ReportCardSubjectBundle,
+): Map<number, number> => {
+  const sorted = roster
+    .map((s) => ({ studId: s.stud_id, avg: computeSubjectAverageForBundle(bundle, s.stud_id) ?? 0 }))
+    .sort((a, b) => b.avg - a.avg);
+  const ranks = new Map<number, number>();
+  let lastAvg: number | null = null;
+  let lastRank = 0;
+  sorted.forEach((entry, index) => {
+    if (lastAvg === null || entry.avg !== lastAvg) {
+      lastRank = index + 1;
+      lastAvg = entry.avg;
+    }
+    ranks.set(entry.studId, lastRank);
+  });
+  return ranks;
 };
 
 // computeParticipations() - count of isEmpty===0 marks across every subject of the classe for this
@@ -257,6 +376,44 @@ const computeEffortLine = (
   return language === "en" ? `Put in more effort in: ${list}` : `Un effort s'impose en: ${list}`;
 };
 
+// computeEcartType() - population standard deviation of the classe's moyenneTrim values, used by
+// the non-APC layout's "Ecart type" field. Same full-roster population as moyenneGenerale/minMax
+// above.
+const computeEcartType = (moyennes: number[]): number => {
+  if (moyennes.length === 0) {
+    return 0;
+  }
+  const mean = moyennes.reduce((a, b) => a + b, 0) / moyennes.length;
+  const variance =
+    moyennes.reduce((sum, m) => sum + (m - mean) * (m - mean), 0) / moyennes.length;
+  return round2(Math.sqrt(variance));
+};
+
+// computeGroupSubtotal() - non-APC-only per-group subtotal (the "Moyenne du groupe" row under
+// each of Matières Scientifiques/Littéraires/Autres, etc.). Sums coef/mCoef only over rows the
+// student has a real mark for (moy !== null), same exclusion rule buildReportCardData already
+// applies to the student's own totalGeneral/coefSum - a subject the student has no marks in
+// doesn't drag the group average down to 0, it's simply excluded.
+export const computeGroupSubtotal = (
+  rows: ReportCardSubjectRow[],
+): { coefSum: number; mCoefSum: number; moyenneGroupe: number } => {
+  let coefSum = 0;
+  let mCoefSum = 0;
+  rows.forEach((row) => {
+    if (row.moy !== null && row.mCoef !== null) {
+      coefSum += row.coef;
+      mCoefSum += row.mCoef;
+    }
+  });
+  coefSum = round2(coefSum);
+  mCoefSum = round2(mCoefSum);
+  return {
+    coefSum,
+    mCoefSum,
+    moyenneGroupe: coefSum > 0 ? round2(mCoefSum / coefSum) : 0,
+  };
+};
+
 // Assembles every student's full report-card row plus the classe-wide stats box ("Profil de la
 // classe") in one pass - both are computed once per (classe, term) and reused across every printed
 // page, never refetched/recomputed per student. See ReportCardManager for how subjectsData is
@@ -269,8 +426,10 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
   const nbMatieres = subjectsData.reduce((sum, b) => sum + (b.kind === "apc" ? 1 : 2), 0);
 
   const subjectMinMaxById = new Map<number, [number, number]>();
+  const subjectRankById = new Map<number, Map<number, number>>();
   subjectsData.forEach((bundle) => {
     subjectMinMaxById.set(bundle.subject.subject_id, computeSubjectMinMax(roster, bundle));
+    subjectRankById.set(bundle.subject.subject_id, computeSubjectRank(roster, bundle));
   });
 
   const built: ReportCardStudentData[] = roster.map((student) => {
@@ -287,6 +446,7 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
         coefSum += subject.coef;
       }
       const [subjectMin, subjectMax] = subjectMinMaxById.get(subject.subject_id) ?? [0, 0];
+      const rang = subjectRankById.get(subject.subject_id)?.get(student.stud_id) ?? 0;
       // APC rows list one real competence per line; non-APC rows synthesize one line per
       // sequence of the term instead (there's no competence concept there) - both funnel into
       // the same ReportCardCompetenceRow shape the PDF layer already knows how to render.
@@ -325,6 +485,9 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
         apprLabel: moy !== null ? getCompComment(moy) : "",
         subjectMin,
         subjectMax,
+        groupeId: subject.groupe_id,
+        groupeName: subject.groupe_name,
+        rang,
       });
     });
 
@@ -337,6 +500,7 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
       subjectRows.map((r) => ({ subjectTitle: r.subjectTitle, moy: r.moy })),
       language,
     );
+    const { evalAvg, examAvg } = computeEvalExam(subjectsData, student.stud_id);
 
     return {
       studId: student.stud_id,
@@ -365,6 +529,8 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
         exclusionDefinitive: discipline?.exclusion_definitive ?? 0,
       },
       effortLine,
+      evalAvg,
+      examAvg,
     };
   });
 
@@ -393,6 +559,7 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
     sortedMoys.length > 0 ? [sortedMoys[0], sortedMoys[sortedMoys.length - 1]] : [0, 0];
   const nombreMoyennes = allMoys.filter((m) => m >= 10).length;
   const tauxReussite = effectif > 0 ? round2((nombreMoyennes / effectif) * 100) : 0;
+  const ecartType = computeEcartType(allMoys);
 
   const classeStats: ReportCardClasseStats = {
     effectif,
@@ -400,6 +567,7 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
     minMax,
     nombreMoyennes,
     tauxReussite,
+    ecartType,
   };
 
   return { students, classeStats };

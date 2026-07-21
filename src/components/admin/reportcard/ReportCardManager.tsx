@@ -24,6 +24,7 @@ import {
   type ReportCardSubjectBundle,
 } from "../../../utils/reportCard/reportCardCompute";
 import { exportReportCardsToPdf } from "../../../utils/reportCard/exportReportCardPdf";
+import { exportNonApcReportCardsToPdf } from "../../../utils/reportCard/exportReportCardNonApcPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
@@ -302,19 +303,35 @@ const ReportCardManager = () => {
           ),
         ),
       );
-      await exportReportCardsToPdf(
-        subset,
-        reportCardData.classeStats,
-        {
-          classe_name: selectedClasse.classe_name,
-          classe_master_name: selectedClasse.classe_master_name,
-        },
-        selectedTerm,
-        schoolYear,
-        schoolHeader,
-        filename,
-        photosByStudId,
-      );
+      const classeArg = {
+        classe_name: selectedClasse.classe_name,
+        classe_master_name: selectedClasse.classe_master_name,
+      };
+      if (isSelectedClasseApc) {
+        await exportReportCardsToPdf(
+          subset,
+          reportCardData.classeStats,
+          classeArg,
+          selectedTerm,
+          schoolYear,
+          schoolHeader,
+          filename,
+          photosByStudId,
+          language,
+        );
+      } else {
+        await exportNonApcReportCardsToPdf(
+          subset,
+          reportCardData.classeStats,
+          classeArg,
+          selectedTerm,
+          schoolYear,
+          schoolHeader,
+          filename,
+          photosByStudId,
+          language,
+        );
+      }
       showToast(t.printSuccess, { type: "info" });
     } catch (error) {
       console.error("ReportCardManager.handlePrint(): Error", error);
