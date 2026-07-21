@@ -3,7 +3,8 @@ import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "../exportH
 import { computeResponsable } from "../schoolTypes";
 import {
   formatRcFixed2,
-  formatRcMark,
+  formatRcMarkDisplay,
+  formatRcMoyDisplay,
   formatRcNumber,
   getCompComment,
 } from "./reportCardCompute";
@@ -380,7 +381,7 @@ const drawStudentPage = (
         doc.text(line, colX("competence") + 1, rowY + lh * (lineIdx + 1));
       });
       const rowHeight = lines.length * lh;
-      const markText = comp.mark !== null ? formatRcMark(comp.mark) : "";
+      const markText = comp.mark !== null ? formatRcMarkDisplay(comp.mark) : "";
       if (markText) {
         doc.text(markText, colCenter("n20"), centerTextY(rowY, rowHeight, fontSize), {
           align: "center",
@@ -399,7 +400,9 @@ const drawStudentPage = (
       if (!moyPass) {
         doc.setTextColor(...COLOR_RED_TEXT);
       }
-      doc.text(formatRcNumber(subject.moy), colCenter("moy"), midY, { align: "center" });
+      doc.text(formatRcMoyDisplay(subject.moy), colCenter("moy"), midY, {
+        align: "center",
+      });
       doc.setFontSize(fontSize);
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "normal");
@@ -438,9 +441,11 @@ const drawStudentPage = (
   // Footer results grid: DISCIPLINE | TRAVAIL DE L'ÉLÈVE | PROFIL DE LA CLASSE - a fully bordered
   // table spanning the same LEFT_X..RIGHT_X width as the marks table above, matching the reference
   // RC layout: a filled header row, 6 body rows, and one taller row for the visa/signature/effort
-  // line block. "APPRECIATIONS" occupies the Appr column's own header slot on the first body row
-  // (merged with its checkbox column, the one merge in the whole grid), which is why its 5-item
-  // checklist (CTBA..CNA) sits one row lower than the Travail section's own 5 label rows below it.
+  // line block. The Appr column's "APPRECIATIONS" label (row 0) and its first checklist item, CTBA
+  // (row 1), share one visually merged, taller cell - the horizontal divider between rows 0 and 1 is
+  // omitted under the Appr column's own width only (see the grid-line loop below), same rowspan
+  // precedent as the label/checkbox divider already skipped on row 0. CBA/CA/CMA/CNA then occupy
+  // rows 2-5, lining up with Travail's own COEF/MOYENNE TRIM/COTE/RANG rows exactly.
   const gridTop = y;
   const gridColWidth = (RIGHT_X - LEFT_X) / 3;
   const disciplineX = LEFT_X;
@@ -502,10 +507,20 @@ const drawStudentPage = (
     ["Retards:", String(disc.lateness), "Excl(j):", String(disc.exclusionJours)],
     ["Consignes(h):", String(disc.consigne), "Excl déf.:", String(disc.exclusionDefinitive)],
   ];
+  // Same fcx(N)/fcx(N+1) label|value split as Profil below - Discipline already has narrow
+  // dedicated value sub-columns at fcx(1) and fcx(3) (matching the dividers drawn there), unused
+  // until now since drawLabelValue was concatenating label+value into the label cell instead.
   disciplineRows.forEach(([l1, v1, l2, v2], i) => {
     const ry = footerRowTop(i) + footerRowH / 2 + 1;
-    drawLabelValue(doc, l1, v1, fcx(0) + 1, ry);
-    drawLabelValue(doc, l2, v2, fcx(2) + 1, ry);
+    doc.setFont("helvetica", "normal");
+    doc.text(l1, fcx(0) + 1, ry);
+    doc.setFont("helvetica", "bold");
+    doc.text(v1, fcx(1) + 1, ry);
+    doc.setFont("helvetica", "normal");
+    doc.text(l2, fcx(2) + 1, ry);
+    doc.setFont("helvetica", "bold");
+    doc.text(v2, fcx(3) + 1, ry);
+    doc.setFont("helvetica", "normal");
   });
 
   const apprLabels = ["CTBA", "CBA", "CA", "CMA", "CNA"];
@@ -517,8 +532,15 @@ const drawStudentPage = (
     ["COTE:", student.cote],
     ["RANG:", formatRang(student.rang)],
   ];
+  // Same fcx(N)/fcx(N+1) label|value split as Discipline/Profil - Travail's own value sub-column is
+  // fcx(5)-fcx(6) (matching the divider already drawn there, right before the Appr section starts).
   travailRows.forEach(([label, value], i) => {
-    drawLabelValue(doc, label, value, fcx(4) + 1, footerRowTop(i) + footerRowH / 2 + 1);
+    const ry = footerRowTop(i) + footerRowH / 2 + 1;
+    doc.setFont("helvetica", "normal");
+    doc.text(label, fcx(4) + 1, ry);
+    doc.setFont("helvetica", "bold");
+    doc.text(value, fcx(5) + 1, ry);
+    doc.setFont("helvetica", "normal");
   });
 
   doc.setFont("helvetica", "bold");
@@ -547,8 +569,16 @@ const drawStudentPage = (
     ["Nombre de moyennes:", String(classeStats.nombreMoyennes)],
     ["Taux de réussite:", `${formatRcNumber(classeStats.tauxReussite)}%`],
   ];
+  // Unlike Discipline/Travail's inline "label value" pairs, Profil has its own dedicated value
+  // sub-column (fcx(9)-fcx(10), matching the vertical divider already drawn there) - label and
+  // value go in their own cells side by side rather than concatenated in the label cell.
   profilRows.forEach(([label, value], i) => {
-    drawLabelValue(doc, label, value, fcx(8) + 1, footerRowTop(i) + footerRowH / 2 + 1);
+    const ry = footerRowTop(i) + footerRowH / 2 + 1;
+    doc.setFont("helvetica", "normal");
+    doc.text(label, fcx(8) + 1, ry);
+    doc.setFont("helvetica", "bold");
+    doc.text(value, fcx(9) + 1, ry);
+    doc.setFont("helvetica", "normal");
   });
 
   // Bottom signature row: effort line (Discipline section) | Visa parent (Travail label+value) |
@@ -589,9 +619,22 @@ const drawStudentPage = (
   // covered by them (same ordering precedent as the marks table and the MOY cell fill).
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
-  [gridTop, ...Array.from({ length: footerRowCount + 1 }, (_, i) => footerRowTop(i)), footerSigTop, footerBottom].forEach(
-    (rowY) => doc.line(fcx(0), rowY, fcx(10), rowY),
-  );
+  const apprMergeRowY = footerRowTop(1);
+  [
+    gridTop,
+    ...Array.from({ length: footerRowCount + 1 }, (_, i) => footerRowTop(i)),
+    footerSigTop,
+    footerBottom,
+  ].forEach((rowY) => {
+    // Row 0/1 boundary is omitted under the Appr column only, so "APPRECIATIONS" (row 0) and CTBA
+    // (row 1) read as one merged, taller cell - see the comment above this grid.
+    if (rowY === apprMergeRowY) {
+      doc.line(fcx(0), rowY, fcx(6), rowY);
+      doc.line(fcx(8), rowY, fcx(10), rowY);
+      return;
+    }
+    doc.line(fcx(0), rowY, fcx(10), rowY);
+  });
   [0, 4, 8, 10].forEach((i) => doc.line(fcx(i), gridTop, fcx(i), footerBottom));
   doc.setLineWidth(0.15);
   const innerColIndices = [1, 2, 3, 5, 6, 7, 9];

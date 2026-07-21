@@ -786,20 +786,22 @@ const StaffManager = () => {
             </table>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-error btn-sm mb-6"
-            disabled={selectedIds.size === 0}
-            onClick={handleDeleteSelected}
-          >
-            {t.deleteSelectionBtn(selectedIds.size)}
-          </button>
+          <div className="flex justify-center sm:justify-start mb-6">
+            <button
+              type="button"
+              className="btn btn-error btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
         </>
       )}
 
       <form
         onSubmit={handleAdd}
-        className="flex flex-wrap gap-2 max-w-4xl items-start"
+        className="flex flex-wrap justify-center sm:justify-start gap-2 max-w-4xl items-start mx-auto sm:mx-0"
       >
         <input
           type="text"

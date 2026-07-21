@@ -3,6 +3,7 @@ import type { SubjectCompetence } from "../../interfaces/SubjectCompetence";
 import type { Mark } from "../../interfaces/Mark";
 import type { ClassifiedParam } from "../../interfaces/ClassifiedParam";
 import type { DisciplineOfClasseRow } from "../../interfaces/DisciplineOfClasseRow";
+import { formatMarkValue } from "../textValidation";
 import type {
   ReportCardClasseStats,
   ReportCardData,
@@ -24,15 +25,33 @@ export interface ReportCardRosterEntry {
   repeating: number | null;
 }
 
-// One subject's worth of already-fetched data for the whole classe - marksByCompetence is keyed
-// subject_competence_id -> stud_id -> Mark, matching how MarkReader.fetchCompMarks naturally comes
-// back (one call per (subject, competence) pair, each returning every student's row at once).
-export interface ReportCardSubjectBundle {
+// One subject's worth of already-fetched data for the whole classe - two shapes depending on
+// whether the classe's level is APC (competence-based) or not (see ClasseReader.fetchApcLevels /
+// isLevelApc, the same check every other screen uses to decide this). A classe is one or the
+// other, never mixed, so ReportCardManager builds every bundle for a given call with the same
+// `kind`.
+export interface ReportCardSubjectBundleApc {
+  kind: "apc";
   subject: SubjectClasseRow;
+  // Keyed subject_competence_id -> stud_id -> Mark, matching how MarkReader.fetchCompMarks
+  // naturally comes back (one call per (subject, competence) pair, each returning every student's
+  // row at once).
   competences: SubjectCompetence[];
   marksByCompetence: Map<number, Map<number, Mark>>;
   staffLabel: string;
 }
+
+export interface ReportCardSubjectBundleNonApc {
+  kind: "nonApc";
+  subject: SubjectClasseRow;
+  // Keyed logical sequence (1 | 2, within the selected term) -> stud_id -> Mark - one
+  // MarkReader.fetchSeqMarks call per sequence, dbsequence resolved by the caller via
+  // computeDbSequence(term, seq).
+  marksBySeq: Map<number, Map<number, Mark>>;
+  staffLabel: string;
+}
+
+export type ReportCardSubjectBundle = ReportCardSubjectBundleApc | ReportCardSubjectBundleNonApc;
 
 export interface BuildReportCardDataInput {
   roster: ReportCardRosterEntry[];
@@ -82,10 +101,12 @@ export const formatRcNumber = (n: number): string => {
 // "18.00", "52.02".
 export const formatRcFixed2 = (n: number): string => n.toFixed(2);
 
-// Individual competence marks (N/20 column) are shown as their raw entered value, not zero-padded
-// the way Mark entry's own on-screen "XX.YY" format is - same convention as
-// exportAllMarksReport.ts's formatReportMarkValue.
-export const formatRcMark = (mark: number): string => String(Number(mark));
+// RC's N/20 and MOY cells (both APC and non-APC) use Mark entry's own zero-padded "XX.YY" display
+// format (formatMarkValue) rather than the raw/trimmed formats above, matching Mark entry's own
+// on-screen convention across the board.
+export const formatRcMarkDisplay = (mark: number): string => formatMarkValue(String(mark));
+
+export const formatRcMoyDisplay = (moy: number): string => formatMarkValue(String(moy));
 
 // One (student, subject) average across every competence of that subject this term, counting only
 // isEmpty===0 marks - shared by both call sites that need it: the student's own subject MOY (where
@@ -114,46 +135,91 @@ export const computeSubjectAverage = (
   return count > 0 ? round2(sum / count) : null;
 };
 
+// Non-APC equivalent of computeSubjectAverage - averages this student's marks across the term's
+// two sequences for one subject (student_subject rows, via MarkReader.fetchSeqMarks), counting
+// only isEmpty===0 marks. null if neither sequence has a real mark yet, same "exclude, don't
+// zero-fill" convention as computeSubjectAverage.
+export const computeSeqAverage = (
+  marksBySeq: Map<number, Map<number, Mark>>,
+  studId: number,
+): number | null => {
+  let sum = 0;
+  let count = 0;
+  marksBySeq.forEach((studMap) => {
+    const mark = studMap.get(studId);
+    if (mark && Number(mark.isEmpty) === 0) {
+      const parsed = Number(mark.mark);
+      if (!Number.isNaN(parsed)) {
+        sum += parsed;
+        count += 1;
+      }
+    }
+  });
+  return count > 0 ? round2(sum / count) : null;
+};
+
+// Dispatches to computeSubjectAverage/computeSeqAverage depending on the bundle's kind - the one
+// place that needs to know which of the two shapes a bundle is to compute a per-student average.
+export const computeSubjectAverageForBundle = (
+  bundle: ReportCardSubjectBundle,
+  studId: number,
+): number | null =>
+  bundle.kind === "apc"
+    ? computeSubjectAverage(bundle.competences, bundle.marksByCompetence, studId)
+    : computeSeqAverage(bundle.marksBySeq, studId);
+
 // getMinMax() - sort every student's computeAverage for one subject ascending, take [first, last].
 // [0, 0] if the roster is empty (formatting layer renders "[ ]" for that case).
 const computeSubjectMinMax = (
   roster: ReportCardRosterEntry[],
-  competences: SubjectCompetence[],
-  marksByCompetence: Map<number, Map<number, Mark>>,
+  bundle: ReportCardSubjectBundle,
 ): [number, number] => {
   if (roster.length === 0) {
     return [0, 0];
   }
   const averages = roster
-    .map((s) => computeSubjectAverage(competences, marksByCompetence, s.stud_id) ?? 0)
+    .map((s) => computeSubjectAverageForBundle(bundle, s.stud_id) ?? 0)
     .sort((a, b) => a - b);
   return [averages[0], averages[averages.length - 1]];
 };
 
-// computeParticipationsAPC() - count of isEmpty===0 competence marks across every competence of
-// every subject of the classe for this student this term (not deduped to one-per-subject - a
-// subject with 3 filled competences contributes 3, matching nbMatieres being a subject *count*, not
-// a competence count, in computeClassifiedAPC below).
-export const computeParticipationsAPC = (
+// computeParticipations() - count of isEmpty===0 marks across every subject of the classe for this
+// student this term: for APC bundles, every competence of every subject (not deduped to
+// one-per-subject - a subject with 3 filled competences contributes 3, matching nbMatieres being a
+// subject *count*, not a competence count, in computeClassified below); for non-APC bundles, both
+// sequences of every subject (0, 1, or 2 per subject).
+export const computeParticipations = (
   studId: number,
   subjectsData: ReportCardSubjectBundle[],
 ): number => {
   let count = 0;
-  subjectsData.forEach(({ competences, marksByCompetence }) => {
-    competences.forEach((comp) => {
-      const mark = marksByCompetence.get(comp.subject_competence_id)?.get(studId);
-      if (mark && Number(mark.isEmpty) === 0) {
-        count += 1;
-      }
-    });
+  subjectsData.forEach((bundle) => {
+    if (bundle.kind === "apc") {
+      bundle.competences.forEach((comp) => {
+        const mark = bundle.marksByCompetence.get(comp.subject_competence_id)?.get(studId);
+        if (mark && Number(mark.isEmpty) === 0) {
+          count += 1;
+        }
+      });
+    } else {
+      bundle.marksBySeq.forEach((studMap) => {
+        const mark = studMap.get(studId);
+        if (mark && Number(mark.isEmpty) === 0) {
+          count += 1;
+        }
+      });
+    }
   });
   return count;
 };
 
-// computeClassifiedAPC() - ported verbatim from the user's reference pseudocode. A missing
-// classifiedparam row (null) is treated the same as classified=0 - classify everyone (see the
-// backend CLAUDE.md's "Classified / Not Classified (NC) parameter" section).
-export const computeClassifiedAPC = (
+// computeClassified() - ported verbatim from the user's reference pseudocode (originally named
+// computeClassifiedAPC; renamed since it's generic over both APC and non-APC nbMatieres/
+// participations, see the backend CLAUDE.md's "Classified / Not Classified (NC) parameter" section
+// for the nbMatieres weighting difference between the two - 1 per subject for APC, 2 per subject
+// for non-APC). A missing classifiedparam row (null) is treated the same as classified=0 -
+// classify everyone.
+export const computeClassified = (
   classifiedParam: ClassifiedParam | null,
   nbMatieres: number,
   participations: number,
@@ -198,14 +264,13 @@ const computeEffortLine = (
 // MarkEntryManager's own fill-rate/handleExportAllClassesMarks nested-fetch pattern).
 export const buildReportCardData = (input: BuildReportCardDataInput): ReportCardData => {
   const { roster, subjectsData, classifiedParam, disciplineByStudId, language } = input;
-  const nbMatieres = subjectsData.length;
+  // nbMatieres weighting differs by kind (see computeClassified's comment): 1 per subject for
+  // APC (competence-based participation), 2 per subject for non-APC (one per sequence).
+  const nbMatieres = subjectsData.reduce((sum, b) => sum + (b.kind === "apc" ? 1 : 2), 0);
 
   const subjectMinMaxById = new Map<number, [number, number]>();
-  subjectsData.forEach(({ subject, competences, marksByCompetence }) => {
-    subjectMinMaxById.set(
-      subject.subject_id,
-      computeSubjectMinMax(roster, competences, marksByCompetence),
-    );
+  subjectsData.forEach((bundle) => {
+    subjectMinMaxById.set(bundle.subject.subject_id, computeSubjectMinMax(roster, bundle));
   });
 
   const built: ReportCardStudentData[] = roster.map((student) => {
@@ -213,28 +278,47 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
     let totalGeneral = 0;
     let coefSum = 0;
 
-    subjectsData.forEach(({ subject, competences, marksByCompetence, staffLabel }) => {
-      const moy = computeSubjectAverage(competences, marksByCompetence, student.stud_id);
+    subjectsData.forEach((bundle) => {
+      const { subject, staffLabel } = bundle;
+      const moy = computeSubjectAverageForBundle(bundle, student.stud_id);
       const mCoef = moy !== null ? round2(moy * subject.coef) : null;
       if (moy !== null && mCoef !== null) {
         totalGeneral += mCoef;
         coefSum += subject.coef;
       }
       const [subjectMin, subjectMax] = subjectMinMaxById.get(subject.subject_id) ?? [0, 0];
+      // APC rows list one real competence per line; non-APC rows synthesize one line per
+      // sequence of the term instead (there's no competence concept there) - both funnel into
+      // the same ReportCardCompetenceRow shape the PDF layer already knows how to render.
+      const competenceRows =
+        bundle.kind === "apc"
+          ? bundle.competences.map((c) => {
+              const mark = bundle.marksByCompetence.get(c.subject_competence_id)?.get(student.stud_id);
+              const hasMark = mark && Number(mark.isEmpty) === 0;
+              return {
+                subjectCompetenceId: c.subject_competence_id,
+                competenceText: c.competence_text,
+                mark: hasMark ? Number(mark!.mark) : null,
+              };
+            })
+          : Array.from(bundle.marksBySeq.keys())
+              .sort((a, b) => a - b)
+              .map((seq) => {
+                const mark = bundle.marksBySeq.get(seq)?.get(student.stud_id);
+                const hasMark = mark && Number(mark.isEmpty) === 0;
+                return {
+                  subjectCompetenceId: -seq,
+                  competenceText: `Séquence ${seq}`,
+                  mark: hasMark ? Number(mark!.mark) : null,
+                };
+              });
       subjectRows.push({
         subjectId: subject.subject_id,
         subjectTitle: subject.subject_title,
         staffLabel,
         coef: subject.coef,
-        competences: competences.map((c) => {
-          const mark = marksByCompetence.get(c.subject_competence_id)?.get(student.stud_id);
-          const hasMark = mark && Number(mark.isEmpty) === 0;
-          return {
-            subjectCompetenceId: c.subject_competence_id,
-            competenceText: c.competence_text,
-            mark: hasMark ? Number(mark!.mark) : null,
-          };
-        }),
+        isApc: bundle.kind === "apc",
+        competences: competenceRows,
         moy,
         mCoef,
         cote: moy !== null ? getCote(moy) : "",
@@ -246,8 +330,8 @@ export const buildReportCardData = (input: BuildReportCardDataInput): ReportCard
 
     totalGeneral = round2(totalGeneral);
     const moyenneTrim = coefSum > 0 ? round2(totalGeneral / coefSum) : 0;
-    const participations = computeParticipationsAPC(student.stud_id, subjectsData);
-    const isClassified = computeClassifiedAPC(classifiedParam, nbMatieres, participations);
+    const participations = computeParticipations(student.stud_id, subjectsData);
+    const isClassified = computeClassified(classifiedParam, nbMatieres, participations);
     const discipline = disciplineByStudId.get(student.stud_id);
     const effortLine = computeEffortLine(
       subjectRows.map((r) => ({ subjectTitle: r.subjectTitle, moy: r.moy })),

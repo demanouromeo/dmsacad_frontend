@@ -12,6 +12,7 @@ import { MarkReader } from "../../../dbmanger/MarkReader";
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import { ClassifiedParamReader } from "../../../dbmanger/ClassifiedParamReader";
 import { DisciplineReader } from "../../../dbmanger/DisciplineReader";
+import { computeDbSequence } from "../../../utils/markSequence";
 import type { Classe } from "../../../interfaces/Classe";
 import type { Mark } from "../../../interfaces/Mark";
 import type { Staff } from "../../../interfaces/Staff";
@@ -38,12 +39,15 @@ const buildStaffLabel = (staff: Staff | undefined): string => {
   return civility ? `${civility} ${surname}` : surname;
 };
 
-// "Bulletins" (Print report cards) - APC classes / term RC only for this phase (see the backend and
-// frontend CLAUDE.md's "Classified / Not Classified (NC) parameter" section for the classification
-// algorithm this reuses, and src/utils/reportCard/ for the compute + PDF layers this screen drives).
-// Only classes whose level is flagged APC are selectable - same isLevelApc/apcLevels pattern as
-// SubjectCompetenceManager/MarkEntryManager. Annual RC is out of scope this phase (buttons render,
-// disabled, "coming soon").
+// "Bulletins" (Print report cards) - term RC only for this phase, both APC and non-APC classes (see
+// the backend and frontend CLAUDE.md's "Classified / Not Classified (NC) parameter" section for the
+// classification algorithm this reuses, and src/utils/reportCard/ for the compute + PDF layers this
+// screen drives). Every classe is selectable; whether the selected classe's level is flagged APC
+// (same isLevelApc/apcLevels pattern as SubjectCompetenceManager/MarkEntryManager) decides whether
+// its subjects are fetched as competences (stud_comp_mark) or as the term's two sequences
+// (student_subject, via MarkReader.fetchSeqMarks + computeDbSequence) - see
+// ReportCardSubjectBundleApc/NonApc in reportCardCompute.ts. Annual RC is out of scope this phase
+// (buttons render, disabled, "coming soon").
 const ReportCardManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
   const showToast = useToast();
@@ -64,8 +68,8 @@ const ReportCardManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const apcClasses = classes.filter((c) => apcLevels.get(c.level) === true);
-  const selectedClasse = apcClasses.find((c) => c.classe_id === selectedClasseId) ?? null;
+  const selectedClasse = classes.find((c) => c.classe_id === selectedClasseId) ?? null;
+  const isSelectedClasseApc = selectedClasse ? apcLevels.get(selectedClasse.level) === true : false;
 
   useEffect(() => {
     const load = async () => {
@@ -75,14 +79,13 @@ const ReportCardManager = () => {
         ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),
       ]);
       const levelMap = new Map(apcLevelList.map((entry) => [entry.level, entry.activated]));
-      const apcList = classeList.filter((c) => levelMap.get(c.level) === true);
       setClasses(classeList);
       setApcLevels(levelMap);
       setSelectedClasseId((prev) => {
-        if (prev !== null && apcList.some((c) => c.classe_id === prev)) {
+        if (prev !== null && classeList.some((c) => c.classe_id === prev)) {
           return prev;
         }
-        return apcList.length > 0 ? apcList[0].classe_id : null;
+        return classeList.length > 0 ? classeList[0].classe_id : null;
       });
       setIsLoadingClasses(false);
     };
@@ -100,6 +103,7 @@ const ReportCardManager = () => {
       }
       const classeId = selectedClasseId;
       const term = selectedTerm;
+      const isApc = isSelectedClasseApc;
       setIsLoadingData(true);
       setSelectedIds(new Set());
 
@@ -133,55 +137,91 @@ const ReportCardManager = () => {
       );
 
       const staffById = new Map(staffList.map((s) => [s.staff_id, s]));
-      const withCompetences = await Promise.all(
-        subjectsSorted.map(async (subject) => ({
-          subject,
-          competences: await SubjectReader.fetchCompetences(
-            accessToken,
-            connection,
-            schoolYear,
-            section,
-            classeId,
-            subject.subject_id,
-            term,
-          ),
-        })),
-      );
-      // A subject with zero competences defined for this term is skipped entirely - same
-      // "apcHasNoCompetence" precedent as MarkEntryManager's own whole-section export.
-      const subjectsData: ReportCardSubjectBundle[] = await Promise.all(
-        withCompetences
-          .filter(({ competences }) => competences.length > 0)
-          .map(async ({ subject, competences }) => {
-            const marksByCompetence = new Map<number, Map<number, Mark>>();
+      const findStaffLabel = (subjectId: number) => {
+        const attribution = attributions.find(
+          (a) => a.subject_id === subjectId && a.classe_id === classeId,
+        );
+        return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
+      };
+
+      let subjectsData: ReportCardSubjectBundle[];
+      if (isApc) {
+        const withCompetences = await Promise.all(
+          subjectsSorted.map(async (subject) => ({
+            subject,
+            competences: await SubjectReader.fetchCompetences(
+              accessToken,
+              connection,
+              schoolYear,
+              section,
+              classeId,
+              subject.subject_id,
+              term,
+            ),
+          })),
+        );
+        // A subject with zero competences defined for this term is skipped entirely - same
+        // "apcHasNoCompetence" precedent as MarkEntryManager's own whole-section export.
+        subjectsData = await Promise.all(
+          withCompetences
+            .filter(({ competences }) => competences.length > 0)
+            .map(async ({ subject, competences }) => {
+              const marksByCompetence = new Map<number, Map<number, Mark>>();
+              await Promise.all(
+                competences.map(async (comp) => {
+                  const marks = await MarkReader.fetchCompMarks(
+                    accessToken,
+                    connection,
+                    schoolYear,
+                    classeId,
+                    subject.subject_id,
+                    term,
+                    comp.subject_competence_id,
+                  );
+                  marksByCompetence.set(
+                    comp.subject_competence_id,
+                    new Map(marks.map((m) => [m.stud_id, m])),
+                  );
+                }),
+              );
+              return {
+                kind: "apc" as const,
+                subject,
+                competences,
+                marksByCompetence,
+                staffLabel: findStaffLabel(subject.subject_id),
+              };
+            }),
+        );
+      } else {
+        // Non-APC: each subject's marks live in student_subject, keyed by dbsequence - both
+        // sequences of the selected term feed the subject's MOY (see computeSeqAverage), same
+        // dbsequence derivation Mark entry itself uses (computeDbSequence(term, seq)).
+        subjectsData = await Promise.all(
+          subjectsSorted.map(async (subject) => {
+            const marksBySeq = new Map<number, Map<number, Mark>>();
             await Promise.all(
-              competences.map(async (comp) => {
-                const marks = await MarkReader.fetchCompMarks(
+              [1, 2].map(async (seq) => {
+                const marks = await MarkReader.fetchSeqMarks(
                   accessToken,
                   connection,
                   schoolYear,
                   classeId,
                   subject.subject_id,
-                  term,
-                  comp.subject_competence_id,
+                  computeDbSequence(term, seq),
                 );
-                marksByCompetence.set(
-                  comp.subject_competence_id,
-                  new Map(marks.map((m) => [m.stud_id, m])),
-                );
+                marksBySeq.set(seq, new Map(marks.map((m) => [m.stud_id, m])));
               }),
             );
-            const attribution = attributions.find(
-              (a) => a.subject_id === subject.subject_id && a.classe_id === classeId,
-            );
             return {
+              kind: "nonApc" as const,
               subject,
-              competences,
-              marksByCompetence,
-              staffLabel: attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "",
+              marksBySeq,
+              staffLabel: findStaffLabel(subject.subject_id),
             };
           }),
-      );
+        );
+      }
 
       const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
 
@@ -198,7 +238,7 @@ const ReportCardManager = () => {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClasseId, selectedTerm]);
+  }, [selectedClasseId, selectedTerm, isSelectedClasseApc]);
 
   const students = reportCardData?.students ?? [];
   const filteredStudents = students.filter((s) => {
@@ -300,7 +340,7 @@ const ReportCardManager = () => {
 
       {isLoadingClasses ? (
         <Loading />
-      ) : apcClasses.length === 0 ? (
+      ) : classes.length === 0 ? (
         <p className="opacity-60">{t.emptyClasses}</p>
       ) : (
         <>
@@ -311,7 +351,7 @@ const ReportCardManager = () => {
               value={selectedClasseId ?? ""}
               onChange={(e) => setSelectedClasseId(Number(e.target.value))}
             >
-              {apcClasses.map((c) => (
+              {classes.map((c) => (
                 <option key={c.classe_id} value={c.classe_id}>
                   {c.classe_name}
                 </option>
