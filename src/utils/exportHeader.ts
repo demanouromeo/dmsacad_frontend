@@ -24,6 +24,16 @@ const formatPhone = (phone: SchoolHeaderConfig["phone1"] | undefined): string =>
 export interface DrawPdfLetterheadOptions {
   // Report cards/bulletins omit the phone line - every other export keeps it (default true).
   includePhone?: boolean;
+  // Skips the horizontal separator rule normally drawn below the letterhead (default true, i.e.
+  // draw it) - the Honor Roll certificate (exportThPdf.ts) draws its header directly over a
+  // pre-designed background image that already provides its own visual framing, so the rule would
+  // be a stray line with nothing for it to separate.
+  includeLine?: boolean;
+  // Y (mm) the letterhead's first line starts at, and the logo is anchored 2mm above (default 14,
+  // matching the fixed 14mm top margin every other export uses). The Honor Roll certificate's
+  // background reserves a taller blank strip inside its own decorative corner border, so its
+  // letterhead needs to start lower to clear it.
+  startY?: number;
 }
 
 // Draws the letterhead (both language columns, centered logo + matricule, separator rule) at the
@@ -36,6 +46,8 @@ export const drawPdfLetterhead = (
   options?: DrawPdfLetterheadOptions,
 ): number => {
   const includePhone = options?.includePhone ?? true;
+  const includeLine = options?.includeLine ?? true;
+  const startY = options?.startY ?? 14;
   const { config, logoImage } = header;
   if (!config && !logoImage) {
     return 15;
@@ -49,7 +61,7 @@ export const drawPdfLetterhead = (
   // against the page margins, which left the lines within a block ragged against each other.
   const leftBlockCenterX = pageWidth * 0.25;
   const rightBlockCenterX = pageWidth * 0.75;
-  let y = 14;
+  let y = startY;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
@@ -101,7 +113,7 @@ export const drawPdfLetterhead = (
   }
 
   const logoSize = 18;
-  const logoY = 12;
+  const logoY = startY - 2;
   if (logoImage) {
     try {
       // jsPDF re-encodes any HTMLImageElement it's given as a PNG internally (via canvas), so
@@ -129,9 +141,11 @@ export const drawPdfLetterhead = (
   }
 
   y += 4;
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.5);
-  doc.line(leftX, y, rightX, y);
+  if (includeLine) {
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(leftX, y, rightX, y);
+  }
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);

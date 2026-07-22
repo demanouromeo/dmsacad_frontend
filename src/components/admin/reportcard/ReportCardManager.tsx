@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Printer } from "lucide-react";
+import { Award, Printer } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -20,12 +20,14 @@ import type { Staff } from "../../../interfaces/Staff";
 import type { ReportCardData } from "../../../interfaces/ReportCard";
 import {
   buildReportCardData,
+  computeThEligibility,
   formatRcNumber,
   type ReportCardRosterEntry,
   type ReportCardSubjectBundle,
 } from "../../../utils/reportCard/reportCardCompute";
 import { exportReportCardsToPdf } from "../../../utils/reportCard/exportReportCardPdf";
 import { exportNonApcReportCardsToPdf } from "../../../utils/reportCard/exportReportCardNonApcPdf";
+import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportThPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
@@ -407,6 +409,65 @@ const ReportCardManager = () => {
     setIsSaving(false);
   };
 
+  // Whole-section "Tableau d'Honneur" (Honor Roll) certificate batch - APC classes only for now
+  // (non-APC TH backgrounds/layout aren't wired up yet). Same load-per-classe loop as
+  // handlePrintAllClasses, but instead of one PDF per classe, every eligible student across every
+  // APC classe of the section (computeThEligibility(...).deserves===true - same eligibility rule
+  // already reused by the RC's own "APPRÉCIATION DU TRAVAIL" thText line) becomes one page of a
+  // single combined document, matching exportThPdf.ts's own one-doc/addPage-per-entry shape.
+  const handlePrintTh = async () => {
+    const apcClasses = classes.filter((c) => apcLevels.get(c.level) === true);
+    if (apcClasses.length === 0) {
+      showToast(t.printThEmpty, { type: "warning" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const thParam = await ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear);
+      if (!thParam) {
+        showToast(t.printThEmpty, { type: "warning" });
+        setIsSaving(false);
+        return;
+      }
+      const pages: ThPageData[] = [];
+      for (const classe of apcClasses) {
+        const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, true);
+        data.students.forEach((student) => {
+          const eligibility = computeThEligibility(
+            thParam,
+            student.discipline.absNonJust,
+            student.moyenneTrim,
+            student.isClassified,
+          );
+          if (eligibility.deserves) {
+            pages.push({
+              student,
+              classeName: classe.classe_name,
+              encouragement: eligibility.encouragement,
+              felicitation: eligibility.felicitation,
+            });
+          }
+        });
+      }
+      if (pages.length === 0) {
+        showToast(t.printThEmpty, { type: "warning" });
+        setIsSaving(false);
+        return;
+      }
+      const filename = buildTimestampedFilename(
+        "APC TH",
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      );
+      await exportThPdf(pages, selectedTerm, schoolHeader, thParam.val1, filename, language);
+      showToast(t.printSuccess, { type: "info" });
+    } catch (error) {
+      console.error("ReportCardManager.handlePrintTh(): Error", error);
+      showToast(t.printFailure, { type: "danger" });
+    }
+    setIsSaving(false);
+  };
+
   const handlePrintAll = () => handlePrint(students);
   const handlePrintSelection = () => {
     if (selectedIds.size === 0) {
@@ -488,6 +549,15 @@ const ReportCardManager = () => {
               >
                 <Printer className="w-4 h-4" />
                 {t.printAllClassesBtn}
+              </button>
+              <button
+                type="button"
+                className="btn btn-accent gap-2"
+                disabled={classes.length === 0}
+                onClick={handlePrintTh}
+              >
+                <Award className="w-4 h-4" />
+                {t.printThBtn}
               </button>
               <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
                 {t.printAnnualBtn}

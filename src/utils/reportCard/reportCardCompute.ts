@@ -142,11 +142,45 @@ export const formatRangText = (
   return `${rang}ème`;
 };
 
-// getThText() - ported from the user's reference Tableau d'honneur (Honor Roll) algorithm.
-// thText === "" means this student doesn't deserve it this term; a future whole-classe Honor Roll
-// printout will filter on that same emptiness check rather than a separate boolean. thParam.lb/ub
-// are the school's own encouragement/félicitations thresholds; thParam.lb_default is the actual
-// minimum term average required to make the roll at all (independent of lb/ub).
+export interface ThEligibility {
+  // false = this student doesn't deserve Tableau d'Honneur (Honor Roll) this term - encouragement/
+  // felicitation are always false too in that case.
+  deserves: boolean;
+  encouragement: boolean;
+  felicitation: boolean;
+}
+
+// computeThEligibility() - ported from the user's reference Tableau d'honneur (Honor Roll)
+// algorithm, shared by getThText (the RC's own "APPRÉCIATION DU TRAVAIL" line) and the dedicated
+// whole-section Honor Roll PDF (exportThPdf.ts, which also needs the encouragement/felicitation
+// booleans individually to tick the certificate's two checkboxes). thParam.lb_default is the
+// minimum term average required to make the roll at all; thParam.lb/thParam.ub are the (lower)
+// encouragement and (higher) félicitations thresholds respectively - both independently gated by
+// the same absUnjust < thParam.seuil_abs discipline check. A student meeting the félicitations
+// threshold necessarily also meets the lower encouragement one, so both can be true together -
+// matches the certificate's two independent checkboxes, which can both be ticked at once.
+export const computeThEligibility = (
+  thParam: ThParam | null,
+  absUnjust: number,
+  avgTerm: number,
+  isClassified: boolean,
+): ThEligibility => {
+  if (!thParam) {
+    return { deserves: false, encouragement: false, felicitation: false };
+  }
+  const deserves = avgTerm >= thParam.lb_default && isClassified && absUnjust < thParam.seuil_abs;
+  if (!deserves) {
+    return { deserves: false, encouragement: false, felicitation: false };
+  }
+  return {
+    deserves: true,
+    encouragement: avgTerm >= thParam.lb && absUnjust < thParam.seuil_abs,
+    felicitation: avgTerm >= thParam.ub && absUnjust < thParam.seuil_abs,
+  };
+};
+
+// getThText() - the RC's own "APPRÉCIATION DU TRAVAIL" line built from computeThEligibility above.
+// thText === "" means this student doesn't deserve it this term.
 export const getThText = (
   thParam: ThParam | null,
   absUnjust: number,
@@ -154,18 +188,15 @@ export const getThText = (
   isClassified: boolean,
   language: "fr" | "en",
 ): string => {
-  if (!thParam) {
+  const { deserves, encouragement, felicitation } = computeThEligibility(
+    thParam,
+    absUnjust,
+    avgTerm,
+    isClassified,
+  );
+  if (!deserves) {
     return "";
   }
-  if (!(avgTerm >= thParam.lb_default && isClassified && absUnjust < thParam.seuil_abs)) {
-    return "";
-  }
-  // encouragement/felicitation deliberately compare avgTerm against the algorithm's own
-  // hardcoded 14/16 thresholds, not thParam.lb/thParam.ub - ported as-is from the reference
-  // implementation, which computes these two flags before reassigning its working thresholds
-  // from thParam at all.
-  const encouragement = avgTerm >= 14 && absUnjust < thParam.seuil_abs;
-  const felicitation = avgTerm >= 16 && absUnjust < thParam.seuil_abs;
   let thText = language === "en" ? "Honor roll" : "Tableau d'honneur";
   if (encouragement) {
     thText += "+Encouragements";
