@@ -2,6 +2,7 @@ import { MyConstants } from "./MyConstants";
 import type { SchoolConfig } from "../interfaces/SchoolConfig";
 import type { ApiResult } from "../interfaces/ApiResult";
 import type { SchoolHeaderConfig } from "../interfaces/SchoolHeaderConfig";
+import type { AnnualReportCardParams } from "../interfaces/AnnualReportCardParams";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
   status: false,
@@ -147,6 +148,69 @@ export class SchoolInfoReader {
       return await response.json();
     } catch (error) {
       console.error(`SchoolInfoReader.saveSchoolInfo(): Error: ${error}`);
+      return NETWORK_ERROR_RESULT;
+    }
+  };
+
+  // ADMIN-only (SchoolInfoController::getAnnualReportCardParams, role:ADMIN group) - a whole-school
+  // setting (one basic_school_config row per school year), not per-user, hence server-side rather
+  // than localStorage. Returns null on any failure/no-row-yet, which the caller should treat the
+  // same as the un-set defaults (computationMethod=1 "Calcul simple", affichagePromotion=0).
+  public static fetchAnnualReportCardParams = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<AnnualReportCardParams | null> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/configs/getAnnualReportCardParams` +
+      `?connection=${encodeURIComponent(connection)}&year=${encodeURIComponent(year)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`SchoolInfoReader.fetchAnnualReportCardParams(): Error: ${error}`);
+      return null;
+    }
+  };
+
+  // ADMIN-only (SchoolInfoController::saveAnnualReportCardParams, role:ADMIN group) - update-only,
+  // returns a 404 ApiResult if the school year has no basic_school_config row yet (see the backend
+  // controller's own comment: it won't insert one, since it has no value for name_fr/name_en/phone1).
+  public static saveAnnualReportCardParams = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    computationMethod: boolean,
+    affichagePromotion: boolean,
+  ): Promise<ApiResult> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/configs/saveAnnualReportCardParams`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          connection,
+          year,
+          computationMethod: computationMethod ? 1 : 0,
+          affichagePromotion: affichagePromotion ? 1 : 0,
+        }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error(`SchoolInfoReader.saveAnnualReportCardParams(): Error: ${error}`);
       return NETWORK_ERROR_RESULT;
     }
   };

@@ -1970,10 +1970,10 @@ export const classifiedParamManagerTranslations = {
 };
 
 // "Paramètres du bulletin annuel" / "Annual report card parameters" - drives how a student's annual
-// average is computed from their 3 term averages (see AnnualRcAvgManager.tsx). Unlike
-// classifiedParamManagerTranslations' backing table, this setting is session-only
-// (MyConstants.ANNUAL_RC_AVG_SETTING_KEY, sessionStorage) - saveSuccess/saveFailure still exist since
-// Save is still an explicit user action, but there's no network round trip behind it.
+// average is computed from their 3 term averages, plus whether the report card shows their next-year
+// classe when promoted (see AnnualRcAvgManager.tsx). A whole-school setting, persisted server-side on
+// basic_school_config.val1/val2 (SchoolInfoController::getAnnualReportCardParams/
+// saveAnnualReportCardParams) - same single-record-form shape as classifiedParamManagerTranslations.
 export const annualRcAvgManagerTranslations = {
   fr: {
     title: "Paramètres du bulletin annuel",
@@ -1991,6 +1991,7 @@ export const annualRcAvgManagerTranslations = {
     affichagePromotionHintOff: "Exemple : Promu en ______________",
     saveBtn: "Save",
     saveSuccess: "Paramètres enregistrés avec succès.",
+    saveFailure: "Échec de l'enregistrement des paramètres.",
   },
   en: {
     title: "Annual report card parameters",
@@ -2008,6 +2009,7 @@ export const annualRcAvgManagerTranslations = {
     affichagePromotionHintOff: "Example: Promoted to ______________",
     saveBtn: "Save",
     saveSuccess: "Settings saved successfully.",
+    saveFailure: "Failed to save settings.",
   },
 };
 
