@@ -57,6 +57,64 @@
   .paddingx-1 {
     @apply px-5 md:px-[10%];
   }
+
+  /* Shared page shell for admin/manager screens - consistent max-width, padding, and header
+     shape so every CRUD screen reads as one product instead of each having its own ad hoc
+     spacing. Use page-shell-wide for screens whose table genuinely needs more horizontal room
+     (many columns - Staff, Student, mark entry, report card roster, ...). */
+  .page-shell {
+    @apply p-4 sm:p-6 md:p-10 max-w-5xl mx-auto;
+  }
+
+  .page-shell-wide {
+    @apply p-4 sm:p-6 md:p-10 max-w-[92rem] mx-auto;
+  }
+
+  .page-header {
+    @apply flex flex-wrap items-start justify-between gap-4 mb-6 md:mb-8;
+  }
+
+  .page-icon {
+    @apply flex items-center justify-center w-11 h-11 rounded-xl bg-primary/10 text-primary shrink-0;
+  }
+
+  .page-title {
+    @apply text-xl md:text-2xl font-bold tracking-tight text-base-content;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-base-content/60 mt-0.5;
+  }
+
+  /* One flat surface style for every card-like block (toolbars, tables, forms) - a subtle
+     border + shadow rather than daisyUI's bare bg-base-100, so content reads as grouped rather
+     than floating directly on the page background. */
+  .surface-card {
+    @apply bg-base-100 border border-base-content/10 rounded-2xl shadow-sm;
+  }
+
+  .table-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-3 p-4 border-b border-base-content/10;
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center gap-2 py-14 px-6 text-center text-base-content/50;
+  }
+
+  /* Muted, uppercase table headers instead of daisyUI's default plain-text thead, plus a
+     hover highlight per row - applied alongside daisyUI's own `table`/`table-zebra` classes,
+     not a replacement for them. */
+  .data-table thead th {
+    @apply bg-base-200/70 text-[0.7rem] uppercase tracking-wider text-base-content/55 font-semibold first:rounded-tl-2xl last:rounded-tr-2xl;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-primary/5;
+  }
 }
 
 html {

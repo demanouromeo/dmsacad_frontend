@@ -83,16 +83,16 @@ const ThParamManager = () => {
   };
 
   return (
-    <div className="p-10 flex flex-col items-center">
+    <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-6 text-center uppercase tracking-wide opacity-80">
-        {t.title}
-      </h1>
+      <h1 className="page-title mb-6 text-center">{t.title}</h1>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card w-full max-w-2xl flex justify-center py-16">
+          <Loading />
+        </div>
       ) : (
-        <div className="w-full max-w-2xl bg-base-100 rounded-2xl shadow-md p-8 flex flex-col gap-6">
+        <div className="w-full max-w-2xl surface-card p-6 md:p-8 flex flex-col gap-6">
           <p className="text-sm opacity-70">{t.description}</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

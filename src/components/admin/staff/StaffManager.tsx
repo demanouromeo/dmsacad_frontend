@@ -499,11 +499,12 @@ const StaffManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-        <div className="mb-6 flex flex-wrap gap-2 items-center">
+
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+        <div className="flex flex-wrap gap-2 items-center">
           <ExportButtons
             onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}
@@ -520,7 +521,7 @@ const StaffManager = () => {
           />
           <button
             type="button"
-            className="btn btn-neutral gap-2"
+            className="btn btn-outline btn-sm gap-2"
             disabled={isLoading}
             onClick={() => importFileInputRef.current?.click()}
           >
@@ -531,20 +532,30 @@ const StaffManager = () => {
       </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20 mb-6">
+          <Loading />
+        </div>
       ) : (
-        <>
-          <div className="max-w-5xl mx-auto">
+        <div className="surface-card overflow-hidden mb-6">
+          <div className="table-toolbar">
             <input
               type="text"
-              className="input w-full max-w-md mb-4"
+              className="input input-sm w-full max-w-xs"
               placeholder={t.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            <button
+              type="button"
+              className="btn btn-error btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
           </div>
-          <div className="overflow-x-auto w-full mb-4">
-            <table className="table w-full">
+          <div className="overflow-x-auto">
+            <table className="table table-zebra data-table">
               <thead>
                 <tr>
                   <th>
@@ -737,7 +748,7 @@ const StaffManager = () => {
                           />
                         )}
                       </td>
-                      <td>
+                      <td className="text-right">
                         {isEditing ? (
                           <>
                             <button
@@ -770,129 +781,120 @@ const StaffManager = () => {
                 })}
                 {staffList.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="text-center opacity-60">
-                      {t.emptyList}
+                    <td colSpan={13}>
+                      <p className="empty-state">{t.emptyList}</p>
                     </td>
                   </tr>
                 )}
                 {staffList.length > 0 && filteredStaffList.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="text-center opacity-60">
-                      {t.noSearchResults}
+                    <td colSpan={13}>
+                      <p className="empty-state">{t.noSearchResults}</p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          <div className="flex justify-center sm:justify-start mb-6">
-            <button
-              type="button"
-              className="btn btn-error btn-sm"
-              disabled={selectedIds.size === 0}
-              onClick={handleDeleteSelected}
-            >
-              {t.deleteSelectionBtn(selectedIds.size)}
-            </button>
-          </div>
-        </>
+        </div>
       )}
 
-      <form
-        onSubmit={handleAdd}
-        className="flex flex-wrap justify-center sm:justify-start gap-2 max-w-4xl items-start mx-auto sm:mx-0"
-      >
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholderName}
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholderSurname}
-          value={newSurname}
-          onChange={(e) => setNewSurname(e.target.value)}
-        />
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholderPhone}
-          value={newPhone}
-          onChange={(e) => setNewPhone(e.target.value)}
-        />
-        <select
-          className="select"
-          value={newSexe}
-          onChange={(e) => setNewSexe(e.target.value)}
+      <div className="surface-card p-4 md:p-5">
+        <form
+          onSubmit={handleAdd}
+          className="flex flex-wrap gap-2 items-start"
         >
-          <option value="M">{t.sexeMale}</option>
-          <option value="F">{t.sexeFemale}</option>
-        </select>
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholderCivility}
-          value={newCivility}
-          onChange={(e) => setNewCivility(e.target.value)}
-        />
-        <select
-          className="select"
-          value={newFunction}
-          onChange={(e) => setNewFunction(e.target.value)}
-        >
-          {FUNCTION_CODES.map((code) => (
-            <option key={code} value={code}>
-              {functionLabel(code)}
-            </option>
-          ))}
-        </select>
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholderLogin}
-          value={newLogin}
-          onChange={(e) => setNewLogin(e.target.value)}
-        />
-        <div className="relative">
           <input
-            type={showNewPassword ? "text" : "password"}
-            className="input pr-10"
-            placeholder={t.addPlaceholderPassword}
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholderName}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
           />
+          <input
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholderSurname}
+            value={newSurname}
+            onChange={(e) => setNewSurname(e.target.value)}
+          />
+          <input
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholderPhone}
+            value={newPhone}
+            onChange={(e) => setNewPhone(e.target.value)}
+          />
+          <select
+            className="select"
+            value={newSexe}
+            onChange={(e) => setNewSexe(e.target.value)}
+          >
+            <option value="M">{t.sexeMale}</option>
+            <option value="F">{t.sexeFemale}</option>
+          </select>
+          <input
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholderCivility}
+            value={newCivility}
+            onChange={(e) => setNewCivility(e.target.value)}
+          />
+          <select
+            className="select"
+            value={newFunction}
+            onChange={(e) => setNewFunction(e.target.value)}
+          >
+            {FUNCTION_CODES.map((code) => (
+              <option key={code} value={code}>
+                {functionLabel(code)}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholderLogin}
+            value={newLogin}
+            onChange={(e) => setNewLogin(e.target.value)}
+          />
+          <div className="relative">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              className="input pr-10"
+              placeholder={t.addPlaceholderPassword}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
+              tabIndex={-1}
+              aria-label={
+                showNewPassword ? t.hidePasswordHint : t.showPasswordHint
+              }
+              onClick={() => setShowNewPassword((prev) => !prev)}
+            >
+              {showNewPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
-            tabIndex={-1}
-            aria-label={
-              showNewPassword ? t.hidePasswordHint : t.showPasswordHint
-            }
-            onClick={() => setShowNewPassword((prev) => !prev)}
+            className="btn btn-outline gap-2"
+            onClick={generateLoginAndPassword}
           >
-            {showNewPassword ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
+            <Wand2 className="w-4 h-4" />
+            {t.generateCredentialsBtn}
           </button>
-        </div>
-        <button
-          type="button"
-          className="btn btn-neutral gap-2"
-          onClick={generateLoginAndPassword}
-        >
-          <Wand2 className="w-4 h-4" />
-          {t.generateCredentialsBtn}
-        </button>
-        <button type="submit" className="btn btn-neutral">
-          {t.addBtn}
-        </button>
-      </form>
+          <button type="submit" className="btn btn-primary">
+            {t.addBtn}
+          </button>
+        </form>
+      </div>
 
       <StaffPhotoDialog
         staff={photoDialogStaff}

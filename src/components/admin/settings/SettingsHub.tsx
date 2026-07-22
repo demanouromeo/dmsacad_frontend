@@ -34,9 +34,9 @@ const SettingsHub = () => {
   ];
 
   return (
-    <div className="p-10 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-6">{t.title}</h1>
-      <div className="flex flex-wrap justify-center gap-6 max-w-3xl">
+    <div className="page-shell flex flex-col items-center">
+      <h1 className="page-title mb-6">{t.title}</h1>
+      <div className="flex flex-wrap justify-center gap-6">
         {items.map((item) => (
           <div key={item.key} className="w-40">
             <AdminMenuCard label={item.label} icon={item.icon} to={item.to} />

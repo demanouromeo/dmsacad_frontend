@@ -604,12 +604,15 @@ const ClasseManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-        <div className="mb-6 flex flex-wrap gap-2 items-center">
+
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{t.sectionHint(section)}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
           <ExportButtons
             onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}
@@ -626,7 +629,7 @@ const ClasseManager = () => {
           />
           <button
             type="button"
-            className="btn btn-neutral gap-2"
+            className="btn btn-outline btn-sm gap-2"
             disabled={isLoading}
             onClick={() => importFileInputRef.current?.click()}
           >
@@ -637,18 +640,30 @@ const ClasseManager = () => {
       </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20 mb-6">
+          <Loading />
+        </div>
       ) : (
-        <>
-          <input
-            type="text"
-            className="input w-full max-w-5xl mb-4 mx-auto block"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="overflow-x-auto w-full max-w-5xl mx-auto mb-4">
-            <table className="table w-full">
+        <div className="surface-card overflow-hidden mb-6">
+          <div className="table-toolbar">
+            <input
+              type="text"
+              className="input input-sm w-full max-w-xs"
+              placeholder={t.searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-error btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table table-zebra data-table">
               <thead>
                 <tr>
                   <th>
@@ -798,7 +813,7 @@ const ClasseManager = () => {
                         <option value="1">{t.apcYes}</option>
                       </select>
                     </td>
-                    <td>
+                    <td className="text-right">
                       {editingId === classe.classe_id ? (
                         <>
                           <button
@@ -830,111 +845,102 @@ const ClasseManager = () => {
                 ))}
                 {classes.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center opacity-60">
-                      {t.emptySection}
+                    <td colSpan={9}>
+                      <p className="empty-state">{t.emptySection}</p>
                     </td>
                   </tr>
                 )}
                 {classes.length > 0 && filteredClasses.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center opacity-60">
-                      {t.noSearchResults}
+                    <td colSpan={9}>
+                      <p className="empty-state">{t.noSearchResults}</p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          <div className="max-w-5xl mx-auto">
-            <button
-              type="button"
-              className="btn btn-error btn-sm mb-6"
-              disabled={selectedIds.size === 0}
-              onClick={handleDeleteSelected}
-            >
-              {t.deleteSelectionBtn(selectedIds.size)}
-            </button>
-          </div>
-        </>
+        </div>
       )}
 
-      <form
-        onSubmit={handleAdd}
-        className="flex flex-wrap gap-2 max-w-2xl mx-auto items-start"
-      >
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholder}
-          value={newClasseName}
-          onChange={(e) =>
-            setNewClasseName(sanitizeFiliereOrSpecialityName(e.target.value))
-          }
-        />
-        <input
-          type="number"
-          min={1}
-          max={maxLevel}
-          className="input w-24"
-          placeholder={t.levelPlaceholder}
-          value={newLevel}
-          onChange={(e) => setNewLevel(e.target.value)}
-        />
-        <select
-          className="select"
-          value={newSpecialityId}
-          onChange={(e) => setNewSpecialityId(e.target.value)}
+      <div className="surface-card p-4 md:p-5">
+        <form
+          onSubmit={handleAdd}
+          className="flex flex-wrap gap-2 items-start"
         >
-          <option value="">{t.noSpecialityOption}</option>
-          {specialities.map((speciality) => (
-            <option
-              key={speciality.speciality_id}
-              value={speciality.speciality_id}
-            >
-              {speciality.speciality_name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="select"
-          value={newClasseMasterId}
-          onChange={(e) => setNewClasseMasterId(e.target.value)}
-        >
-          <option value="">{t.noClasseMasterOption}</option>
-          {classMasters.map((staff) => (
-            <option key={staff.staff_id} value={staff.staff_id}>
-              {formatStaffLabel(staff)}
-            </option>
-          ))}
-        </select>
-        <select
-          className="select"
-          value={newSgId}
-          onChange={(e) => setNewSgId(e.target.value)}
-        >
-          <option value="">{t.noSgOption}</option>
-          {sgStaff.map((staff) => (
-            <option key={staff.staff_id} value={staff.staff_id}>
-              {formatStaffLabel(staff)}
-            </option>
-          ))}
-        </select>
-        <label className="flex items-center gap-2">
-          {t.apcLabel}
+          <input
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholder}
+            value={newClasseName}
+            onChange={(e) =>
+              setNewClasseName(sanitizeFiliereOrSpecialityName(e.target.value))
+            }
+          />
+          <input
+            type="number"
+            min={1}
+            max={maxLevel}
+            className="input w-24"
+            placeholder={t.levelPlaceholder}
+            value={newLevel}
+            onChange={(e) => setNewLevel(e.target.value)}
+          />
           <select
             className="select"
-            value={newApc ? "1" : "0"}
-            onChange={(e) => setNewApc(e.target.value === "1")}
+            value={newSpecialityId}
+            onChange={(e) => setNewSpecialityId(e.target.value)}
           >
-            <option value="0">{t.apcNo}</option>
-            <option value="1">{t.apcYes}</option>
+            <option value="">{t.noSpecialityOption}</option>
+            {specialities.map((speciality) => (
+              <option
+                key={speciality.speciality_id}
+                value={speciality.speciality_id}
+              >
+                {speciality.speciality_name}
+              </option>
+            ))}
           </select>
-        </label>
-        <button type="submit" className="btn btn-neutral">
-          {t.addBtn}
-        </button>
-      </form>
+          <select
+            className="select"
+            value={newClasseMasterId}
+            onChange={(e) => setNewClasseMasterId(e.target.value)}
+          >
+            <option value="">{t.noClasseMasterOption}</option>
+            {classMasters.map((staff) => (
+              <option key={staff.staff_id} value={staff.staff_id}>
+                {formatStaffLabel(staff)}
+              </option>
+            ))}
+          </select>
+          <select
+            className="select"
+            value={newSgId}
+            onChange={(e) => setNewSgId(e.target.value)}
+          >
+            <option value="">{t.noSgOption}</option>
+            {sgStaff.map((staff) => (
+              <option key={staff.staff_id} value={staff.staff_id}>
+                {formatStaffLabel(staff)}
+              </option>
+            ))}
+          </select>
+          <label className="flex items-center gap-2">
+            {t.apcLabel}
+            <select
+              className="select"
+              value={newApc ? "1" : "0"}
+              onChange={(e) => setNewApc(e.target.value === "1")}
+            >
+              <option value="0">{t.apcNo}</option>
+              <option value="1">{t.apcYes}</option>
+            </select>
+          </label>
+          <button type="submit" className="btn btn-primary">
+            {t.addBtn}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

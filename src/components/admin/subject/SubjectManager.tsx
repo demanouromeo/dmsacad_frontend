@@ -359,12 +359,15 @@ const SubjectManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell">
       {isSaving && <LoadingOverlay />}
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-        <div className="mb-6 flex flex-wrap gap-2 items-center">
+
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{t.sectionHint(section)}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
           <ExportButtons
             onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}
@@ -381,7 +384,7 @@ const SubjectManager = () => {
           />
           <button
             type="button"
-            className="btn btn-neutral gap-2"
+            className="btn btn-outline btn-sm gap-2"
             disabled={isLoading}
             onClick={() => importFileInputRef.current?.click()}
           >
@@ -392,18 +395,30 @@ const SubjectManager = () => {
       </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20 mb-6">
+          <Loading />
+        </div>
       ) : (
-        <>
-          <input
-            type="text"
-            className="input w-full max-w-2xl mb-4 mx-auto block"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="overflow-x-auto w-full max-w-2xl mx-auto mb-4">
-            <table className="table w-full">
+        <div className="surface-card overflow-hidden mb-6">
+          <div className="table-toolbar">
+            <input
+              type="text"
+              className="input input-sm w-full max-w-xs"
+              placeholder={t.searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-error btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table table-zebra data-table">
               <thead>
                 <tr>
                   <th>
@@ -457,7 +472,7 @@ const SubjectManager = () => {
                         subject.subject_title
                       )}
                     </td>
-                    <td>
+                    <td className="text-right">
                       {editingId === subject.subject_id ? (
                         <>
                           <button
@@ -489,49 +504,40 @@ const SubjectManager = () => {
                 ))}
                 {subjects.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center opacity-60">
-                      {t.emptySection}
+                    <td colSpan={4}>
+                      <p className="empty-state">{t.emptySection}</p>
                     </td>
                   </tr>
                 )}
                 {subjects.length > 0 && filteredSubjects.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center opacity-60">
-                      {t.noSearchResults}
+                    <td colSpan={4}>
+                      <p className="empty-state">{t.noSearchResults}</p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          <div className="max-w-2xl mx-auto">
-            <button
-              type="button"
-              className="btn btn-error btn-sm mb-6"
-              disabled={selectedIds.size === 0}
-              onClick={handleDeleteSelected}
-            >
-              {t.deleteSelectionBtn(selectedIds.size)}
-            </button>
-          </div>
-        </>
+        </div>
       )}
 
-      <form onSubmit={handleAdd} className="flex gap-2 max-w-xs mx-auto">
-        <input
-          type="text"
-          className="input w-full"
-          placeholder={t.addPlaceholder}
-          value={newSubjectTitle}
-          onChange={(e) =>
-            setNewSubjectTitle(sanitizeFiliereOrSpecialityName(e.target.value))
-          }
-        />
-        <button type="submit" className="btn btn-neutral">
-          {t.addBtn}
-        </button>
-      </form>
+      <div className="surface-card p-4 md:p-5 max-w-md">
+        <form onSubmit={handleAdd} className="flex gap-2">
+          <input
+            type="text"
+            className="input w-full"
+            placeholder={t.addPlaceholder}
+            value={newSubjectTitle}
+            onChange={(e) =>
+              setNewSubjectTitle(sanitizeFiliereOrSpecialityName(e.target.value))
+            }
+          />
+          <button type="submit" className="btn btn-primary">
+            {t.addBtn}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

@@ -295,35 +295,48 @@ const SpecialityManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell">
       {isSaving && <LoadingOverlay />}
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
-        <div className="mb-6">
-          <ExportButtons
-            onExportExcel={handleExportExcel}
-            onExportPdf={handleExportPdf}
-            excelLabel={et.excelBtn}
-            pdfLabel={et.pdfBtn}
-            disabled={isLoading || specialities.length === 0}
-          />
+
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
+        <ExportButtons
+          onExportExcel={handleExportExcel}
+          onExportPdf={handleExportPdf}
+          excelLabel={et.excelBtn}
+          pdfLabel={et.pdfBtn}
+          disabled={isLoading || specialities.length === 0}
+        />
       </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20 mb-6">
+          <Loading />
+        </div>
       ) : (
-        <>
-          <input
-            type="text"
-            className="input w-full max-w-3xl mb-4 mx-auto block"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="overflow-x-auto w-full max-w-3xl mx-auto mb-4">
-            <table className="table w-full">
+        <div className="surface-card overflow-hidden mb-6">
+          <div className="table-toolbar">
+            <input
+              type="text"
+              className="input input-sm w-full max-w-xs"
+              placeholder={t.searchPlaceholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-error btn-sm"
+              disabled={selectedIds.size === 0}
+              onClick={handleDeleteSelected}
+            >
+              {t.deleteSelectionBtn(selectedIds.size)}
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table table-zebra data-table">
               <thead>
                 <tr>
                   <th>
@@ -454,91 +467,82 @@ const SpecialityManager = () => {
                 ))}
                 {specialities.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center opacity-60">
-                      {t.emptySection}
+                    <td colSpan={6}>
+                      <p className="empty-state">{t.emptySection}</p>
                     </td>
                   </tr>
                 )}
                 {specialities.length > 0 && filteredSpecialities.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center opacity-60">
-                      {t.noSearchResults}
+                    <td colSpan={6}>
+                      <p className="empty-state">{t.noSearchResults}</p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          <div className="max-w-3xl mx-auto">
-            <button
-              type="button"
-              className="btn btn-error btn-sm mb-6"
-              disabled={selectedIds.size === 0}
-              onClick={handleDeleteSelected}
-            >
-              {t.deleteSelectionBtn(selectedIds.size)}
-            </button>
-          </div>
-        </>
+        </div>
       )}
 
-      <form
-        onSubmit={handleAdd}
-        className="flex flex-wrap gap-2 max-w-2xl mx-auto items-start"
-      >
-        <select
-          className="select"
-          value={selectedFiliere}
-          onChange={(e) => setSelectedFiliere(e.target.value)}
-          disabled={filieres.length === 0}
+      <div className="surface-card p-4 md:p-5">
+        <form
+          onSubmit={handleAdd}
+          className="flex flex-wrap gap-2 items-start"
         >
-          {filieres.length === 0 && (
-            <option value="">{t.noFiliereOption}</option>
-          )}
-          {filieres.map((filiere) => (
-            <option key={filiere.filiere_id} value={filiere.nom_filiere}>
-              {filiere.nom_filiere}
-            </option>
-          ))}
-        </select>
-        <input
-          type="text"
-          className="input"
-          placeholder={t.addPlaceholder}
-          value={newSpecialityName}
-          onChange={(e) =>
-            setNewSpecialityName(sanitizeFiliereOrSpecialityName(e.target.value))
-          }
-        />
-        <input
-          type="text"
-          className="input"
-          placeholder={t.descriptionPlaceholder}
-          value={newDescription}
-          maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
-          onChange={(e) =>
-            setNewDescription(
-              sanitizeFiliereOrSpecialityName(e.target.value).slice(
-                0,
-                MAX_SPECIALITY_DESCRIPTION_LENGTH,
-              ),
-            )
-          }
-        />
-        <button
-          type="submit"
-          className="btn btn-neutral"
-          disabled={filieres.length === 0}
-        >
-          {t.addBtn}
-        </button>
-      </form>
-      {filieres.length === 0 && (
-        <p className="text-sm opacity-60 mt-2 max-w-2xl mx-auto text-center">
-          {t.createFiliereFirst}
-        </p>
-      )}
+          <select
+            className="select"
+            value={selectedFiliere}
+            onChange={(e) => setSelectedFiliere(e.target.value)}
+            disabled={filieres.length === 0}
+          >
+            {filieres.length === 0 && (
+              <option value="">{t.noFiliereOption}</option>
+            )}
+            {filieres.map((filiere) => (
+              <option key={filiere.filiere_id} value={filiere.nom_filiere}>
+                {filiere.nom_filiere}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            className="input"
+            placeholder={t.addPlaceholder}
+            value={newSpecialityName}
+            onChange={(e) =>
+              setNewSpecialityName(sanitizeFiliereOrSpecialityName(e.target.value))
+            }
+          />
+          <input
+            type="text"
+            className="input"
+            placeholder={t.descriptionPlaceholder}
+            value={newDescription}
+            maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
+            onChange={(e) =>
+              setNewDescription(
+                sanitizeFiliereOrSpecialityName(e.target.value).slice(
+                  0,
+                  MAX_SPECIALITY_DESCRIPTION_LENGTH,
+                ),
+              )
+            }
+          />
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={filieres.length === 0}
+          >
+            {t.addBtn}
+          </button>
+        </form>
+        {filieres.length === 0 && (
+          <p className="text-sm text-base-content/60 mt-2">
+            {t.createFiliereFirst}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

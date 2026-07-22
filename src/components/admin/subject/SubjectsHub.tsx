@@ -41,9 +41,9 @@ const SubjectsHub = () => {
   ];
 
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-bold mb-6">{t.title}</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-3xl">
+    <div className="page-shell">
+      <h1 className="page-title mb-6">{t.title}</h1>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
         {items.map((item) => (
           <AdminMenuCard
             key={item.key}

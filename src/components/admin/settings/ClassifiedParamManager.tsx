@@ -69,16 +69,16 @@ const ClassifiedParamManager = () => {
   };
 
   return (
-    <div className="p-10 flex flex-col items-center">
+    <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-6 text-center uppercase tracking-wide opacity-80">
-        {t.title}
-      </h1>
+      <h1 className="page-title mb-6 text-center">{t.title}</h1>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card w-full max-w-2xl flex justify-center py-16">
+          <Loading />
+        </div>
       ) : (
-        <div className="w-full max-w-2xl bg-base-100 rounded-2xl shadow-md p-8 flex flex-col gap-2">
+        <div className="w-full max-w-2xl surface-card p-6 md:p-8 flex flex-col gap-2">
           <label
             className={`flex items-start gap-4 p-4 rounded-lg cursor-pointer ${
               useRateClassification ? "bg-base-200" : ""

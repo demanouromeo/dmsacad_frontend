@@ -25,12 +25,10 @@ const AnnualRcAvgManager = () => {
   };
 
   return (
-    <div className="p-10 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-6 text-center uppercase tracking-wide opacity-80">
-        {t.title}
-      </h1>
+    <div className="page-shell flex flex-col items-center">
+      <h1 className="page-title mb-6 text-center">{t.title}</h1>
 
-      <div className="w-full max-w-2xl bg-base-100 rounded-2xl shadow-md p-8 flex flex-col gap-2">
+      <div className="w-full max-w-2xl surface-card p-6 md:p-8 flex flex-col gap-2">
         <p className="text-sm opacity-70 mb-2">{t.description}</p>
 
         <label

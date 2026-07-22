@@ -546,18 +546,25 @@ const StudentManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{t.sectionHint(section)}</p>
+        </div>
+      </div>
 
       {isLoadingClasses ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : classes.length === 0 ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
+        <p className="empty-state">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+          <div className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <label className="font-medium">{t.classeLabel}</label>
               <select
@@ -583,7 +590,7 @@ const StudentManager = () => {
               />
               <button
                 type="button"
-                className="btn btn-neutral btn-sm gap-2"
+                className="btn btn-outline btn-sm gap-2"
                 disabled={isLoadingStudents}
                 onClick={() => importFileInputRef.current?.click()}
               >
@@ -599,7 +606,7 @@ const StudentManager = () => {
               />
               <button
                 type="button"
-                className="btn btn-neutral btn-sm gap-2"
+                className="btn btn-outline btn-sm gap-2"
                 disabled={isLoadingStudents || selectedClasseId === null}
                 onClick={() => selectedClasseId && loadStudents(selectedClasseId)}
               >
@@ -608,44 +615,56 @@ const StudentManager = () => {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm bg-base-100 rounded-xl px-4 py-2">
-              <span>
+            <div className="flex flex-wrap gap-2 text-sm bg-base-200/50 rounded-xl px-4 py-3">
+              <span className="badge badge-ghost gap-1">
                 {t.statFilles}: <b>{stats.filles}</b>
               </span>
-              <span>
+              <span className="badge badge-ghost gap-1">
                 {t.statGarcons}: <b>{stats.garcons}</b>
               </span>
-              <span>
+              <span className="badge badge-primary badge-outline gap-1">
                 {t.statTotal}: <b>{stats.total}</b>
               </span>
-              <span>
+              <span className="badge badge-ghost gap-1">
                 {t.statRedoublants}: <b>{stats.redoublants}</b>
               </span>
-              <span>
+              <span className="badge badge-ghost gap-1">
                 {t.statNouveaux}: <b>{nouveaux}</b>
               </span>
-              <span>
+              <span className="badge badge-ghost gap-1">
                 {t.statHandicapes}: <b>{stats.handicapes}</b>
               </span>
-              <span>
+              <span className="badge badge-ghost gap-1">
                 {t.statCasSocial}: <b>{stats.casSocial}</b>
               </span>
             </div>
           </div>
 
           {isLoadingStudents ? (
-            <Loading />
+            <div className="surface-card flex justify-center py-20 mb-6">
+              <Loading />
+            </div>
           ) : (
-            <>
-              <input
-                type="text"
-                className="input w-full max-w-2xl mb-4"
-                placeholder={t.searchPlaceholder}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <div className="overflow-x-auto w-full mb-4">
-                <table className="table w-full">
+            <div className="surface-card overflow-hidden mb-6">
+              <div className="table-toolbar">
+                <input
+                  type="text"
+                  className="input input-sm w-full max-w-xs"
+                  placeholder={t.searchPlaceholder}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-error btn-sm"
+                  disabled={selectedIds.size === 0}
+                  onClick={handleDeleteSelected}
+                >
+                  {t.deleteSelectionBtn(selectedIds.size)}
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="table table-zebra data-table">
                   <thead>
                     <tr>
                       <th>
@@ -828,7 +847,7 @@ const StudentManager = () => {
                               <input type="checkbox" className="checkbox" checked={student.handicape === 1} disabled />
                             )}
                           </td>
-                          <td>
+                          <td className="text-right">
                             {isEditing ? (
                               <>
                                 <button
@@ -861,132 +880,125 @@ const StudentManager = () => {
                     })}
                     {students.length === 0 && (
                       <tr>
-                        <td colSpan={12} className="text-center opacity-60">
-                          {t.emptyList}
+                        <td colSpan={12}>
+                          <p className="empty-state">{t.emptyList}</p>
                         </td>
                       </tr>
                     )}
                     {students.length > 0 && filteredStudents.length === 0 && (
                       <tr>
-                        <td colSpan={12} className="text-center opacity-60">
-                          {t.noSearchResults}
+                        <td colSpan={12}>
+                          <p className="empty-state">{t.noSearchResults}</p>
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
-
-              <button
-                type="button"
-                className="btn btn-error btn-sm mb-6"
-                disabled={selectedIds.size === 0}
-                onClick={handleDeleteSelected}
-              >
-                {t.deleteSelectionBtn(selectedIds.size)}
-              </button>
-            </>
+            </div>
           )}
 
-          <form onSubmit={handleAdd} className="flex flex-wrap gap-2 max-w-4xl items-start">
-            <div className="tooltip" data-tip={t.nameHint}>
-              <input
-                type="text"
-                className="input"
-                placeholder={t.addPlaceholderName}
-                value={newFields.name}
-                onChange={(e) =>
-                  setNewFields({ ...newFields, name: sanitizeStudentName(e.target.value) })
-                }
-              />
-            </div>
-            <div className="tooltip" data-tip={t.surnameHint}>
-              <input
-                type="text"
-                className="input"
-                placeholder={t.addPlaceholderSurname}
-                value={newFields.surname}
-                onChange={(e) =>
-                  setNewFields({ ...newFields, surname: sanitizeStudentName(e.target.value) })
-                }
-              />
-            </div>
-            <div className="tooltip" data-tip={t.bdayHint}>
-              <input
-                type="date"
-                className="input"
-                value={newFields.bday}
-                onChange={(e) => setNewFields({ ...newFields, bday: e.target.value })}
-              />
-            </div>
-            <div className="tooltip" data-tip={t.bplaceHint}>
-              <input
-                type="text"
-                className="input"
-                placeholder={t.addPlaceholderBplace}
-                value={newFields.bplace}
-                onChange={(e) =>
-                  setNewFields({ ...newFields, bplace: sanitizeStudentName(e.target.value) })
-                }
-              />
-            </div>
-            <div className="tooltip" data-tip={t.sexeHint}>
-              <select
-                className="select"
-                value={newFields.sexe}
-                onChange={(e) =>
-                  setNewFields({ ...newFields, sexe: e.target.value === "F" ? "F" : "M" })
-                }
-              >
-                <option value="M">{t.sexeMale}</option>
-                <option value="F">{t.sexeFemale}</option>
-              </select>
-            </div>
-            <div className="tooltip" data-tip={t.repeatingHint}>
-              <select
-                className="select"
-                value={newFields.repeating ? "1" : "0"}
-                onChange={(e) =>
-                  setNewFields({ ...newFields, repeating: e.target.value === "1" })
-                }
-              >
-                <option value="0">{t.repeatingNo}</option>
-                <option value="1">{t.repeatingYes}</option>
-              </select>
-            </div>
-            <div className="tooltip" data-tip={t.handicapeHint}>
-              <label className="flex items-center gap-2">
-                {t.tableHeaderHandicape}
+          <div className="surface-card p-4 md:p-5">
+            <form onSubmit={handleAdd} className="flex flex-wrap gap-2 items-start">
+              <div className="tooltip" data-tip={t.nameHint}>
                 <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={newFields.handicape}
-                  onChange={(e) => setNewFields({ ...newFields, handicape: e.target.checked })}
+                  type="text"
+                  className="input"
+                  placeholder={t.addPlaceholderName}
+                  value={newFields.name}
+                  onChange={(e) =>
+                    setNewFields({ ...newFields, name: sanitizeStudentName(e.target.value) })
+                  }
                 />
-              </label>
-            </div>
-            <div className="tooltip" data-tip={t.matriculeHint}>
-              <input
-                type="text"
-                className="input"
-                placeholder={t.addPlaceholderMatricule}
-                value={newMatricule}
-                onChange={(e) => setNewMatricule(e.target.value)}
-              />
-            </div>
-            <button
-              type="button"
-              className="btn btn-neutral gap-2"
-              disabled={!selectedClasse || isGeneratingMatricule}
-              onClick={handleGenerateMatricule}
-            >
-              <Wand2 className="w-4 h-4" />
-              {t.generateMatriculeBtn}
-            </button>
-            <button type="submit" className="btn btn-neutral">
-              {t.addBtn}
-            </button>
-          </form>
+              </div>
+              <div className="tooltip" data-tip={t.surnameHint}>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={t.addPlaceholderSurname}
+                  value={newFields.surname}
+                  onChange={(e) =>
+                    setNewFields({ ...newFields, surname: sanitizeStudentName(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="tooltip" data-tip={t.bdayHint}>
+                <input
+                  type="date"
+                  className="input"
+                  value={newFields.bday}
+                  onChange={(e) => setNewFields({ ...newFields, bday: e.target.value })}
+                />
+              </div>
+              <div className="tooltip" data-tip={t.bplaceHint}>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={t.addPlaceholderBplace}
+                  value={newFields.bplace}
+                  onChange={(e) =>
+                    setNewFields({ ...newFields, bplace: sanitizeStudentName(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="tooltip" data-tip={t.sexeHint}>
+                <select
+                  className="select"
+                  value={newFields.sexe}
+                  onChange={(e) =>
+                    setNewFields({ ...newFields, sexe: e.target.value === "F" ? "F" : "M" })
+                  }
+                >
+                  <option value="M">{t.sexeMale}</option>
+                  <option value="F">{t.sexeFemale}</option>
+                </select>
+              </div>
+              <div className="tooltip" data-tip={t.repeatingHint}>
+                <select
+                  className="select"
+                  value={newFields.repeating ? "1" : "0"}
+                  onChange={(e) =>
+                    setNewFields({ ...newFields, repeating: e.target.value === "1" })
+                  }
+                >
+                  <option value="0">{t.repeatingNo}</option>
+                  <option value="1">{t.repeatingYes}</option>
+                </select>
+              </div>
+              <div className="tooltip" data-tip={t.handicapeHint}>
+                <label className="flex items-center gap-2">
+                  {t.tableHeaderHandicape}
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={newFields.handicape}
+                    onChange={(e) => setNewFields({ ...newFields, handicape: e.target.checked })}
+                  />
+                </label>
+              </div>
+              <div className="tooltip" data-tip={t.matriculeHint}>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={t.addPlaceholderMatricule}
+                  value={newMatricule}
+                  onChange={(e) => setNewMatricule(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline gap-2"
+                disabled={!selectedClasse || isGeneratingMatricule}
+                onClick={handleGenerateMatricule}
+              >
+                <Wand2 className="w-4 h-4" />
+                {t.generateMatriculeBtn}
+              </button>
+              <button type="submit" className="btn btn-primary">
+                {t.addBtn}
+              </button>
+            </form>
+          </div>
         </>
       )}
 

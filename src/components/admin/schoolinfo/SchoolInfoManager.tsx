@@ -238,20 +238,22 @@ const SchoolInfoManager = () => {
     language === "fr" ? responsable.fr : responsable.en;
 
   return (
-    <div className="p-10">
+    <div className="page-shell">
       {isSaving && <LoadingOverlay />}
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4 text-center">{t.title}</h1>
-        <p className="mb-6 opacity-70 text-sm text-center">
+        <h1 className="page-title mb-1 text-center">{t.title}</h1>
+        <p className="page-subtitle mb-6 text-center">
           {t.requiredHint}
         </p>
 
         {isLoading ? (
-          <Loading />
+          <div className="surface-card flex justify-center py-20">
+            <Loading />
+          </div>
         ) : (
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          className="surface-card p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
         <div>
           <label className="label" htmlFor="schoolName">

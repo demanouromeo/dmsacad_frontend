@@ -66,26 +66,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, yearVal);
     sessionStorage.setItem(MyConstants.SECTION_KEY, sectionVal);
 
-    // Best-effort: the school header (name/address/logo for printed & exported documents) is
-    // refreshed on every login, but a failure here must never block the login itself.
-    const headerConfig = await SchoolInfoReader.fetchSchoolConfigOfYear(
-      result.access_token,
-      connectionVal,
-      yearVal,
-    );
-    if (headerConfig) {
-      setSchoolHeaderCookie(MyConstants.SCHOOL_HEADER_CONFIG_KEY, headerConfig, {
-        path: "/",
-        maxAge: MyConstants.SCHOOL_HEADER_CONFIG_COOKIE_MAX_AGE,
-      });
-    } else {
-      removeSchoolHeaderCookie(MyConstants.SCHOOL_HEADER_CONFIG_KEY, {
-        path: "/",
-      });
-    }
+    // The school header cookie itself is (re)fetched by the effect below, which reacts to
+    // connection/schoolYear/accessToken - setting them above is enough to trigger it, here and
+    // on every later TopBanner year/school switch alike.
 
     return true;
   };
+
+  // Keeps the school header cookie (name/address/logo_path/signature fields - basic_school_config
+  // is one row per school year) in sync with whichever year is actually selected, not just a
+  // one-off snapshot taken at login: re-fetches on login, on session restore once the refresh
+  // token resolves, and again every time TopBanner's year switch calls setSchoolYear. Best-effort -
+  // a failure here just clears the cookie rather than surfacing an error, same as before.
+  useEffect(() => {
+    if (!connection || !schoolYear || !accessToken) {
+      return;
+    }
+    let cancelled = false;
+    const refreshHeaderCookie = async () => {
+      const headerConfig = await SchoolInfoReader.fetchSchoolConfigOfYear(
+        accessToken,
+        connection,
+        schoolYear,
+      );
+      if (cancelled) {
+        return;
+      }
+      if (headerConfig) {
+        setSchoolHeaderCookie(MyConstants.SCHOOL_HEADER_CONFIG_KEY, headerConfig, {
+          path: "/",
+          maxAge: MyConstants.SCHOOL_HEADER_CONFIG_COOKIE_MAX_AGE,
+        });
+      } else {
+        removeSchoolHeaderCookie(MyConstants.SCHOOL_HEADER_CONFIG_KEY, {
+          path: "/",
+        });
+      }
+    };
+    refreshHeaderCookie();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection, schoolYear, accessToken]);
 
   const setSchoolYear = (year: string) => {
     setSchoolYearState(year);

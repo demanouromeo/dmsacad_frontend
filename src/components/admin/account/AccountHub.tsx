@@ -30,9 +30,9 @@ const AccountHub = () => {
   ];
 
   return (
-    <div className="p-10 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-6">{t.title}</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-w-3xl justify-items-center">
+    <div className="page-shell flex flex-col items-center">
+      <h1 className="page-title mb-6">{t.title}</h1>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 justify-items-center">
         {items.map((item) => (
           <AdminMenuCard key={item.key} label={item.label} icon={item.icon} to={item.to} />
         ))}
