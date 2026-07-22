@@ -2070,7 +2070,7 @@ export const reportCardManagerTranslations = {
     printBtn: "Imprimer",
     printSelectionBtn: (count: number) => `Imprimer la sélection (${count})`,
     printAllClassesBtn: "Imprimer toutes les classes de la section",
-    printThBtn: "Imprimer le tableau d'honneur (classes APC)",
+    printThBtn: "Imprimer le tableau d'honneur (toutes les classes)",
     printAnnualBtn: "Imprimer le bulletin annuel",
     printSelectionAnnualBtn: "Imprimer la sélection - bulletin annuel",
     comingSoonTooltip: "Bientôt disponible",
@@ -2078,7 +2078,7 @@ export const reportCardManagerTranslations = {
     printFailure: "Échec de la génération du/des bulletin(s).",
     printAllClassesEmpty: "Aucun élève trouvé dans les classes de cette section.",
     printThEmpty:
-      "Aucun élève ne mérite le tableau d'honneur dans les classes APC de cette section (ou les paramètres du tableau d'honneur n'ont pas été configurés).",
+      "Aucun élève ne mérite le tableau d'honneur dans les classes de cette section (ou les paramètres du tableau d'honneur n'ont pas été configurés).",
     noSelectionWarning: "Veuillez sélectionner au moins un élève.",
   },
   en: {
@@ -2102,7 +2102,7 @@ export const reportCardManagerTranslations = {
     printBtn: "Print",
     printSelectionBtn: (count: number) => `Print selection (${count})`,
     printAllClassesBtn: "Print all classes of the section",
-    printThBtn: "Print Honor Roll (APC classes)",
+    printThBtn: "Print Honor Roll (all classes)",
     printAnnualBtn: "Print Annual RC",
     printSelectionAnnualBtn: "Print Selection - Annual RC",
     comingSoonTooltip: "Coming soon",
@@ -2110,7 +2110,7 @@ export const reportCardManagerTranslations = {
     printFailure: "Failed to generate the report card(s).",
     printAllClassesEmpty: "No student found in any classe of this section.",
     printThEmpty:
-      "No student deserves the Honor Roll in this section's APC classes (or the Honor Roll settings haven't been configured).",
+      "No student deserves the Honor Roll in this section's classes (or the Honor Roll settings haven't been configured).",
     noSelectionWarning: "Please select at least one student.",
   },
 };

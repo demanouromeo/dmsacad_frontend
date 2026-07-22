@@ -409,15 +409,15 @@ const ReportCardManager = () => {
     setIsSaving(false);
   };
 
-  // Whole-section "Tableau d'Honneur" (Honor Roll) certificate batch - APC classes only for now
-  // (non-APC TH backgrounds/layout aren't wired up yet). Same load-per-classe loop as
-  // handlePrintAllClasses, but instead of one PDF per classe, every eligible student across every
-  // APC classe of the section (computeThEligibility(...).deserves===true - same eligibility rule
-  // already reused by the RC's own "APPRÉCIATION DU TRAVAIL" thText line) becomes one page of a
-  // single combined document, matching exportThPdf.ts's own one-doc/addPage-per-entry shape.
+  // Whole-section "Tableau d'Honneur" (Honor Roll) certificate batch - every classe of the section,
+  // APC and non-APC alike. Same load-per-classe loop as handlePrintAllClasses, but instead of one
+  // PDF per classe, every eligible student (computeThEligibility(...).deserves===true - same
+  // eligibility rule already reused by the RC's own "APPRÉCIATION DU TRAVAIL" thText line) becomes
+  // one page of a combined document - APC and non-APC students are collected into two SEPARATE
+  // page lists and exported as two separate PDFs (exportThPdf called once per kind), since the two
+  // kinds use different certificate designs/backgrounds entirely (COTE vs. numeric RANG).
   const handlePrintTh = async () => {
-    const apcClasses = classes.filter((c) => apcLevels.get(c.level) === true);
-    if (apcClasses.length === 0) {
+    if (classes.length === 0) {
       showToast(t.printThEmpty, { type: "warning" });
       return;
     }
@@ -429,9 +429,11 @@ const ReportCardManager = () => {
         setIsSaving(false);
         return;
       }
-      const pages: ThPageData[] = [];
-      for (const classe of apcClasses) {
-        const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, true);
+      const apcPages: ThPageData[] = [];
+      const nonApcPages: ThPageData[] = [];
+      for (const classe of classes) {
+        const isApc = apcLevels.get(classe.level) === true;
+        const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, isApc);
         data.students.forEach((student) => {
           const eligibility = computeThEligibility(
             thParam,
@@ -440,26 +442,38 @@ const ReportCardManager = () => {
             student.isClassified,
           );
           if (eligibility.deserves) {
-            pages.push({
+            (isApc ? apcPages : nonApcPages).push({
               student,
               classeName: classe.classe_name,
+              effectif: data.classeStats.effectif,
               encouragement: eligibility.encouragement,
               felicitation: eligibility.felicitation,
             });
           }
         });
       }
-      if (pages.length === 0) {
+      if (apcPages.length === 0 && nonApcPages.length === 0) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);
         return;
       }
-      const filename = buildTimestampedFilename(
-        "APC TH",
-        [`Section ${capitalizeSectionName(section)}`],
-        "pdf",
-      );
-      await exportThPdf(pages, selectedTerm, schoolHeader, thParam.val1, filename, language);
+      const sectionSegment = `Section ${capitalizeSectionName(section)}`;
+      if (apcPages.length > 0) {
+        const filename = buildTimestampedFilename("APC TH", [sectionSegment], "pdf");
+        await exportThPdf("apc", apcPages, selectedTerm, schoolHeader, thParam.val1, filename, language);
+      }
+      if (nonApcPages.length > 0) {
+        const filename = buildTimestampedFilename("NON APC TH", [sectionSegment], "pdf");
+        await exportThPdf(
+          "nonApc",
+          nonApcPages,
+          selectedTerm,
+          schoolHeader,
+          thParam.val1,
+          filename,
+          language,
+        );
+      }
       showToast(t.printSuccess, { type: "info" });
     } catch (error) {
       console.error("ReportCardManager.handlePrintTh(): Error", error);
@@ -526,7 +540,7 @@ const ReportCardManager = () => {
               <button
                 type="button"
                 className="btn btn-primary gap-2"
-                disabled={!reportCardData || students.length === 0}
+                disabled={isLoadingData || !reportCardData || students.length === 0}
                 onClick={handlePrintAll}
               >
                 <Printer className="w-4 h-4" />
@@ -535,7 +549,7 @@ const ReportCardManager = () => {
               <button
                 type="button"
                 className="btn btn-outline gap-2"
-                disabled={!reportCardData || selectedIds.size === 0}
+                disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
                 onClick={handlePrintSelection}
               >
                 <Printer className="w-4 h-4" />
@@ -544,7 +558,7 @@ const ReportCardManager = () => {
               <button
                 type="button"
                 className="btn btn-secondary gap-2"
-                disabled={classes.length === 0}
+                disabled={isLoadingClasses || classes.length === 0}
                 onClick={handlePrintAllClasses}
               >
                 <Printer className="w-4 h-4" />
