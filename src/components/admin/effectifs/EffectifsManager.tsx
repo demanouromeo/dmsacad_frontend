@@ -150,12 +150,16 @@ const EffectifsManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell">
       {isExporting && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">Effectifs par classe</h1>
-      <p className="mb-4 opacity-70 text-sm">Année Scolaire: {schoolYear}</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Effectifs par classe</h1>
+          <p className="page-subtitle">Année Scolaire: {schoolYear}</p>
+        </div>
+      </div>
 
-      <div className="w-full max-w-4xl bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-wrap gap-3 items-center">
+      <div className="surface-card p-4 md:p-6 mb-6 flex flex-wrap gap-3 items-center">
         <ExportButtons
           onExportExcel={handleExportExcel}
           onExportPdf={handleExportPdf}
@@ -165,7 +169,7 @@ const EffectifsManager = () => {
         />
         <button
           type="button"
-          className="btn btn-neutral btn-sm gap-2"
+          className="btn btn-outline btn-sm gap-2"
           disabled={isLoading}
           onClick={loadEffectifs}
         >
@@ -175,18 +179,20 @@ const EffectifsManager = () => {
       </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : sections.length === 0 ? (
-        <p className="opacity-60">Aucune classe trouvée pour cette année.</p>
+        <p className="empty-state">Aucune classe trouvée pour cette année.</p>
       ) : (
         <>
           {sections.map((section) => (
-            <div key={section.section} className="mb-8">
-              <h2 className="text-lg font-bold mb-2">
+            <div key={section.section} className="mb-8 surface-card overflow-hidden">
+              <h2 className="text-lg font-bold p-4 border-b border-base-content/10">
                 Section: {sectionDisplayName(section.section)}
               </h2>
-              <div className="overflow-x-auto w-full max-w-4xl">
-                <table className="table w-full">
+              <div className="overflow-x-auto">
+                <table className="table table-zebra data-table">
                   <thead>
                     <tr>
                       <th>N°</th>
@@ -244,7 +250,7 @@ const EffectifsManager = () => {
             </div>
           ))}
 
-          <div className="overflow-x-auto w-full max-w-4xl">
+          <div className="overflow-x-auto surface-card">
             <table className="table w-full">
               <tbody>
                 <tr className="font-bold bg-neutral text-neutral-content">

@@ -13,6 +13,7 @@ import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import SearchInput from "../../sharedcomp/SearchInput";
 import { sanitizeSubjectTitle } from "../../../utils/subjectImport";
 import { MAX_COMPETENCE_TEXT_LENGTH } from "../../../utils/textValidation";
 
@@ -363,19 +364,25 @@ const SubjectCompetenceManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell">
       {isSaving && <LoadingOverlay />}
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-        <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">{t.title}</h1>
+            <p className="page-subtitle">{t.sectionHint(section)}</p>
+          </div>
+        </div>
 
         {isLoadingClasses ? (
-          <Loading />
+          <div className="surface-card flex justify-center py-20">
+            <Loading />
+          </div>
         ) : apcClasses.length === 0 ? (
-          <p className="opacity-60">{t.emptyClasses}</p>
+          <p className="empty-state">{t.emptyClasses}</p>
         ) : (
           <>
-            <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-wrap items-center gap-x-8 gap-y-3">
+            <div className="surface-card p-4 md:p-6 mb-6 flex flex-wrap items-center gap-x-8 gap-y-3">
               <div className="flex items-center gap-2">
                 <label className="font-medium">{t.classeLabel}</label>
                 <select
@@ -420,12 +427,12 @@ const SubjectCompetenceManager = () => {
             </div>
 
             {!isLoadingSubjects && subjects.length === 0 && (
-              <p className="opacity-60 mb-4">{t.emptySubjects}</p>
+              <p className="empty-state">{t.emptySubjects}</p>
             )}
 
             {selectedSubjectId !== null && (
               <>
-                <div className="flex flex-col gap-2 mb-4">
+                <div className="surface-card p-4 md:p-5 flex flex-col gap-3 mb-6">
                   <textarea
                     className="textarea w-full"
                     rows={2}
@@ -456,7 +463,7 @@ const SubjectCompetenceManager = () => {
                     </select>
                     <button
                       type="button"
-                      className="btn btn-neutral"
+                      className="btn btn-primary"
                       onClick={handleAddCompetence}
                     >
                       {t.addBtn}
@@ -465,18 +472,42 @@ const SubjectCompetenceManager = () => {
                 </div>
 
                 {isLoadingCompetences ? (
-                  <Loading />
+                  <div className="surface-card flex justify-center py-20">
+                    <Loading />
+                  </div>
                 ) : (
                   <>
-                    <input
-                      type="text"
-                      className="input w-full mb-4"
-                      placeholder={t.searchPlaceholder}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <div className="overflow-x-auto w-full mb-4">
-                    <table className="table w-full">
+                    <div className="surface-card overflow-hidden mb-4">
+                    <div className="table-toolbar">
+                      <SearchInput
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder={t.searchPlaceholder}
+                        className="input-sm w-full max-w-xs"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-error btn-sm"
+                          disabled={selectedIds.size === 0}
+                          onClick={handleDeleteSelected}
+                        >
+                          {t.deleteSelectionBtn(selectedIds.size)}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-error btn-sm gap-2"
+                          title={t.deleteNoMarksTooltip}
+                          disabled={competences.length === 0}
+                          onClick={handleDeleteWithNoMarks}
+                        >
+                          <Eraser className="w-4 h-4" />
+                          {t.deleteNoMarksBtn}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                    <table className="table table-zebra data-table">
                       <thead>
                         <tr>
                           <th>
@@ -568,45 +599,22 @@ const SubjectCompetenceManager = () => {
                         ))}
                         {competences.length === 0 && (
                           <tr>
-                            <td colSpan={4} className="text-center opacity-60">
-                              {t.emptyCompetences}
+                            <td colSpan={4}>
+                              <p className="empty-state">{t.emptyCompetences}</p>
                             </td>
                           </tr>
                         )}
                         {competences.length > 0 &&
                           filteredCompetences.length === 0 && (
                             <tr>
-                              <td
-                                colSpan={4}
-                                className="text-center opacity-60"
-                              >
-                                {t.noSearchResults}
+                              <td colSpan={4}>
+                                <p className="empty-state">{t.noSearchResults}</p>
                               </td>
                             </tr>
                           )}
                       </tbody>
                     </table>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    <button
-                      type="button"
-                      className="btn btn-error btn-sm"
-                      disabled={selectedIds.size === 0}
-                      onClick={handleDeleteSelected}
-                    >
-                      {t.deleteSelectionBtn(selectedIds.size)}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-error btn-sm gap-2"
-                      title={t.deleteNoMarksTooltip}
-                      disabled={competences.length === 0}
-                      onClick={handleDeleteWithNoMarks}
-                    >
-                      <Eraser className="w-4 h-4" />
-                      {t.deleteNoMarksBtn}
-                    </button>
+                    </div>
                   </div>
                 </>
               )}

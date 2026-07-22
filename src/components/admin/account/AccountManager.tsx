@@ -12,6 +12,7 @@ import { AccountReader } from "../../../dbmanger/AccountReader";
 import type { ManagedAccount } from "../../../interfaces/ManagedAccount";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import SearchInput from "../../sharedcomp/SearchInput";
 import { MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH } from "../../../utils/textValidation";
 import { isDuplicateNameError } from "../../../utils/apiErrors";
 
@@ -169,23 +170,28 @@ const AccountManager = () => {
   });
 
   return (
-    <div className="p-10">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+      </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : (
-        <>
-          <input
-            type="text"
-            className="input w-full max-w-md mb-4"
-            placeholder={t.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <div className="overflow-x-auto w-full mb-4">
-            <table className="table w-full">
+        <div className="surface-card overflow-hidden">
+          <div className="table-toolbar">
+            <SearchInput
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={t.searchPlaceholder}
+              className="input-sm w-full max-w-xs"
+            />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="table table-zebra data-table">
               <thead>
                 <tr>
                   <th>#</th>
@@ -280,7 +286,7 @@ const AccountManager = () => {
                           />
                         )}
                       </td>
-                      <td>
+                      <td className="text-right">
                         {isEditing ? (
                           <>
                             <button
@@ -313,22 +319,22 @@ const AccountManager = () => {
                 })}
                 {accounts.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center opacity-60">
-                      {t.emptyList}
+                    <td colSpan={7}>
+                      <p className="empty-state">{t.emptyList}</p>
                     </td>
                   </tr>
                 )}
                 {accounts.length > 0 && filteredAccounts.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center opacity-60">
-                      {t.noSearchResults}
+                    <td colSpan={7}>
+                      <p className="empty-state">{t.noSearchResults}</p>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

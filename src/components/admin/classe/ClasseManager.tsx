@@ -18,6 +18,7 @@ import type { Speciality } from "../../../interfaces/Speciality";
 import type { StaffSummary } from "../../../interfaces/StaffSummary";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import {
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
@@ -646,12 +647,11 @@ const ClasseManager = () => {
       ) : (
         <div className="surface-card overflow-hidden mb-6">
           <div className="table-toolbar">
-            <input
-              type="text"
-              className="input input-sm w-full max-w-xs"
-              placeholder={t.searchPlaceholder}
+            <SearchInput
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
+              placeholder={t.searchPlaceholder}
+              className="input-sm w-full max-w-xs"
             />
             <button
               type="button"

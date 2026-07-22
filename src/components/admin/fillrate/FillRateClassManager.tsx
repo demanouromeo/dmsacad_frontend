@@ -132,16 +132,20 @@ const FillRateClassManager = () => {
   };
 
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+      </div>
 
       {isLoadingClasses ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : classes.length === 0 ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
+        <p className="empty-state">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="surface-card p-4 flex flex-wrap items-center gap-2 mb-6">
             <label className="font-medium">{t.classeLabel}</label>
             <select
               className="select w-48"
@@ -192,11 +196,11 @@ const FillRateClassManager = () => {
           </div>
 
           {!isLoadingSubjects && subjects.length === 0 && (
-            <p className="opacity-60 mb-4">{t.emptySubjects}</p>
+            <p className="empty-state">{t.emptySubjects}</p>
           )}
 
           {subjects.length > 0 && (
-            <div className="max-w-xl">
+            <div className="max-w-xl surface-card p-4 md:p-5">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <h2 className="font-medium">{t.panelTitle(selectedClasse?.classe_name ?? "")}</h2>
                 <div className="flex gap-1 shrink-0">

@@ -113,14 +113,16 @@ const SelfCredentialsManager = () => {
   };
 
   return (
-    <div className="p-10 flex flex-col items-center">
+    <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-6">{t.title}</h1>
+      <h1 className="page-title mb-6 text-center">{t.title}</h1>
 
       {isLoadingAccount ? (
-        <Loading />
+        <div className="surface-card w-full max-w-sm flex justify-center py-16">
+          <Loading />
+        </div>
       ) : (
-        <div className="flex flex-col gap-4 w-full max-w-sm">
+        <div className="surface-card p-6 flex flex-col gap-4 w-full max-w-sm">
           <div>
             <label className="font-medium block mb-1">{t.oldPasswordLabel}</label>
             <div className="relative">

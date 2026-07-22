@@ -27,6 +27,7 @@ import {
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import Loading from "../../sharedcomp/Loading";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import SearchInput from "../../sharedcomp/SearchInput";
 import FillRateChartDialog from "../marks/FillRateChartDialog";
 
 // Both sections are always fetched regardless of the admin's currently selected section - this is a
@@ -217,16 +218,20 @@ const FillRateGlobalManager = () => {
   };
 
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+    <div className="page-shell-wide">
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+      </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : !hasAnyClasses ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
+        <p className="empty-state">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mb-4">
+          <div className="surface-card p-4 flex flex-wrap items-center gap-2 mb-6">
             <label className="font-medium">{t.axisLabel}</label>
             <select
               className="select w-44"
@@ -288,12 +293,11 @@ const FillRateGlobalManager = () => {
             </div>
 
             {mode === "table" && (
-              <input
-                type="text"
-                className="input w-56 ml-2"
-                placeholder={t.filterPlaceholder}
+              <SearchInput
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={setSearchQuery}
+                placeholder={t.filterPlaceholder}
+                className="w-56 ml-2"
               />
             )}
 
@@ -313,40 +317,44 @@ const FillRateGlobalManager = () => {
           </div>
 
           {mode === "table" && (
-            <table className="table w-full">
-              <thead>
-                <tr>
-                  <th>{t.tableHeaderIndex}</th>
-                  <th>{t.tableHeaderLabel}</th>
-                  <th>{t.tableHeaderRate}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row, index) => (
-                  <tr key={row.key}>
-                    <td>{index + 1}</td>
-                    <td>{row.label}</td>
-                    <td className={`font-semibold ${rateColorClass(row.rate)}`}>
-                      {row.rate === null ? "…" : row.rate.toFixed(1)}
-                    </td>
-                  </tr>
-                ))}
-                {sortedRows.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="text-center opacity-60">
-                      {t.emptyClasses}
-                    </td>
-                  </tr>
-                )}
-                {sortedRows.length > 0 && filteredRows.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="text-center opacity-60">
-                      {t.noSearchResults}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <div className="surface-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="table table-zebra data-table">
+                  <thead>
+                    <tr>
+                      <th>{t.tableHeaderIndex}</th>
+                      <th>{t.tableHeaderLabel}</th>
+                      <th>{t.tableHeaderRate}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((row, index) => (
+                      <tr key={row.key}>
+                        <td>{index + 1}</td>
+                        <td>{row.label}</td>
+                        <td className={`font-semibold ${rateColorClass(row.rate)}`}>
+                          {row.rate === null ? "…" : row.rate.toFixed(1)}
+                        </td>
+                      </tr>
+                    ))}
+                    {sortedRows.length === 0 && (
+                      <tr>
+                        <td colSpan={3}>
+                          <p className="empty-state">{t.emptyClasses}</p>
+                        </td>
+                      </tr>
+                    )}
+                    {sortedRows.length > 0 && filteredRows.length === 0 && (
+                      <tr>
+                        <td colSpan={3}>
+                          <p className="empty-state">{t.noSearchResults}</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </>
       )}

@@ -29,6 +29,7 @@ import type { Student } from "../../../interfaces/Student";
 import type { Mark } from "../../../interfaces/Mark";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import SearchInput from "../../sharedcomp/SearchInput";
 import { sanitizeMarkInput, isMarkInRange, formatMarkValue } from "../../../utils/textValidation";
 import {
   buildTimestampedFilename,
@@ -860,17 +861,21 @@ const MarkEntryManager = () => {
   };
 
   return (
-    <div className="p-10 pb-32">
+    <div className="page-shell-wide pb-32">
       {(isSaving || isExportingAll || isExportingReport) && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+      </div>
 
       {isLoadingClasses ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : classes.length === 0 ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
+        <p className="empty-state">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+          <div className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <div className="flex items-center gap-2">
                 <label className="font-medium">{t.classeLabel}</label>
@@ -962,12 +967,11 @@ const MarkEntryManager = () => {
                 </div>
               )}
 
-              <input
-                type="text"
-                className="input w-56"
-                placeholder={t.filterPlaceholder}
+              <SearchInput
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={setSearchQuery}
+                placeholder={t.filterPlaceholder}
+                className="w-56"
               />
             </div>
 
@@ -1041,12 +1045,12 @@ const MarkEntryManager = () => {
           </div>
 
           {!isLoadingSubjects && subjects.length === 0 && (
-            <p className="opacity-60 mb-4">{t.emptySubjects}</p>
+            <p className="empty-state">{t.emptySubjects}</p>
           )}
 
           {selectedSubjectId !== null && (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-base-200 rounded px-4 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4 bg-base-200/50 rounded-xl px-4 py-3">
                 <div className="flex flex-wrap items-center gap-4">
                   <span className="font-medium">
                     {t.classeInfo(selectedClasse?.classe_name ?? "", subjects.length)}
@@ -1097,11 +1101,14 @@ const MarkEntryManager = () => {
                   )}
 
                   <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="flex-1 overflow-x-auto">
+                    <div className="flex-1 surface-card overflow-hidden">
                       {isLoadingRoster || isLoadingMarks ? (
-                        <Loading />
+                        <div className="flex justify-center py-20">
+                          <Loading />
+                        </div>
                       ) : (
-                        <table className="table w-full">
+                        <div className="overflow-x-auto">
+                        <table className="table table-zebra data-table">
                           <thead>
                             <tr>
                               <th>{t.tableHeaderIndex}</th>
@@ -1148,24 +1155,25 @@ const MarkEntryManager = () => {
                             })}
                             {roster.length === 0 && (
                               <tr>
-                                <td colSpan={3} className="text-center opacity-60">
-                                  {t.emptyRoster}
+                                <td colSpan={3}>
+                                  <p className="empty-state">{t.emptyRoster}</p>
                                 </td>
                               </tr>
                             )}
                             {roster.length > 0 && filteredRoster.length === 0 && (
                               <tr>
-                                <td colSpan={3} className="text-center opacity-60">
-                                  {t.noSearchResults}
+                                <td colSpan={3}>
+                                  <p className="empty-state">{t.noSearchResults}</p>
                                 </td>
                               </tr>
                             )}
                           </tbody>
                         </table>
+                        </div>
                       )}
                     </div>
 
-                    <aside className="lg:w-72 shrink-0">
+                    <aside className="lg:w-72 shrink-0 surface-card p-4">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h2 className="font-medium">
                           {t.fillRatePanelTitle(selectedClasse?.classe_name ?? "")}

@@ -22,6 +22,7 @@ import {
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 
 const TERMS = [1, 2, 3];
@@ -342,17 +343,21 @@ const DisciplineManager = () => {
   };
 
   return (
-    <div className="p-10 pb-32">
+    <div className="page-shell-wide pb-32">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+      </div>
 
       {isLoadingClasses ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : classes.length === 0 ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
+        <p className="empty-state">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="w-full bg-base-200/60 border border-base-content/10 rounded-2xl p-4 md:p-6 mb-6 flex flex-col gap-4">
+          <div className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
               <div className="flex items-center gap-2">
                 <label className="font-medium">{t.classeLabel}</label>
@@ -384,19 +389,18 @@ const DisciplineManager = () => {
                 </select>
               </div>
 
-              <input
-                type="text"
-                className="input w-64"
-                placeholder={t.filterPlaceholder}
+              <SearchInput
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={setSearchQuery}
+                placeholder={t.filterPlaceholder}
+                className="w-64"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                className="btn btn-neutral btn-sm gap-2"
+                className="btn btn-outline btn-sm gap-2"
                 onClick={() => {
                   loadEntries();
                 }}
@@ -413,23 +417,23 @@ const DisciplineManager = () => {
               />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-base-100 rounded-xl px-4 py-2">
-              <div className="flex flex-wrap items-center gap-4">
-                <span>
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-base-200/50 rounded-xl px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="badge badge-ghost gap-1">
                   {t.statFilles}: <strong>{stats.filles}</strong>
                 </span>
-                <span>
+                <span className="badge badge-ghost gap-1">
                   {t.statGarcons}: <strong>{stats.garcons}</strong>
                 </span>
-                <span>
+                <span className="badge badge-primary badge-outline gap-1">
                   {t.statTotal}: <strong>{stats.total}</strong>
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-4">
-                <span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="badge badge-ghost gap-1">
                   {t.statRedoublants}: <strong>{stats.redoublants}</strong>
                 </span>
-                <span>
+                <span className="badge badge-ghost gap-1">
                   {t.statNouveaux}: <strong>{nouveaux}</strong>
                 </span>
               </div>
@@ -437,10 +441,13 @@ const DisciplineManager = () => {
           </div>
 
           {isLoadingRoster || isLoadingEntries ? (
-            <Loading />
+            <div className="surface-card flex justify-center py-20">
+              <Loading />
+            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="table w-full">
+            <div className="surface-card overflow-hidden">
+              <div className="overflow-x-auto">
+              <table className="table table-zebra data-table">
                 <thead>
                   <tr>
                     <th>{t.tableHeaderIndex}</th>
@@ -560,20 +567,21 @@ const DisciplineManager = () => {
                   })}
                   {roster.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center opacity-60">
-                        {t.emptyRoster}
+                      <td colSpan={9}>
+                        <p className="empty-state">{t.emptyRoster}</p>
                       </td>
                     </tr>
                   )}
                   {roster.length > 0 && filteredRoster.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center opacity-60">
-                        {t.noSearchResults}
+                      <td colSpan={9}>
+                        <p className="empty-state">{t.noSearchResults}</p>
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 

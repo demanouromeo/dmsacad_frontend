@@ -361,18 +361,24 @@ const SubjectClasseManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">{t.sectionHint(section)}</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{t.sectionHint(section)}</p>
+        </div>
+      </div>
 
       {isLoadingClasses ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : classes.length === 0 ? (
-        <p className="opacity-60">{t.emptyClasses}</p>
+        <p className="empty-state">{t.emptyClasses}</p>
       ) : (
         <>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="surface-card p-4 flex items-center gap-2 mb-6 flex-wrap">
             <label className="font-medium">{t.classeLabel}</label>
             <select
               className="select w-64"
@@ -390,7 +396,7 @@ const SubjectClasseManager = () => {
             {selectedClasse && (
               <button
                 type="button"
-                className="btn btn-neutral btn-sm"
+                className="btn btn-outline btn-sm"
                 onClick={openCopyDialog}
               >
                 {t.copyBtn(selectedClasse.classe_name)}
@@ -398,7 +404,7 @@ const SubjectClasseManager = () => {
             )}
             <button
               type="button"
-              className="btn btn-neutral btn-sm"
+              className="btn btn-outline btn-sm"
               disabled={selectedClasseId === null}
               onClick={() => selectedClasseId && loadLists(selectedClasseId)}
             >
@@ -406,7 +412,7 @@ const SubjectClasseManager = () => {
             </button>
             <button
               type="button"
-              className="btn btn-neutral btn-sm"
+              className="btn btn-outline btn-sm"
               disabled={assigned.length === 0}
               onClick={handlePrint}
             >
@@ -415,16 +421,18 @@ const SubjectClasseManager = () => {
           </div>
 
           {isLoadingLists ? (
-            <Loading />
+            <div className="surface-card flex justify-center py-20">
+              <Loading />
+            </div>
           ) : (
             selectedClasse && (
               <div className="flex flex-col lg:flex-row gap-4 items-start">
-                <div className="flex-1 min-w-0 w-full">
-                  <h2 className="font-semibold mb-2">
+                <div className="flex-1 min-w-0 w-full surface-card overflow-hidden">
+                  <h2 className="font-semibold p-4 border-b border-base-content/10">
                     {t.leftPanelTitle(selectedClasse.classe_name)}
                   </h2>
-                  <div className="overflow-x-auto border rounded max-h-112 overflow-y-auto">
-                    <table className="table w-full">
+                  <div className="overflow-x-auto max-h-112 overflow-y-auto">
+                    <table className="table table-zebra data-table">
                       <thead>
                         <tr>
                           <th></th>
@@ -451,8 +459,8 @@ const SubjectClasseManager = () => {
                         ))}
                         {unassigned.length === 0 && (
                           <tr>
-                            <td colSpan={3} className="text-center opacity-60">
-                              {t.emptyLeft}
+                            <td colSpan={3}>
+                              <p className="empty-state">{t.emptyLeft}</p>
                             </td>
                           </tr>
                         )}
@@ -480,7 +488,7 @@ const SubjectClasseManager = () => {
                   </button>
                   <button
                     type="button"
-                    className="btn btn-neutral"
+                    className="btn btn-outline"
                     disabled={assigned.length === 0}
                     onClick={handleSave}
                   >
@@ -488,12 +496,12 @@ const SubjectClasseManager = () => {
                   </button>
                 </div>
 
-                <div className="flex-1 min-w-0 w-full">
-                  <h2 className="font-semibold mb-2">
+                <div className="flex-1 min-w-0 w-full surface-card overflow-hidden">
+                  <h2 className="font-semibold p-4 border-b border-base-content/10">
                     {t.rightPanelTitle(selectedClasse.classe_name)}
                   </h2>
-                  <div className="overflow-x-auto border rounded max-h-112 overflow-y-auto">
-                    <table className="table w-full">
+                  <div className="overflow-x-auto max-h-112 overflow-y-auto">
+                    <table className="table table-zebra data-table">
                       <thead>
                         <tr>
                           <th></th>
@@ -558,8 +566,8 @@ const SubjectClasseManager = () => {
                         ))}
                         {assigned.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="text-center opacity-60">
-                              {t.emptyRight}
+                            <td colSpan={5}>
+                              <p className="empty-state">{t.emptyRight}</p>
                             </td>
                           </tr>
                         )}

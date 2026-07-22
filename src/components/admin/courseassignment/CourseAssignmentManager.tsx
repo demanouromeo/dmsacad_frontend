@@ -489,18 +489,22 @@ const CourseAssignmentManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-4 opacity-70 text-sm">
-        {t.sectionHint(section, schoolYear)}
-      </p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{t.sectionHint(section, schoolYear)}</p>
+        </div>
+      </div>
 
       {isLoading ? (
-        <Loading />
+        <div className="surface-card flex justify-center py-20">
+          <Loading />
+        </div>
       ) : (
         <>
-          <div className="flex flex-wrap gap-6 mb-6">
+          <div className="surface-card p-4 flex flex-wrap gap-6 mb-6">
             <div className="flex items-center gap-2">
               <label className="font-medium">{t.staffLabel}</label>
               <select
@@ -540,15 +544,15 @@ const CourseAssignmentManager = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h2 className="font-semibold mb-2">
+            <div className="surface-card overflow-hidden">
+              <h2 className="font-semibold p-4 border-b border-base-content/10">
                 {selectedSubject
                   ? t.leftPanelTitle(selectedSubject.subject_title)
                   : ""}
               </h2>
-              <div className="border rounded p-3 max-h-96 overflow-y-auto">
+              <div className="p-3 max-h-96 overflow-y-auto">
                 {leftPanelRows.length === 0 && (
-                  <p className="text-center opacity-60 py-4">{t.emptyLeft}</p>
+                  <p className="empty-state">{t.emptyLeft}</p>
                 )}
                 {leftPanelRows.map((row) => (
                   <label
@@ -571,14 +575,14 @@ const CourseAssignmentManager = () => {
               </div>
             </div>
 
-            <div>
-              <h2 className="font-semibold mb-2">
+            <div className="surface-card overflow-hidden">
+              <h2 className="font-semibold p-4 border-b border-base-content/10">
                 {selectedStaff
                   ? t.rightPanelTitle(formatStaffLabel(selectedStaff, false))
                   : ""}
               </h2>
-              <div className="overflow-x-auto border rounded max-h-96 overflow-y-auto">
-                <table className="table w-full">
+              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="table table-zebra data-table">
                   <thead>
                     <tr>
                       <th>
@@ -627,26 +631,28 @@ const CourseAssignmentManager = () => {
                     ))}
                     {rightPanelRows.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="text-center opacity-60">
-                          {t.emptyRight}
+                        <td colSpan={5}>
+                          <p className="empty-state">{t.emptyRight}</p>
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
-              <button
-                type="button"
-                className="btn btn-error btn-sm mt-2"
-                disabled={rightSelectedRowIds.size === 0}
-                onClick={handleBulkRemoveSelected}
-              >
-                {t.deleteSelectionBtn(rightSelectedRowIds.size)}
-              </button>
+              <div className="p-3 border-t border-base-content/10">
+                <button
+                  type="button"
+                  className="btn btn-error btn-sm"
+                  disabled={rightSelectedRowIds.size === 0}
+                  onClick={handleBulkRemoveSelected}
+                >
+                  {t.deleteSelectionBtn(rightSelectedRowIds.size)}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="surface-card p-4 flex flex-wrap gap-2">
             <button
               type="button"
               className="btn btn-primary"

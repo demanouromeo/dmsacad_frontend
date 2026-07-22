@@ -73,19 +73,21 @@ const MarkSheetManager = () => {
   };
 
   return (
-    <div className="p-10">
+    <div className="page-shell">
       {isGenerating && <LoadingOverlay />}
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      <p className="mb-6 opacity-70 max-w-2xl">{t.description}</p>
-      <button
-        type="button"
-        className="btn btn-primary gap-2"
-        disabled={isGenerating}
-        onClick={handleGenerate}
-      >
-        <FileText className="w-4 h-4" />
-        {t.generateBtn}
-      </button>
+      <h1 className="page-title mb-4">{t.title}</h1>
+      <div className="surface-card p-6 md:p-8 max-w-2xl">
+        <p className="text-base-content/70 mb-6">{t.description}</p>
+        <button
+          type="button"
+          className="btn btn-primary gap-2"
+          disabled={isGenerating}
+          onClick={handleGenerate}
+        >
+          <FileText className="w-4 h-4" />
+          {t.generateBtn}
+        </button>
+      </div>
     </div>
   );
 };
