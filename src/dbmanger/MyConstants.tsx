@@ -24,21 +24,38 @@ export class MyConstants {
   public static DEFAULT_RESPONSABLE_FR = "Proviseur";
   public static DEFAULT_RESPONSABLE_EN = "Principal";
   // Annual report card average computation mode - "1" = Calcul simple ((trim1+trim2+trim3)/3),
-  // "0" = Calcul complexe (coefficients cancelled for subjects with no marks). Session-only by
-  // design (not persisted server-side, resets to the default each session) - see
-  // AnnualRcAvgManager.tsx.
+  // "0" = Calcul complexe (coefficients cancelled for subjects with no marks). Not persisted
+  // server-side, not sensitive - kept in localStorage so it survives logout/browser restart and
+  // is only lost if the user clears their browser data - see AnnualRcAvgManager.tsx.
   public static ANNUAL_RC_AVG_SETTING_KEY = "ANNUAL_RC_AVG_SETTING";
   public static DEFAULT_ANNUAL_RC_AVG_SETTING = "1";
 
   public static getAnnualRcAvgSetting = (): string => {
     return (
-      sessionStorage.getItem(MyConstants.ANNUAL_RC_AVG_SETTING_KEY) ||
+      localStorage.getItem(MyConstants.ANNUAL_RC_AVG_SETTING_KEY) ||
       MyConstants.DEFAULT_ANNUAL_RC_AVG_SETTING
     );
   };
 
   public static setAnnualRcAvgSetting = (value: string) => {
-    sessionStorage.setItem(MyConstants.ANNUAL_RC_AVG_SETTING_KEY, value);
+    localStorage.setItem(MyConstants.ANNUAL_RC_AVG_SETTING_KEY, value);
+  };
+
+  // Whether the annual report card shows the student's next-year classe when promoted (e.g.
+  // "Promu en 5e B") or leaves it blank for manual fill-in (e.g. "Promu en ______________").
+  // Same storage convention/rationale as ANNUAL_RC_AVG_SETTING_KEY above - see AnnualRcAvgManager.tsx.
+  public static AFFICHAGE_PROMOTION_KEY = "AFFICHAGE_PROMOTION";
+  public static DEFAULT_AFFICHAGE_PROMOTION = "0";
+
+  public static getAffichagePromotion = (): boolean => {
+    return (
+      (localStorage.getItem(MyConstants.AFFICHAGE_PROMOTION_KEY) ||
+        MyConstants.DEFAULT_AFFICHAGE_PROMOTION) === "1"
+    );
+  };
+
+  public static setAffichagePromotion = (value: boolean) => {
+    localStorage.setItem(MyConstants.AFFICHAGE_PROMOTION_KEY, value ? "1" : "0");
   };
 
   public static getBackendTarget = (): BackendTarget => {

@@ -1985,6 +1985,10 @@ export const annualRcAvgManagerTranslations = {
     optionComplexTitle: "Calcul complexe",
     optionComplexDescription:
       "Avec cette option, certains coefficients seront annullés si la matière n'a pas de notes",
+    affichagePromotionLabel:
+      "Afficher le nom de la classe dans laquelle l'élève sera à la prochaine rentrée scolaire s'il est promu(e)",
+    affichagePromotionHintOn: "Exemple : Promu en 5e B",
+    affichagePromotionHintOff: "Exemple : Promu en ______________",
     saveBtn: "Save",
     saveSuccess: "Paramètres enregistrés avec succès.",
   },
@@ -1998,6 +2002,10 @@ export const annualRcAvgManagerTranslations = {
     optionComplexTitle: "Complex computation",
     optionComplexDescription:
       "With this option, some coefficients will be cancelled if the subject has no marks",
+    affichagePromotionLabel:
+      "Show the classe the student will join next school year if promoted",
+    affichagePromotionHintOn: "Example: Promoted to 5e B",
+    affichagePromotionHintOff: "Example: Promoted to ______________",
     saveBtn: "Save",
     saveSuccess: "Settings saved successfully.",
   },
