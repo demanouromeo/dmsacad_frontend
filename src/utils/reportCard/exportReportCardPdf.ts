@@ -88,7 +88,13 @@ interface SubjectLayout {
   subjectId: number;
   compLines: string[][];
   rowCount: number;
+  // Total row height including the bottom padding below - what the row's border line and MOY
+  // background fill are drawn against.
   height: number;
+  // Height of just the competence text content, excluding the bottom padding - what the
+  // vertically-centered MATIÈRES/MOY/Coef/M x Coef/COTE/[Min-Max]/Appr cells center against, so
+  // they stay aligned with the competence text instead of drifting down into the padding.
+  contentHeight: number;
 }
 
 interface StudentLayout {
@@ -105,6 +111,12 @@ const MAX_COMPETENCE_LINES = 3;
 // ÉVALUÉES column, expressed as a fraction of the line-height (lh) rather than a fixed mm value so
 // it scales with whichever font size the shrink-to-fit loop below picks for a given student.
 const COMPETENCE_ROW_PADDING = 0.05;
+
+// Extra whitespace above/below each subject's whole row (between the row's top border and the
+// first competence line, and between the last competence line and the row's bottom border), same
+// lh-fraction convention as COMPETENCE_ROW_PADDING above.
+const CELL_ROW_TOP_PADDING = 0.3;
+const CELL_ROW_BOTTOM_PADDING = 0.2;
 
 const measureStudent = (
   doc: jsPDF,
@@ -135,19 +147,19 @@ const measureStudent = (
     );
     // Each real competence row gets top+bottom padding; the length-1 fallback row (a subject with
     // zero competences) doesn't, since no competence loop iteration runs for it below.
-    const height =
+    const contentHeight =
       rowCount * competenceLh + subject.competences.length * 2 * COMPETENCE_ROW_PADDING * competenceLh;
+    const height =
+      contentHeight + (CELL_ROW_TOP_PADDING + CELL_ROW_BOTTOM_PADDING) * competenceLh;
     tableHeight += height;
-    return { subjectId: subject.subjectId, compLines, rowCount, height };
+    return { subjectId: subject.subjectId, compLines, rowCount, height, contentHeight };
   });
   return { fontSize, lh, headerHeight, subjectLayouts, tableHeight: headerHeight + tableHeight };
 };
 
 // Vertical breathing room between the end of the marks table and the DISCIPLINE/TRAVAIL/PROFIL
-// footer grid below it - previously a bare 4mm, which read as almost no gap at all on the printed
-// page; bumped to a clearly visible ~8mm (roughly 30px on screen, comfortably past the "at least
-// 15px" ask).
-const MARKS_TO_RESULTS_GAP = 8;
+// footer grid below it.
+const MARKS_TO_RESULTS_GAP = 3;
 
 // Fixed-size blocks (title bar, student info, footer results grid - header + 6 rows + the taller
 // signature row, 6+36+18=60mm) - these don't meaningfully grow with the number of subjects/
@@ -202,7 +214,7 @@ const drawStudentPage = (
   const infoLh = 5.5;
   doc.setFontSize(9);
   const leftColX = LEFT_X;
-  const rightColX = centerX + 6;
+  const rightColX = centerX + 11;
   drawLabelValue(
     doc,
     "Nom(s) et prénom(s):",
@@ -245,21 +257,26 @@ const drawStudentPage = (
     infoY,
   );
 
-  let y = infoY + infoLh;
+  let y = infoY + infoLh - 2;
 
   const layout = chooseLayout(doc, student, y);
   const fontSize = layout.fontSize;
   doc.setFontSize(fontSize);
   const lh = layout.lh;
-  // Three size tiers for value cells, each one point above the tier below it (headers stay at the
-  // base fontSize): valueFontSize for N/20 and COTE, valueFontSize2 for Coef/M x Coef/[Min-Max]/Appr
-  // (already at valueFontSize, bumped one further), moyFontSize for MOY (already at fontSize+2,
-  // bumped one further). MATIÈRES and COMPÉTENCES ÉVALUÉES get their own dedicated size/line-height
-  // since, unlike the others, they wrap/truncate text whose measured width must match the size
-  // actually drawn - see measureStudent's competenceFontSize for why.
+  // Size tiers for value cells, each one point above the tier below it (headers stay at the base
+  // fontSize): valueFontSize for N/20, valueFontSize2 for [Min-Max]/Appr (already at valueFontSize,
+  // bumped one further). Coef/M x Coef have their own tier, coefMcoefFontSize, one further point
+  // above valueFontSize2. moyFontSize for MOY (already at fontSize+3, bumped one further). COTE has
+  // its own tier, coteFontSize, bumped two further points from valueFontSize. MATIÈRES and
+  // COMPÉTENCES ÉVALUÉES get their own dedicated size/line-height since, unlike the others, they
+  // wrap/truncate text whose measured width must match the size actually drawn - see
+  // measureStudent's competenceFontSize for why.
   const valueFontSize = fontSize + 1;
+  const n20FontSize = valueFontSize + 0.4;
   const valueFontSize2 = fontSize + 2;
-  const moyFontSize = fontSize + 3;
+  const coefMcoefFontSize = valueFontSize2 + 1;
+  const moyFontSize = fontSize + 4;
+  const coteFontSize = valueFontSize + 2;
   const matiereFontSize = fontSize + 1;
   const matiereLh = lineHeightMm(doc, matiereFontSize);
   const competenceFontSize = fontSize + 1;
@@ -329,6 +346,12 @@ const drawStudentPage = (
     const subjectLayout = layout.subjectLayouts[subjectIndex];
     const blockTop = y;
     const blockHeight = subjectLayout.height;
+    // Content-only height (excludes the CELL_ROW_TOP_PADDING/CELL_ROW_BOTTOM_PADDING gaps) - the
+    // centered cells below align against this, not blockHeight, so they stay level with the
+    // competence text instead of drifting into the leading/trailing padding.
+    const contentHeight = subjectLayout.contentHeight;
+    // Where the actual content (MATIÈRES/competence text/etc.) starts, after the row's top padding.
+    const contentTop = blockTop + CELL_ROW_TOP_PADDING * competenceLh;
 
     // MATIÈRES cell: subject title (bold) + staff label (normal), vertically centered, drawn at
     // matiereFontSize (one point above the base font) - truncation is measured at that same size so
@@ -340,7 +363,7 @@ const drawStudentPage = (
     const staffText = subject.staffLabel
       ? truncateToWidth(doc, subject.staffLabel, colWidth("matiere") - 2)
       : "";
-    const matiereMidY = centerTextY(blockTop, blockHeight, matiereFontSize);
+    const matiereMidY = centerTextY(contentTop, contentHeight, matiereFontSize);
     doc.setFont("helvetica", "bold");
     doc.text(
       titleText,
@@ -357,7 +380,7 @@ const drawStudentPage = (
     // COMPÉTENCES ÉVALUÉES + N/20 - one sub-row per competence, wrapped text handled by
     // subjectLayout.compLines (already measured/truncated at competenceFontSize, see
     // measureStudent). Each row gets COMPETENCE_ROW_PADDING*competenceLh of top/bottom padding.
-    let rowY = blockTop;
+    let rowY = contentTop;
     const competencePadding = COMPETENCE_ROW_PADDING * competenceLh;
     doc.setFontSize(competenceFontSize);
     subject.competences.forEach((comp, compIndex) => {
@@ -369,8 +392,8 @@ const drawStudentPage = (
       const rowHeight = lines.length * competenceLh + 2 * competencePadding;
       const markText = comp.mark !== null ? formatRcMarkDisplay(comp.mark) : "";
       if (markText) {
-        doc.setFontSize(valueFontSize);
-        doc.text(markText, colCenter("n20"), centerTextY(rowY, rowHeight, valueFontSize), {
+        doc.setFontSize(n20FontSize);
+        doc.text(markText, colCenter("n20"), centerTextY(rowY, rowHeight, n20FontSize), {
           align: "center",
         });
         doc.setFontSize(competenceFontSize);
@@ -381,9 +404,10 @@ const drawStudentPage = (
 
     // Subject-level MOY/Coef/M x Coef/COTE/[Min-Max]/Appr - single values, vertically centered
     // across the whole block (matching every sample RC's rowspan-style layout). MOY is the largest
-    // (moyFontSize), Coef/M x Coef/[Min-Max]/Appr are one tier down (valueFontSize2), and COTE is
-    // one tier below that (valueFontSize) - see the tier comment above valueFontSize's declaration.
-    const midY = centerTextY(blockTop, blockHeight, fontSize);
+    // (moyFontSize), Coef/M x Coef are their own tier (coefMcoefFontSize), [Min-Max]/Appr are one
+    // tier down (valueFontSize2), and COTE is its own tier below that (coteFontSize) - see the tier
+    // comment above valueFontSize's declaration.
+    const midY = centerTextY(contentTop, contentHeight, fontSize);
     if (subject.moy !== null && subject.mCoef !== null) {
       const moyPass = subject.moy >= 10;
       doc.setFont("helvetica", "bold");
@@ -396,10 +420,10 @@ const drawStudentPage = (
       });
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(valueFontSize2);
+      doc.setFontSize(coefMcoefFontSize);
       doc.text(String(subject.coef.toFixed(1)), colCenter("coef"), midY, { align: "center" });
       doc.text(formatRcFixed2(subject.mCoef), colCenter("mcoef"), midY, { align: "center" });
-      doc.setFontSize(valueFontSize);
+      doc.setFontSize(coteFontSize);
       doc.setFont("helvetica", "bold");
       doc.text(subject.cote, colCenter("cote"), midY, { align: "center" });
       doc.setFont("helvetica", "normal");
@@ -407,7 +431,7 @@ const drawStudentPage = (
       doc.text(subject.apprLabel, colCenter("appr"), midY, { align: "center" });
       doc.setFontSize(fontSize);
     } else {
-      doc.setFontSize(valueFontSize2);
+      doc.setFontSize(coefMcoefFontSize);
       doc.text(String(subject.coef.toFixed(1)), colCenter("coef"), midY, { align: "center" });
       doc.setFontSize(fontSize);
     }

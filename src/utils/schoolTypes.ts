@@ -38,3 +38,18 @@ const SHORT_CYCLE_TYPES = ["CES", "CETIC", "CETIC BILINGUE"];
 
 export const computeMaxClasseLevel = (type: string): number =>
   SHORT_CYCLE_TYPES.includes(type.toUpperCase()) ? 4 : 7;
+
+// Ported from nonAPCannual.md's spec (mirrors the mobile app's own isTechnique check) - drives the
+// annual report card's "Redouble si échec" level-4 special case (level 4 + isTechnique gets the
+// CAP wording instead of the GCE one) and the level 6/7/level-4-technique "always redouble si
+// échec" branch in annualReportCardCompute.ts's computeAnnualDecision.
+export const computeIsTechnique = (type: string): boolean => {
+  const upper = type.toUpperCase();
+  return (
+    upper.includes("TECHNIQUE") ||
+    upper.includes("CETIC") ||
+    upper.includes("GTHS") ||
+    upper.includes("GTC") ||
+    upper.includes("TECHNICAL")
+  );
+};

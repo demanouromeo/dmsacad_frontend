@@ -339,6 +339,9 @@ export interface BuildAnnualReportCardDataInput {
   isTechnique: boolean;
   // basic_school_config.val1: 1 (or null/missing) = simple, 0 = complex.
   computationMethod: number | null;
+  // basic_school_config.val2 === 1 - see computeAnnualDecision's comment for what this does (and
+  // doesn't) affect.
+  affichagePromotion: boolean;
   classeNameById: Map<number, string>;
   language: "fr" | "en";
 }
@@ -355,6 +358,7 @@ export const buildAnnualReportCardData = (
     classe,
     isTechnique,
     computationMethod,
+    affichagePromotion,
     classeNameById,
     language,
   } = input;
@@ -477,6 +481,7 @@ export const buildAnnualReportCardData = (
       avgAnnual,
       classe.repeatUB,
       promuEnClasseName,
+      affichagePromotion,
       language,
     );
 

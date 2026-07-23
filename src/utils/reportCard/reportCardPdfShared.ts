@@ -46,7 +46,7 @@ export const drawLabelValue = (
 // StudentReader.loadStudentPhotoImage), otherwise a hand-drawn grey silhouette - same "no icon
 // asset in the bundle, draw it with jsPDF's own vector primitives" precedent as exportHeader.ts's
 // drawMailIcon, since jsPDF can't embed an actual .svg without an extra plugin.
-export const PHOTO_WIDTH = 25;
+export const PHOTO_WIDTH = 24;
 export const PHOTO_HEIGHT = 24;
 
 const drawDefaultPersonIcon = (doc: jsPDF, x: number, y: number, w: number, h: number): void => {

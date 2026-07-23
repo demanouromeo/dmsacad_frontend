@@ -13,11 +13,14 @@ import { StaffReader } from "../../../dbmanger/StaffReader";
 import { ClassifiedParamReader } from "../../../dbmanger/ClassifiedParamReader";
 import { ThParamReader } from "../../../dbmanger/ThParamReader";
 import { DisciplineReader } from "../../../dbmanger/DisciplineReader";
+import { SchoolInfoReader } from "../../../dbmanger/SchoolInfoReader";
 import { computeDbSequence } from "../../../utils/markSequence";
+import { computeIsTechnique } from "../../../utils/schoolTypes";
 import type { Classe } from "../../../interfaces/Classe";
 import type { Mark } from "../../../interfaces/Mark";
 import type { Staff } from "../../../interfaces/Staff";
 import type { ReportCardData } from "../../../interfaces/ReportCard";
+import type { AnnualReportCardData } from "../../../interfaces/AnnualReportCard";
 import {
   buildReportCardData,
   computeThEligibility,
@@ -25,8 +28,13 @@ import {
   type ReportCardRosterEntry,
   type ReportCardSubjectBundle,
 } from "../../../utils/reportCard/reportCardCompute";
+import {
+  buildAnnualReportCardData,
+  type AnnualSubjectBundle,
+} from "../../../utils/reportCard/annualReportCardCompute";
 import { exportReportCardsToPdf } from "../../../utils/reportCard/exportReportCardPdf";
 import { exportNonApcReportCardsToPdf } from "../../../utils/reportCard/exportReportCardNonApcPdf";
+import { exportAnnualReportCardsToPdf } from "../../../utils/reportCard/exportAnnualReportCardPdf";
 import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportThPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
@@ -242,6 +250,135 @@ const ReportCardManager = () => {
       });
     },
     [accessToken, connection, schoolYear, section, language],
+  );
+
+  // Non-APC annual RC ("Bulletin Annuel") - fetches all 6 dbsequences per subject in one pass
+  // (rather than 3 separate term fetches), then reuses the existing buildReportCardData 3x (once
+  // per term, slicing the matching 2 sequences out of the same already-fetched data) to get each
+  // term's real moyenneTrim/isClassified/rang/moyenneGenerale - see annualReportCardCompute.ts and
+  // the plan's "Key findings from verification" for why this reuses rather than duplicates the
+  // term algorithm.
+  const loadAnnualReportCardDataForClasse = useCallback(
+    async (classeId: number): Promise<AnnualReportCardData> => {
+      const classe = classes.find((c) => c.classe_id === classeId);
+      const [
+        studentsRaw,
+        studentClasseRaw,
+        subjectsRaw,
+        attributions,
+        staffList,
+        classifiedParam,
+        annualParams,
+      ] = await Promise.all([
+        StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
+        StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
+        SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classeId),
+        StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
+        StaffReader.fetchStaff(accessToken, connection, schoolYear),
+        ClassifiedParamReader.fetchClassifiedParamOfYear(accessToken, connection, schoolYear),
+        SchoolInfoReader.fetchAnnualReportCardParams(accessToken, connection, schoolYear),
+      ]);
+
+      const studentClasseByStudId = new Map(studentClasseRaw.map((info) => [info.stud_id, info]));
+      const roster: ReportCardRosterEntry[] = studentsRaw.map((s) => ({
+        stud_id: s.stud_id,
+        matricule: s.matricule,
+        name: s.name,
+        surname: s.surname,
+        bday: s.bday,
+        bplace: s.bplace,
+        sexe: s.sexe,
+        repeating: studentClasseByStudId.get(s.stud_id)?.repeating ?? s.repeating,
+      }));
+
+      const subjectsSorted = [...subjectsRaw].sort((a, b) =>
+        a.subject_title.localeCompare(b.subject_title, "fr", { sensitivity: "base" }),
+      );
+
+      const staffById = new Map(staffList.map((s) => [s.staff_id, s]));
+      const findStaffLabel = (subjectId: number) => {
+        const attribution = attributions.find(
+          (a) => a.subject_id === subjectId && a.classe_id === classeId,
+        );
+        return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
+      };
+
+      // One subject's whole-year marks, all 6 dbsequences at once.
+      const subjectsData: AnnualSubjectBundle[] = await Promise.all(
+        subjectsSorted.map(async (subject) => {
+          const marksBySeq = new Map<number, Map<number, Mark>>();
+          await Promise.all(
+            [1, 2, 3, 4, 5, 6].map(async (dbsequence) => {
+              const marks = await MarkReader.fetchSeqMarks(
+                accessToken,
+                connection,
+                schoolYear,
+                classeId,
+                subject.subject_id,
+                dbsequence,
+              );
+              marksBySeq.set(dbsequence, new Map(marks.map((m) => [m.stud_id, m])));
+            }),
+          );
+          return { subject, staffLabel: findStaffLabel(subject.subject_id), marksBySeq };
+        }),
+      );
+
+      // Term 1/2/3 full ReportCardData - sliced from the already-fetched 6-sequence data (no
+      // refetch), each term's own discipline fetched separately.
+      const termsData = (await Promise.all(
+        [1, 2, 3].map(async (term) => {
+          const disciplineRows = await DisciplineReader.fetchDisciplineOfClasse(
+            accessToken,
+            connection,
+            schoolYear,
+            term,
+            classeId,
+          );
+          const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
+          const bundlesForTerm: ReportCardSubjectBundle[] = subjectsData.map((bundle) => ({
+            kind: "nonApc" as const,
+            subject: bundle.subject,
+            staffLabel: bundle.staffLabel,
+            marksBySeq: new Map([
+              [1, bundle.marksBySeq.get(computeDbSequence(term, 1)) ?? new Map()],
+              [2, bundle.marksBySeq.get(computeDbSequence(term, 2)) ?? new Map()],
+            ]),
+          }));
+          return buildReportCardData({
+            roster,
+            subjectsData: bundlesForTerm,
+            classifiedParam,
+            thParam: null,
+            disciplineByStudId,
+            language,
+          });
+        }),
+      )) as [ReportCardData, ReportCardData, ReportCardData];
+
+      const classeNameById = new Map(classes.map((c) => [c.classe_id, c.classe_name]));
+
+      return buildAnnualReportCardData({
+        roster,
+        subjectsData,
+        termsData,
+        classifiedParam,
+        studentClasseByStudId,
+        classe: {
+          level: classe?.level ?? 0,
+          avgDismissalTh: classe?.avgDismissalTh ?? 7.5,
+          repeatUB: classe?.repeatUB ?? 9,
+          totalAbsTh: classe?.totalAbsTh ?? 40,
+          totalExclusionTh: classe?.totalExclusionTh ?? 8,
+        },
+        isTechnique: computeIsTechnique(schoolHeader.config?.type ?? ""),
+        computationMethod: annualParams?.computationMethod ?? null,
+        affichagePromotion: annualParams?.affichagePromotion === 1,
+        classeNameById,
+        language,
+      });
+    },
+    [accessToken, connection, schoolYear, section, classes, schoolHeader, language],
   );
 
   useEffect(() => {
@@ -492,6 +629,70 @@ const ReportCardManager = () => {
     handlePrint(students.filter((s) => selectedIds.has(s.studId)));
   };
 
+  // Annual RC ("Bulletin Annuel") - non-APC classes only for now (see the plan) - subsetStudIds
+  // null means "the whole classe roster" (mirrors handlePrintAll), otherwise only those ids
+  // (mirrors handlePrintSelection), matched against the freshly-loaded annual roster rather than
+  // the on-screen term `students` list (same studIds, different data shape).
+  const handlePrintAnnual = async (subsetStudIds: Set<number> | null) => {
+    if (!selectedClasse) {
+      return;
+    }
+    if (isSelectedClasseApc) {
+      showToast(t.printAnnualApcUnsupported, { type: "warning" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const data = await loadAnnualReportCardDataForClasse(selectedClasse.classe_id);
+      const subset = subsetStudIds
+        ? data.students.filter((s) => subsetStudIds.has(s.studId))
+        : data.students;
+      if (subset.length === 0) {
+        showToast(t.emptyStudents, { type: "warning" });
+        setIsSaving(false);
+        return;
+      }
+      const filename = buildTimestampedFilename(
+        `Bulletin ANNUEL ${selectedClasse.classe_name}`,
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      );
+      const photosByStudId = new Map<number, HTMLImageElement | null>(
+        await Promise.all(
+          subset.map(
+            async (s): Promise<[number, HTMLImageElement | null]> => [
+              s.studId,
+              await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
+            ],
+          ),
+        ),
+      );
+      await exportAnnualReportCardsToPdf(
+        subset,
+        data.classeStats,
+        { classe_name: selectedClasse.classe_name, classe_master_name: selectedClasse.classe_master_name },
+        schoolYear,
+        schoolHeader,
+        filename,
+        photosByStudId,
+      );
+      showToast(t.printSuccess, { type: "info" });
+    } catch (error) {
+      console.error("ReportCardManager.handlePrintAnnual(): Error", error);
+      showToast(t.printFailure, { type: "danger" });
+    }
+    setIsSaving(false);
+  };
+
+  const handlePrintAllAnnual = () => handlePrintAnnual(null);
+  const handlePrintSelectionAnnual = () => {
+    if (selectedIds.size === 0) {
+      showToast(t.noSelectionWarning, { type: "warning" });
+      return;
+    }
+    handlePrintAnnual(selectedIds);
+  };
+
   return (
     <div className="page-shell">
       {isSaving && <LoadingOverlay />}
@@ -580,10 +781,22 @@ const ReportCardManager = () => {
                 <Award className="w-4 h-4" />
                 {t.printThBtn}
               </button>
-              <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
+              <button
+                type="button"
+                className="btn btn-outline gap-2"
+                disabled={isLoadingData || !reportCardData || students.length === 0}
+                onClick={handlePrintAllAnnual}
+              >
+                <Printer className="w-4 h-4" />
                 {t.printAnnualBtn}
               </button>
-              <button type="button" className="btn btn-disabled" disabled title={t.comingSoonTooltip}>
+              <button
+                type="button"
+                className="btn btn-outline gap-2"
+                disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
+                onClick={handlePrintSelectionAnnual}
+              >
+                <Printer className="w-4 h-4" />
                 {t.printSelectionAnnualBtn}
               </button>
             </div>
