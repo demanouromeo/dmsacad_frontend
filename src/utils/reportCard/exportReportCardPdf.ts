@@ -101,6 +101,11 @@ interface StudentLayout {
 
 const MAX_COMPETENCE_LINES = 3;
 
+// Extra vertical breathing room around each competence's text block within the COMPÉTENCES
+// ÉVALUÉES column, expressed as a fraction of the line-height (lh) rather than a fixed mm value so
+// it scales with whichever font size the shrink-to-fit loop below picks for a given student.
+const COMPETENCE_ROW_PADDING = 0.05;
+
 const measureStudent = (
   doc: jsPDF,
   student: ReportCardStudentData,
@@ -108,18 +113,30 @@ const measureStudent = (
 ): StudentLayout => {
   doc.setFontSize(fontSize);
   const lh = lineHeightMm(doc, fontSize);
-  const headerHeight = lh * 3 + 2;
+  // Header box no longer carries the old flat 2mm buffer on top of its 3 text lines - headers are
+  // vertically centered (see drawCenteredHeaderLines below) so the extra room isn't needed.
+  const headerHeight = lh * 3;
+  // COMPÉTENCES ÉVALUÉES is drawn one point larger than the base font (see drawStudentPage) - wrap
+  // and measure its row height at that same bumped size so the wrapped lines actually fit the
+  // column width and don't visually overlap each other.
+  const competenceFontSize = fontSize + 1;
+  const competenceLh = lineHeightMm(doc, competenceFontSize);
   const competenceWidth = colWidth("competence") - 2;
   let tableHeight = 0;
   const subjectLayouts: SubjectLayout[] = student.subjects.map((subject) => {
+    doc.setFontSize(competenceFontSize);
     const compLines = subject.competences.map((c) =>
       wrapCompetenceText(doc, c.competenceText, competenceWidth, MAX_COMPETENCE_LINES),
     );
+    doc.setFontSize(fontSize);
     const rowCount = Math.max(
       1,
       compLines.reduce((sum, lines) => sum + lines.length, 0),
     );
-    const height = rowCount * lh;
+    // Each real competence row gets top+bottom padding; the length-1 fallback row (a subject with
+    // zero competences) doesn't, since no competence loop iteration runs for it below.
+    const height =
+      rowCount * competenceLh + subject.competences.length * 2 * COMPETENCE_ROW_PADDING * competenceLh;
     tableHeight += height;
     return { subjectId: subject.subjectId, compLines, rowCount, height };
   });
@@ -228,31 +245,66 @@ const drawStudentPage = (
     infoY,
   );
 
-  let y = infoY + infoLh + 3;
+  let y = infoY + infoLh;
 
   const layout = chooseLayout(doc, student, y);
   const fontSize = layout.fontSize;
   doc.setFontSize(fontSize);
   const lh = layout.lh;
+  // Three size tiers for value cells, each one point above the tier below it (headers stay at the
+  // base fontSize): valueFontSize for N/20 and COTE, valueFontSize2 for Coef/M x Coef/[Min-Max]/Appr
+  // (already at valueFontSize, bumped one further), moyFontSize for MOY (already at fontSize+2,
+  // bumped one further). MATIÈRES and COMPÉTENCES ÉVALUÉES get their own dedicated size/line-height
+  // since, unlike the others, they wrap/truncate text whose measured width must match the size
+  // actually drawn - see measureStudent's competenceFontSize for why.
+  const valueFontSize = fontSize + 1;
+  const valueFontSize2 = fontSize + 2;
+  const moyFontSize = fontSize + 3;
+  const matiereFontSize = fontSize + 1;
+  const matiereLh = lineHeightMm(doc, matiereFontSize);
+  const competenceFontSize = fontSize + 1;
+  const competenceLh = lineHeightMm(doc, competenceFontSize);
 
   // Table header - 3 physical text lines to accommodate the 2-line wrapped headers ("M x Coef",
   // "[Min-Max]", "Appr & visa de l'enseignant"), matching the reference RC's own wrapped header.
+  // Every header is centered both horizontally (align: "center" at each column's midpoint) and
+  // vertically (as a 1- or 2-line block centered within the full header box height); the header
+  // sits inside the same bordered grid as the body table below it rather than floating above it -
+  // see the vertical separators drawn from headerTop (not tableTop) further down. Every header
+  // except Appr is drawn two points larger (headerBumpFontSize) than the base font.
   const headerTop = y;
+  const headerBumpFontSize = fontSize + 2;
+  const headerBumpLh = lineHeightMm(doc, headerBumpFontSize);
+  const headerMidY = centerTextY(headerTop, layout.headerHeight, headerBumpFontSize);
+  const drawCenteredHeaderLines = (
+    lines: string[],
+    centerX: number,
+    lineSpacing: number,
+  ): void => {
+    const blockTop = headerMidY - (lineSpacing * (lines.length - 1)) / 2;
+    lines.forEach((line, i) =>
+      doc.text(line, centerX, blockTop + lineSpacing * i, { align: "center" }),
+    );
+  };
   doc.setFont("helvetica", "bold");
-  doc.text("MATIÈRES", colCenter("matiere"), headerTop + lh, { align: "center" });
-  doc.text("COMPÉTENCES ÉVALUÉES", colX("competence") + 1, headerTop + lh);
-  doc.text("N/20", colCenter("n20"), headerTop + lh, { align: "center" });
-  doc.text("MOY", colCenter("moy"), headerTop + lh, { align: "center" });
-  doc.text("Coef", colCenter("coef"), headerTop + lh, { align: "center" });
-  const mCoefLines = doc.splitTextToSize("M x Coef", colWidth("mcoef") - 1);
-  mCoefLines.forEach((line: string, i: number) =>
-    doc.text(line, colCenter("mcoef"), headerTop + lh * (i + 1), { align: "center" }),
+  doc.setFontSize(headerBumpFontSize);
+  drawCenteredHeaderLines(["MATIÈRES"], colCenter("matiere"), headerBumpLh);
+  drawCenteredHeaderLines(["COMPÉTENCES ÉVALUÉES"], colCenter("competence"), headerBumpLh);
+  drawCenteredHeaderLines(["N/20"], colCenter("n20"), headerBumpLh);
+  drawCenteredHeaderLines(["MOY"], colCenter("moy"), headerBumpLh);
+  drawCenteredHeaderLines(["Coef"], colCenter("coef"), headerBumpLh);
+  drawCenteredHeaderLines(
+    doc.splitTextToSize("M x Coef", colWidth("mcoef") - 1),
+    colCenter("mcoef"),
+    headerBumpLh,
   );
-  doc.text("COTE", colCenter("cote"), headerTop + lh, { align: "center" });
-  doc.text("[Min-Max]", colCenter("minmax"), headerTop + lh, { align: "center" });
-  const apprLines = doc.splitTextToSize("Appr & visa de l'enseign.", colWidth("appr") - 1);
-  apprLines.forEach((line: string, i: number) =>
-    doc.text(line, colCenter("appr"), headerTop + lh * (i + 1), { align: "center" }),
+  drawCenteredHeaderLines(["COTE"], colCenter("cote"), headerBumpLh);
+  drawCenteredHeaderLines(["[Min-Max]"], colCenter("minmax"), headerBumpLh);
+  doc.setFontSize(fontSize);
+  drawCenteredHeaderLines(
+    doc.splitTextToSize("Appr & visa de l'enseign.", colWidth("appr") - 1),
+    colCenter("appr"),
+    lh,
   );
   doc.setFont("helvetica", "normal");
   y = headerTop + layout.headerHeight;
@@ -278,85 +330,112 @@ const drawStudentPage = (
     const blockTop = y;
     const blockHeight = subjectLayout.height;
 
-    // MATIÈRES cell: subject title (bold) + staff label (normal), vertically centered.
+    // MATIÈRES cell: subject title (bold) + staff label (normal), vertically centered, drawn at
+    // matiereFontSize (one point above the base font) - truncation is measured at that same size so
+    // the "..." cutoff still matches what's actually rendered.
+    doc.setFontSize(matiereFontSize);
     doc.setFont("helvetica", "bold");
     const titleText = truncateToWidth(doc, subject.subjectTitle, colWidth("matiere") - 2);
     doc.setFont("helvetica", "normal");
     const staffText = subject.staffLabel
       ? truncateToWidth(doc, subject.staffLabel, colWidth("matiere") - 2)
       : "";
-    const matiereMidY = centerTextY(blockTop, blockHeight, fontSize);
+    const matiereMidY = centerTextY(blockTop, blockHeight, matiereFontSize);
     doc.setFont("helvetica", "bold");
-    doc.text(titleText, colCenter("matiere"), staffText ? matiereMidY - lh / 2 : matiereMidY, {
-      align: "center",
-    });
+    doc.text(
+      titleText,
+      colCenter("matiere"),
+      staffText ? matiereMidY - matiereLh / 2 : matiereMidY,
+      { align: "center" },
+    );
     if (staffText) {
       doc.setFont("helvetica", "normal");
-      doc.text(staffText, colCenter("matiere"), matiereMidY + lh / 2, { align: "center" });
+      doc.text(staffText, colCenter("matiere"), matiereMidY + matiereLh / 2, { align: "center" });
     }
+    doc.setFontSize(fontSize);
 
     // COMPÉTENCES ÉVALUÉES + N/20 - one sub-row per competence, wrapped text handled by
-    // subjectLayout.compLines (already measured/truncated for this exact font size).
+    // subjectLayout.compLines (already measured/truncated at competenceFontSize, see
+    // measureStudent). Each row gets COMPETENCE_ROW_PADDING*competenceLh of top/bottom padding.
     let rowY = blockTop;
+    const competencePadding = COMPETENCE_ROW_PADDING * competenceLh;
+    doc.setFontSize(competenceFontSize);
     subject.competences.forEach((comp, compIndex) => {
       const lines = subjectLayout.compLines[compIndex];
+      const textTop = rowY + competencePadding;
       lines.forEach((line, lineIdx) => {
-        doc.text(line, colX("competence") + 1, rowY + lh * (lineIdx + 1));
+        doc.text(line, colX("competence") + 1, textTop + competenceLh * (lineIdx + 1));
       });
-      const rowHeight = lines.length * lh;
+      const rowHeight = lines.length * competenceLh + 2 * competencePadding;
       const markText = comp.mark !== null ? formatRcMarkDisplay(comp.mark) : "";
       if (markText) {
-        doc.text(markText, colCenter("n20"), centerTextY(rowY, rowHeight, fontSize), {
+        doc.setFontSize(valueFontSize);
+        doc.text(markText, colCenter("n20"), centerTextY(rowY, rowHeight, valueFontSize), {
           align: "center",
         });
+        doc.setFontSize(competenceFontSize);
       }
       rowY += rowHeight;
     });
+    doc.setFontSize(fontSize);
 
     // Subject-level MOY/Coef/M x Coef/COTE/[Min-Max]/Appr - single values, vertically centered
-    // across the whole block (matching every sample RC's rowspan-style layout).
+    // across the whole block (matching every sample RC's rowspan-style layout). MOY is the largest
+    // (moyFontSize), Coef/M x Coef/[Min-Max]/Appr are one tier down (valueFontSize2), and COTE is
+    // one tier below that (valueFontSize) - see the tier comment above valueFontSize's declaration.
     const midY = centerTextY(blockTop, blockHeight, fontSize);
     if (subject.moy !== null && subject.mCoef !== null) {
       const moyPass = subject.moy >= 10;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(fontSize + 2);
+      doc.setFontSize(moyFontSize);
       if (!moyPass) {
         doc.setTextColor(...COLOR_RED_TEXT);
       }
       doc.text(formatRcMoyDisplay(subject.moy), colCenter("moy"), midY, {
         align: "center",
       });
-      doc.setFontSize(fontSize);
       doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(valueFontSize2);
       doc.text(String(subject.coef.toFixed(1)), colCenter("coef"), midY, { align: "center" });
       doc.text(formatRcFixed2(subject.mCoef), colCenter("mcoef"), midY, { align: "center" });
+      doc.setFontSize(valueFontSize);
       doc.setFont("helvetica", "bold");
       doc.text(subject.cote, colCenter("cote"), midY, { align: "center" });
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(valueFontSize2);
       doc.text(subject.apprLabel, colCenter("appr"), midY, { align: "center" });
+      doc.setFontSize(fontSize);
     } else {
+      doc.setFontSize(valueFontSize2);
       doc.text(String(subject.coef.toFixed(1)), colCenter("coef"), midY, { align: "center" });
+      doc.setFontSize(fontSize);
     }
     // Single horizontal line, e.g. "[4.5 - 16]" - previously split across two stacked lines, which
     // overflowed into neighboring rows whenever a subject's block was only one row tall.
+    doc.setFontSize(valueFontSize2);
     const minMaxText = `[${formatRcNumber(subject.subjectMin)} - ${formatRcNumber(subject.subjectMax)}]`;
     doc.text(truncateToWidth(doc, minMaxText, colWidth("minmax") - 2), colCenter("minmax"), midY, {
       align: "center",
     });
+    doc.setFontSize(fontSize);
 
     y = blockTop + blockHeight;
     doc.setLineWidth(0.15);
     doc.line(LEFT_X, y, RIGHT_X, y);
   });
 
-  // Vertical column separators for the whole table, drawn once the table's total height is known.
+  // Vertical column separators spanning the whole table, header included, so the header row reads
+  // as part of the same bordered grid as the body rather than floating above it - drawn from
+  // headerTop (not tableTop) now that the header itself is column-divided. A matching top border
+  // closes the box above the header.
   doc.setLineWidth(0.3);
-  doc.line(LEFT_X, tableTop, LEFT_X, y);
-  doc.line(RIGHT_X, tableTop, RIGHT_X, y);
+  doc.line(LEFT_X, headerTop, RIGHT_X, headerTop);
+  doc.line(LEFT_X, headerTop, LEFT_X, y);
+  doc.line(RIGHT_X, headerTop, RIGHT_X, y);
   COL_BOUNDS.slice(1, -1).forEach((x) => {
     doc.setLineWidth(0.15);
-    doc.line(x, tableTop, x, y);
+    doc.line(x, headerTop, x, y);
   });
 
   y += MARKS_TO_RESULTS_GAP;

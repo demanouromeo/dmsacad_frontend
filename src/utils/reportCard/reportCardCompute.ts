@@ -88,7 +88,9 @@ export const getCompComment = (avg: number): string => {
   return "";
 };
 
-const round2 = (n: number): number => Math.round(n * 100) / 100;
+// Exported so annualReportCardCompute.ts can reuse the same rounding convention rather than
+// redefining it.
+export const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 // getNonApcComment() - ported from the user's reference getCommentFR()/getCommentEN(), a distinct
 // threshold/label table from getCote/getCompComment above - used only by the non-APC RC layout,
@@ -462,7 +464,7 @@ const computeEcartType = (moyennes: number[]): number => {
 // applies to the student's own totalGeneral/coefSum - a subject the student has no marks in
 // doesn't drag the group average down to 0, it's simply excluded.
 export const computeGroupSubtotal = (
-  rows: ReportCardSubjectRow[],
+  rows: { coef: number; moy: number | null; mCoef: number | null }[],
 ): { coefSum: number; mCoefSum: number; moyenneGroupe: number } => {
   let coefSum = 0;
   let mCoefSum = 0;

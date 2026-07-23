@@ -84,3 +84,61 @@ export const drawStudentPhoto = (
   doc.setLineWidth(0.3);
   doc.rect(x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
 };
+
+// groupSubjects() - groups a student's subjects by groupeId (ascending, matching each group's own
+// id order rather than a hardcoded Scientifiques/Littéraires/Autres label list), subjects already
+// alphabetical within a classe from ReportCardManager's subjectsSorted. Generic over both the term
+// layout's ReportCardSubjectRow and the annual layout's AnnualSubjectRow - both carry the same
+// groupeId/groupeName fields.
+export interface GroupedSubjects<T> {
+  groupeId: number;
+  groupeName: string;
+  rows: T[];
+}
+
+export const groupSubjects = <T extends { groupeId: number; groupeName: string }>(
+  subjects: T[],
+): GroupedSubjects<T>[] => {
+  const byGroupe = new Map<number, GroupedSubjects<T>>();
+  subjects.forEach((row) => {
+    const existing = byGroupe.get(row.groupeId);
+    if (existing) {
+      existing.rows.push(row);
+    } else {
+      byGroupe.set(row.groupeId, { groupeId: row.groupeId, groupeName: row.groupeName, rows: [row] });
+    }
+  });
+  return Array.from(byGroupe.values()).sort((a, b) => a.groupeId - b.groupeId);
+};
+
+// value===0 renders blank rather than "0" - matches every sample RC (a discipline field with no
+// recorded incidents is left empty, not stamped with a literal zero).
+export const disciplineCell = (value: number): string => (value === 0 ? "" : String(value));
+
+// good.png/bad.png/baisse.png are bundled static assets (same origin as the app), unlike the
+// school logo/student photo which are fetched from the backend - no crossOrigin/canvas-CORS
+// concern here, just a plain onload/onerror probe.
+export const loadStaticImage = (url: string): Promise<HTMLImageElement | null> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+
+// Scales an image down to fit within maxW x maxH (never up), preserving its aspect ratio, so a
+// progress icon never gets stretched or overflows its cell.
+export const fitImageInBox = (
+  img: HTMLImageElement,
+  maxW: number,
+  maxH: number,
+): { w: number; h: number } => {
+  const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) {
+    h = maxH;
+    w = h * ratio;
+  }
+  return { w, h };
+};

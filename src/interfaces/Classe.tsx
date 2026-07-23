@@ -8,4 +8,11 @@ export interface Classe {
   classe_master_name: string | null;
   sg_id: number | null;
   vp_id: number | null;
+  // End-of-year decision thresholds (classe_year) - used by the annual report card's
+  // computeMustDismiss/computeMustRepeat algorithm, see annualReportCardCompute.ts.
+  avgDismissalTh: number;
+  repeatUB: number;
+  passMark: number;
+  totalAbsTh: number;
+  totalExclusionTh: number;
 }

@@ -15,11 +15,16 @@ import {
 import {
   buildReportCardTitle,
   centerTextY,
+  disciplineCell,
   drawLabelValue,
   drawStudentPhoto,
+  fitImageInBox,
+  groupSubjects,
   lineHeightMm,
+  loadStaticImage,
   PHOTO_WIDTH,
   truncateToWidth,
+  type GroupedSubjects,
 } from "./reportCardPdfShared";
 import type {
   ReportCardClasseStats,
@@ -66,28 +71,6 @@ const colX = (key: (typeof COL_KEYS)[number]): number => COL_BOUNDS[COL_KEYS.ind
 const colWidth = (key: (typeof COL_KEYS)[number]): number => COLS[key];
 const colCenter = (key: (typeof COL_KEYS)[number]): number => colX(key) + colWidth(key) / 2;
 
-interface GroupedSubjects {
-  groupeId: number;
-  groupeName: string;
-  rows: ReportCardSubjectRow[];
-}
-
-// Groups a student's subjects by groupeId (ascending, matching each group's own id order rather
-// than a hardcoded Scientifiques/Littéraires/Autres label list - see the plan's Q2 decision),
-// subjects already alphabetical within a classe from ReportCardManager's subjectsSorted.
-const groupSubjects = (subjects: ReportCardSubjectRow[]): GroupedSubjects[] => {
-  const byGroupe = new Map<number, GroupedSubjects>();
-  subjects.forEach((row) => {
-    const existing = byGroupe.get(row.groupeId);
-    if (existing) {
-      existing.rows.push(row);
-    } else {
-      byGroupe.set(row.groupeId, { groupeId: row.groupeId, groupeName: row.groupeName, rows: [row] });
-    }
-  });
-  return Array.from(byGroupe.values()).sort((a, b) => a.groupeId - b.groupeId);
-};
-
 const FONT_SIZE_CANDIDATES = [8, 7.5, 7, 6.5, 6, 5.5, 5];
 const MARKS_TO_RESULTS_GAP = 8;
 // Blocks A/B/C butt directly against each other (no gap) so they read as one continuous table,
@@ -102,7 +85,7 @@ interface TableLayout {
   fontSize: number;
   lh: number;
   headerHeight: number;
-  groups: GroupedSubjects[];
+  groups: GroupedSubjects<ReportCardSubjectRow>[];
   tableHeight: number;
 }
 
@@ -115,7 +98,7 @@ const SUBJECT_ROW_LINES = 2;
 
 const measureTable = (
   doc: jsPDF,
-  groups: GroupedSubjects[],
+  groups: GroupedSubjects<ReportCardSubjectRow>[],
   fontSize: number,
 ): TableLayout => {
   doc.setFontSize(fontSize);
@@ -130,7 +113,7 @@ const measureTable = (
 
 const chooseTableLayout = (
   doc: jsPDF,
-  groups: GroupedSubjects[],
+  groups: GroupedSubjects<ReportCardSubjectRow>[],
   letterheadY: number,
 ): TableLayout => {
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -149,38 +132,6 @@ const chooseTableLayout = (
 const noteText = (row: ReportCardSubjectRow, subjectCompetenceId: number): string => {
   const comp = row.competences.find((c) => c.subjectCompetenceId === subjectCompetenceId);
   return comp && comp.mark !== null ? formatRcMarkDisplay(comp.mark) : "";
-};
-
-// value===0 renders blank rather than "0" - matches every sample (a discipline field with no
-// recorded incidents is left empty, not stamped with a literal zero).
-const disciplineCell = (value: number): string => (value === 0 ? "" : String(value));
-
-// good.png/bad.png are bundled static assets (same origin as the app), unlike the school
-// logo/student photo which are fetched from the backend - no crossOrigin/canvas-CORS concern here,
-// just a plain onload/onerror probe.
-const loadStaticImage = (url: string): Promise<HTMLImageElement | null> =>
-  new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
-
-// Scales an image down to fit within maxW x maxH (never up), preserving its aspect ratio, so the
-// eval/exam progress icon never gets stretched or overflows its merged cell.
-const fitImageInBox = (
-  img: HTMLImageElement,
-  maxW: number,
-  maxH: number,
-): { w: number; h: number } => {
-  const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1);
-  let w = maxW;
-  let h = w / ratio;
-  if (h > maxH) {
-    h = maxH;
-    w = h * ratio;
-  }
-  return { w, h };
 };
 
 const drawStudentPage = (

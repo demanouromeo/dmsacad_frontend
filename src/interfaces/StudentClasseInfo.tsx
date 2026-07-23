@@ -11,4 +11,14 @@ export interface StudentClasseInfo {
   solvable2: number | null;
   cas_social: number | null;
   abandon: number | null;
+  // End-of-year conseil de classe decision fields - 2 means "not manually set, auto-compute" for
+  // the tinyint flags (see annualReportCardCompute.ts's computeAnnualClassified/computeMustDismiss/
+  // computeMustRepeat). promuEn is a classe_id (the classe the student will join if promoted),
+  // null when not manually set. codeExclusion: 0=none, 2=Conduite, 3=Travail, 4=Ne peut trippler,
+  // 6=Insolvable (1=Âge, 5=Abandon exist but aren't auto-computed here).
+  isMannullalyClassified: number;
+  isMannullalyDismissed: number;
+  mustRepeat: number;
+  promuEn: number | null;
+  codeExclusion: number;
 }
