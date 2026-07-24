@@ -513,6 +513,7 @@ const drawStudentPage = (
   year: string,
   schoolHeader: SchoolHeader,
   photoImage: HTMLImageElement | null,
+  titleOverride?: string,
 ): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
@@ -521,7 +522,7 @@ const drawStudentPage = (
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text("BULLETIN DE NOTES ANNUEL", centerX, letterheadY + 4, { align: "center" });
+  doc.text(titleOverride ?? "BULLETIN DE NOTES ANNUEL", centerX, letterheadY + 4, { align: "center" });
 
   drawStudentPhoto(doc, photoImage, RIGHT_X - PHOTO_WIDTH, letterheadY + 6);
 
@@ -571,6 +572,7 @@ export const exportAnnualReportCardsApcToPdf = async (
   schoolHeader: SchoolHeader,
   filename: string,
   photosByStudId: Map<number, HTMLImageElement | null>,
+  titleOverride?: string,
 ): Promise<void> => {
   const { default: JsPdfCtor } = await import("jspdf");
   const doc = new JsPdfCtor();
@@ -587,6 +589,7 @@ export const exportAnnualReportCardsApcToPdf = async (
       year,
       schoolHeader,
       photosByStudId.get(student.studId) ?? null,
+      titleOverride,
     );
   });
 

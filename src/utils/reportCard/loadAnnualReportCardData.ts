@@ -5,6 +5,7 @@ import { ClassifiedParamReader } from "../../dbmanger/ClassifiedParamReader";
 import { SchoolInfoReader } from "../../dbmanger/SchoolInfoReader";
 import { MarkReader } from "../../dbmanger/MarkReader";
 import { DisciplineReader } from "../../dbmanger/DisciplineReader";
+import { ThParamReader } from "../../dbmanger/ThParamReader";
 import { computeDbSequence } from "../markSequence";
 import { computeIsTechnique } from "../schoolTypes";
 import type { SchoolHeader } from "../exportHeader";
@@ -38,6 +39,155 @@ export const buildStaffLabel = (staff: Staff | undefined): string => {
   const civility = staff.civility?.trim();
   const surname = staff.surname?.trim() || staff.name;
   return civility ? `${civility} ${surname}` : surname;
+};
+
+interface TermLoaderParams {
+  accessToken: string | null;
+  connection: string;
+  schoolYear: string;
+  section: string;
+  language: "fr" | "en";
+  classeId: number;
+  term: number;
+  isApc: boolean;
+}
+
+// One classe's full term ReportCardData ("Bulletin de notes du X trimestre") - extracted from
+// ReportCardManager.tsx's own loadReportCardDataForClasse useCallback so the parent portal
+// (ParentChildDetailManager.tsx) can generate the exact same document (under a different title,
+// "Relevé de notes...") for a single child, reusing exportReportCardsToPdf/
+// exportNonApcReportCardsToPdf's existing student-subset support rather than a bespoke layout. Pure
+// extraction: behavior unchanged from the original closure, just parameterized explicitly.
+export const loadReportCardDataForClasse = async (params: TermLoaderParams): Promise<ReportCardData> => {
+  const { accessToken, connection, schoolYear, section, language, classeId, term, isApc } = params;
+  const [
+    studentsRaw,
+    studentClasseRaw,
+    subjectsRaw,
+    attributions,
+    staffList,
+    classifiedParam,
+    thParam,
+    disciplineRows,
+  ] = await Promise.all([
+    StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
+    StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
+    SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classeId),
+    StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
+    StaffReader.fetchStaff(accessToken, connection, schoolYear),
+    ClassifiedParamReader.fetchClassifiedParamOfYear(accessToken, connection, schoolYear),
+    ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear),
+    DisciplineReader.fetchDisciplineOfClasse(accessToken, connection, schoolYear, term, classeId),
+  ]);
+
+  const infoByStudId = new Map(studentClasseRaw.map((info) => [info.stud_id, info]));
+  const roster: ReportCardRosterEntry[] = studentsRaw.map((s) => ({
+    stud_id: s.stud_id,
+    matricule: s.matricule,
+    name: s.name,
+    surname: s.surname,
+    bday: s.bday,
+    bplace: s.bplace,
+    sexe: s.sexe,
+    repeating: infoByStudId.get(s.stud_id)?.repeating ?? s.repeating,
+  }));
+
+  const subjectsSorted = [...subjectsRaw].sort((a, b) =>
+    a.subject_title.localeCompare(b.subject_title, "fr", { sensitivity: "base" }),
+  );
+
+  const staffById = new Map(staffList.map((s) => [s.staff_id, s]));
+  const findStaffLabel = (subjectId: number) => {
+    const attribution = attributions.find(
+      (a) => a.subject_id === subjectId && a.classe_id === classeId,
+    );
+    return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
+  };
+
+  let subjectsData: ReportCardSubjectBundle[];
+  if (isApc) {
+    const withCompetences = await Promise.all(
+      subjectsSorted.map(async (subject) => ({
+        subject,
+        competences: await SubjectReader.fetchCompetences(
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          classeId,
+          subject.subject_id,
+          term,
+        ),
+      })),
+    );
+    subjectsData = await Promise.all(
+      withCompetences
+        .filter(({ competences }) => competences.length > 0)
+        .map(async ({ subject, competences }) => {
+          const marksByCompetence = new Map<number, Map<number, Mark>>();
+          await Promise.all(
+            competences.map(async (comp) => {
+              const marks = await MarkReader.fetchCompMarks(
+                accessToken,
+                connection,
+                schoolYear,
+                classeId,
+                subject.subject_id,
+                term,
+                comp.subject_competence_id,
+              );
+              marksByCompetence.set(
+                comp.subject_competence_id,
+                new Map(marks.map((m) => [m.stud_id, m])),
+              );
+            }),
+          );
+          return {
+            kind: "apc" as const,
+            subject,
+            competences,
+            marksByCompetence,
+            staffLabel: findStaffLabel(subject.subject_id),
+          };
+        }),
+    );
+  } else {
+    subjectsData = await Promise.all(
+      subjectsSorted.map(async (subject) => {
+        const marksBySeq = new Map<number, Map<number, Mark>>();
+        await Promise.all(
+          [1, 2].map(async (seq) => {
+            const marks = await MarkReader.fetchSeqMarks(
+              accessToken,
+              connection,
+              schoolYear,
+              classeId,
+              subject.subject_id,
+              computeDbSequence(term, seq),
+            );
+            marksBySeq.set(seq, new Map(marks.map((m) => [m.stud_id, m])));
+          }),
+        );
+        return {
+          kind: "nonApc" as const,
+          subject,
+          marksBySeq,
+          staffLabel: findStaffLabel(subject.subject_id),
+        };
+      }),
+    );
+  }
+
+  const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
+
+  return buildReportCardData({
+    roster,
+    subjectsData,
+    classifiedParam,
+    thParam,
+    disciplineByStudId,
+    language,
+  });
 };
 
 interface AnnualLoaderParams {

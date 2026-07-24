@@ -491,11 +491,12 @@ const ParentManager = () => {
                         {!isEditing && (
                           <button
                             type="button"
-                            className="btn btn-xs btn-ghost btn-square mr-1"
+                            className="btn btn-xs btn-outline gap-1 mr-2"
                             title={t.manageChildrenHint}
                             onClick={() => setChildrenDialogParent(parent)}
                           >
                             <Users className="w-4 h-4" />
+                            {t.manageChildrenBtn}
                           </button>
                         )}
                         {isEditing ? (

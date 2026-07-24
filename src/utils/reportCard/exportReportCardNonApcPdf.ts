@@ -149,6 +149,7 @@ const drawStudentPage = (
     baisse: HTMLImageElement | null;
     bad: HTMLImageElement | null;
   },
+  titleOverride?: string,
 ): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
@@ -157,7 +158,7 @@ const drawStudentPage = (
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text(buildReportCardTitle(term), centerX, letterheadY + 4, { align: "center" });
+  doc.text(titleOverride ?? buildReportCardTitle(term), centerX, letterheadY + 4, { align: "center" });
 
   drawStudentPhoto(doc, photoImage, RIGHT_X - PHOTO_WIDTH, letterheadY + 6);
 
@@ -574,6 +575,7 @@ export const exportNonApcReportCardsToPdf = async (
   filename: string,
   photosByStudId: Map<number, HTMLImageElement | null>,
   language: "fr" | "en",
+  titleOverride?: string,
 ): Promise<void> => {
   const { default: JsPdfCtor } = await import("jspdf");
   const doc = new JsPdfCtor();
@@ -601,6 +603,7 @@ export const exportNonApcReportCardsToPdf = async (
       photosByStudId.get(student.studId) ?? null,
       language,
       progressImages,
+      titleOverride,
     );
   });
 

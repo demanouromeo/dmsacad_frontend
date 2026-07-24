@@ -11,6 +11,15 @@ const TERM_ORDINALS_FR = ["PREMIER", "DEUXIEME", "TROISIEME"];
 export const buildReportCardTitle = (term: number): string =>
   `BULLETIN DE NOTES DU ${TERM_ORDINALS_FR[term - 1] ?? term} TRIMESTRE`;
 
+// Same layout/wording as the official bulletin, just "RELEVÉ" instead of "BULLETIN" - used by the
+// parent portal (ParentChildDetailManager.tsx), which prints the identical document for a single
+// child but under this different, non-official title.
+export const buildReleveDeNotesTitle = (term: number): string =>
+  `RELEVÉ DE NOTES DU ${TERM_ORDINALS_FR[term - 1] ?? term} TRIMESTRE`;
+
+export const ANNUAL_BULLETIN_TITLE = "BULLETIN DE NOTES ANNUEL";
+export const ANNUAL_RELEVE_TITLE = "RELEVÉ DE NOTES ANNUEL";
+
 export const lineHeightMm = (doc: jsPDF, fontSize: number): number =>
   (fontSize * 1.15) / doc.internal.scaleFactor;
 

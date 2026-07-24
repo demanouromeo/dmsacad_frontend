@@ -6,27 +6,17 @@ import { useLanguage } from "../../../i18n/useLanguage";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { reportCardManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
-import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import { StudentReader } from "../../../dbmanger/StudentReader";
-import { MarkReader } from "../../../dbmanger/MarkReader";
-import { StaffReader } from "../../../dbmanger/StaffReader";
-import { ClassifiedParamReader } from "../../../dbmanger/ClassifiedParamReader";
 import { ThParamReader } from "../../../dbmanger/ThParamReader";
-import { DisciplineReader } from "../../../dbmanger/DisciplineReader";
-import { computeDbSequence } from "../../../utils/markSequence";
 import type { Classe } from "../../../interfaces/Classe";
-import type { Mark } from "../../../interfaces/Mark";
 import type { ReportCardData } from "../../../interfaces/ReportCard";
 import type { AnnualReportCardData, AnnualReportCardDataApc } from "../../../interfaces/AnnualReportCard";
 import {
-  buildReportCardData,
   computeThEligibility,
   formatRcNumber,
-  type ReportCardRosterEntry,
-  type ReportCardSubjectBundle,
 } from "../../../utils/reportCard/reportCardCompute";
 import {
-  buildStaffLabel,
+  loadReportCardDataForClasse as loadReportCardDataForClasseImpl,
   loadAnnualReportCardDataForClasse as loadAnnualReportCardDataForClasseImpl,
   loadAnnualApcReportCardDataForClasse as loadAnnualApcReportCardDataForClasseImpl,
 } from "../../../utils/reportCard/loadAnnualReportCardData";
@@ -104,145 +94,21 @@ const ReportCardManager = () => {
 
   // Fetches + assembles one classe's full ReportCardData for a given term - shared by the
   // single-classe load effect below and by handlePrintAllClasses, which just loops this over
-  // every classe of the section instead of only the currently selected one.
+  // every classe of the section instead of only the currently selected one. Extracted into
+  // loadAnnualReportCardData.ts so the parent portal can reuse it too - this is a thin wrapper
+  // preserving the original call site/behavior, same pattern as the annual loaders below.
   const loadReportCardDataForClasse = useCallback(
-    async (classeId: number, term: number, isApc: boolean) => {
-      const [
-        studentsRaw,
-        studentClasseRaw,
-        subjectsRaw,
-        attributions,
-        staffList,
-        classifiedParam,
-        thParam,
-        disciplineRows,
-      ] = await Promise.all([
-        StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
-        StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
-        SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classeId),
-        StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
-        StaffReader.fetchStaff(accessToken, connection, schoolYear),
-        ClassifiedParamReader.fetchClassifiedParamOfYear(accessToken, connection, schoolYear),
-        ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear),
-        DisciplineReader.fetchDisciplineOfClasse(accessToken, connection, schoolYear, term, classeId),
-      ]);
-
-      const infoByStudId = new Map(studentClasseRaw.map((info) => [info.stud_id, info]));
-      const roster: ReportCardRosterEntry[] = studentsRaw.map((s) => ({
-        stud_id: s.stud_id,
-        matricule: s.matricule,
-        name: s.name,
-        surname: s.surname,
-        bday: s.bday,
-        bplace: s.bplace,
-        sexe: s.sexe,
-        repeating: infoByStudId.get(s.stud_id)?.repeating ?? s.repeating,
-      }));
-
-      // Reference RCs list matières in ascending alphabetical order, not the classe-assignment
-      // order fetchSubjectsOfClasse returns them in.
-      const subjectsSorted = [...subjectsRaw].sort((a, b) =>
-        a.subject_title.localeCompare(b.subject_title, "fr", { sensitivity: "base" }),
-      );
-
-      const staffById = new Map(staffList.map((s) => [s.staff_id, s]));
-      const findStaffLabel = (subjectId: number) => {
-        const attribution = attributions.find(
-          (a) => a.subject_id === subjectId && a.classe_id === classeId,
-        );
-        return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
-      };
-
-      let subjectsData: ReportCardSubjectBundle[];
-      if (isApc) {
-        const withCompetences = await Promise.all(
-          subjectsSorted.map(async (subject) => ({
-            subject,
-            competences: await SubjectReader.fetchCompetences(
-              accessToken,
-              connection,
-              schoolYear,
-              section,
-              classeId,
-              subject.subject_id,
-              term,
-            ),
-          })),
-        );
-        // A subject with zero competences defined for this term is skipped entirely - same
-        // "apcHasNoCompetence" precedent as MarkEntryManager's own whole-section export.
-        subjectsData = await Promise.all(
-          withCompetences
-            .filter(({ competences }) => competences.length > 0)
-            .map(async ({ subject, competences }) => {
-              const marksByCompetence = new Map<number, Map<number, Mark>>();
-              await Promise.all(
-                competences.map(async (comp) => {
-                  const marks = await MarkReader.fetchCompMarks(
-                    accessToken,
-                    connection,
-                    schoolYear,
-                    classeId,
-                    subject.subject_id,
-                    term,
-                    comp.subject_competence_id,
-                  );
-                  marksByCompetence.set(
-                    comp.subject_competence_id,
-                    new Map(marks.map((m) => [m.stud_id, m])),
-                  );
-                }),
-              );
-              return {
-                kind: "apc" as const,
-                subject,
-                competences,
-                marksByCompetence,
-                staffLabel: findStaffLabel(subject.subject_id),
-              };
-            }),
-        );
-      } else {
-        // Non-APC: each subject's marks live in student_subject, keyed by dbsequence - both
-        // sequences of the selected term feed the subject's MOY (see computeSeqAverage), same
-        // dbsequence derivation Mark entry itself uses (computeDbSequence(term, seq)).
-        subjectsData = await Promise.all(
-          subjectsSorted.map(async (subject) => {
-            const marksBySeq = new Map<number, Map<number, Mark>>();
-            await Promise.all(
-              [1, 2].map(async (seq) => {
-                const marks = await MarkReader.fetchSeqMarks(
-                  accessToken,
-                  connection,
-                  schoolYear,
-                  classeId,
-                  subject.subject_id,
-                  computeDbSequence(term, seq),
-                );
-                marksBySeq.set(seq, new Map(marks.map((m) => [m.stud_id, m])));
-              }),
-            );
-            return {
-              kind: "nonApc" as const,
-              subject,
-              marksBySeq,
-              staffLabel: findStaffLabel(subject.subject_id),
-            };
-          }),
-        );
-      }
-
-      const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
-
-      return buildReportCardData({
-        roster,
-        subjectsData,
-        classifiedParam,
-        thParam,
-        disciplineByStudId,
+    (classeId: number, term: number, isApc: boolean): Promise<ReportCardData> =>
+      loadReportCardDataForClasseImpl({
+        accessToken,
+        connection,
+        schoolYear,
+        section,
         language,
-      });
-    },
+        classeId,
+        term,
+        isApc,
+      }),
     [accessToken, connection, schoolYear, section, language],
   );
 

@@ -18,7 +18,8 @@
       "Skill(run:*)",
       "Bash(npm ls *)",
       "Bash(node test2.js)",
-      "Bash(/c/xampp/php/php.exe artisan tinker '--execute= *)"
+      "Bash(/c/xampp/php/php.exe artisan tinker '--execute= *)",
+      "Bash(node probe_parent_pdf.mjs)"
     ],
     "additionalDirectories": [
       "c:\\xampp\\htdocs\\dmsacad_backend_dev\\routes"

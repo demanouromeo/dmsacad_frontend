@@ -2496,6 +2496,7 @@ export const parentManagerTranslations = {
     tableHeaderEmail: "Email",
     tableHeaderChildren: "Enfants",
     manageChildrenHint: "Gérer les enfants",
+    manageChildrenBtn: "Élèves",
     deleteSelectionBtn: (count: number) => `Supprimer la sélection (${count})`,
     deleteConfirm: (count: number) =>
       `Voulez-vous vraiment supprimer ${count} parent(s) ? Les enfants associés ne seront pas supprimés, seulement dissociés.`,
@@ -2572,6 +2573,7 @@ export const parentManagerTranslations = {
     tableHeaderEmail: "Email",
     tableHeaderChildren: "Children",
     manageChildrenHint: "Manage children",
+    manageChildrenBtn: "Students",
     deleteSelectionBtn: (count: number) => `Delete selection (${count})`,
     deleteConfirm: (count: number) =>
       `Do you really want to delete ${count} parent(s)? Linked children will not be deleted, only unlinked.`,

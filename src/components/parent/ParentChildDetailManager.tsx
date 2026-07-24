@@ -6,26 +6,46 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { parentPortalTranslations } from "../../i18n/translations";
 import { useSchoolHeader } from "../../hooks/useSchoolHeader";
 import { StudParentReader } from "../../dbmanger/StudParentReader";
+import { StudentReader } from "../../dbmanger/StudentReader";
 import { ClasseReader } from "../../dbmanger/ClasseReader";
 import type { ParentChild } from "../../interfaces/StudParent";
+import type { Classe } from "../../interfaces/Classe";
 import type { ReportCardDiscipline } from "../../interfaces/ReportCard";
+import type {
+  AnnualReportCardData,
+  AnnualReportCardDataApc,
+  AnnualStudentData,
+  AnnualStudentDataApc,
+} from "../../interfaces/AnnualReportCard";
 import {
+  loadReportCardDataForClasse,
   loadAnnualReportCardDataForClasse,
   loadAnnualApcReportCardDataForClasse,
 } from "../../utils/reportCard/loadAnnualReportCardData";
+import { exportReportCardsToPdf } from "../../utils/reportCard/exportReportCardPdf";
+import { exportNonApcReportCardsToPdf } from "../../utils/reportCard/exportReportCardNonApcPdf";
+import { exportAnnualReportCardsToPdf } from "../../utils/reportCard/exportAnnualReportCardPdf";
+import { exportAnnualReportCardsApcToPdf } from "../../utils/reportCard/exportAnnualReportCardApcPdf";
+import { buildReleveDeNotesTitle, ANNUAL_RELEVE_TITLE } from "../../utils/reportCard/reportCardPdfShared";
 import { buildTimestampedFilename } from "../../utils/exportData";
-import { exportChildDetailsPdf } from "../../utils/parentPortal/exportChildDetailsPdf";
 import Loading from "../sharedcomp/Loading";
+import LoadingOverlay from "../sharedcomp/LoadingOverlay";
 import MarksChartDialog, { type MarksChartEntry } from "./MarksChartDialog";
 
 const TERMS = [1, 2, 3];
 
 type Tab = "term" | "annual";
 
+type RawAnnualData =
+  | { isApc: false; data: AnnualReportCardData }
+  | { isApc: true; data: AnnualReportCardDataApc };
+
 // A common, lightweight per-subject shape derived from either AnnualStudentData (non-APC, `notes`
 // has 6 entries - one per dbsequence) or AnnualStudentDataApc (`notes` has 3 entries - one per
-// term average, already computed) - keeps the table/chart/PDF export working off one shape instead
-// of branching APC/non-APC in three places.
+// term average, already computed) - keeps the on-screen table/chart working off one shape instead
+// of branching APC/non-APC in three places. The official-looking PDF export (see handleExportPdf)
+// reuses the raw AnnualStudentData/AnnualStudentDataApc row instead, since it needs every field the
+// real report-card layout draws (competences, cote, appréciation, rank, ...), not just this subset.
 interface SubjectRow {
   subjectId: number;
   subjectTitle: string;
@@ -35,7 +55,6 @@ interface SubjectRow {
 }
 
 interface LoadedChild {
-  isApc: boolean;
   avgAnnual: number;
   isAnnualAvgEmpty: boolean;
   rangAnnuel: number | null;
@@ -72,11 +91,14 @@ const disciplineRows = (
   { label: t.disciplineExclusionDefinitive, value: d.exclusionDefinitive },
 ];
 
-// Read-only detail screen for one of the connected parent's children - term/annual marks (tabular +
-// graphical) and discipline, plus a PDF export. Reuses the exact same annual report-card compute
-// pipeline (loadAnnualReportCardDataForClasse/Apc) that already powers ADMIN's report-card printing
-// and the Promotion module, filtered down to this one student - no new marks/discipline aggregation
-// endpoint. Strictly no save/edit control anywhere: parents cannot edit student details or marks.
+// Read-only detail screen for one of the connected parent's children. The on-screen tabular +
+// graphical view reuses the annual report-card compute pipeline (loadAnnualReportCardDataForClasse/
+// Apc) filtered to this one student. "Exporter en PDF" instead generates the exact same official
+// document ADMIN prints (exportReportCardsToPdf/exportNonApcReportCardsToPdf for a term,
+// exportAnnualReportCardsToPdf/exportAnnualReportCardsApcToPdf for the annual view) for just this
+// child - same layout/fields, only the title differs ("RELEVÉ DE NOTES..." instead of "BULLETIN DE
+// NOTES..."), via each exporter's optional titleOverride param. No save/edit control anywhere:
+// parents cannot edit student details or marks.
 const ParentChildDetailManager = () => {
   const { studId } = useParams<{ studId: string }>();
   const { connection, schoolYear, accessToken, authPayload } = useAuth();
@@ -86,8 +108,11 @@ const ParentChildDetailManager = () => {
   const navigate = useNavigate();
 
   const [child, setChild] = useState<ParentChild | null>(null);
-  const [loadedChild, setLoadedChild] = useState<LoadedChild | null>(null);
+  const [classe, setClasse] = useState<Classe | null>(null);
+  const [childPhoto, setChildPhoto] = useState<HTMLImageElement | null>(null);
+  const [rawAnnualData, setRawAnnualData] = useState<RawAnnualData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [tab, setTab] = useState<Tab>("term");
   const [selectedTerm, setSelectedTerm] = useState(TERMS[0]);
   const [isChartOpen, setIsChartOpen] = useState(false);
@@ -98,7 +123,8 @@ const ParentChildDetailManager = () => {
         return;
       }
       setIsLoading(true);
-      setLoadedChild(null);
+      setRawAnnualData(null);
+      setChildPhoto(null);
       const children = await StudParentReader.fetchChildrenOfParent(
         accessToken,
         connection,
@@ -111,10 +137,12 @@ const ParentChildDetailManager = () => {
         setIsLoading(false);
         return;
       }
+      StudentReader.loadStudentPhotoImage(accessToken, connection, found.stud_id).then(setChildPhoto);
       const [classes, apcLevels] = await Promise.all([
         ClasseReader.fetchClasses(accessToken, connection, schoolYear, found.section_name),
         ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, found.section_name),
       ]);
+      setClasse(classes.find((c) => c.classe_id === found.classe_id) ?? null);
       const isApc = apcLevels.some((l) => l.level === found.level && l.activated);
 
       if (isApc) {
@@ -128,26 +156,7 @@ const ParentChildDetailManager = () => {
           language,
           classeId: found.classe_id,
         });
-        const row = data.students.find((s) => s.studId === found.stud_id);
-        setLoadedChild(
-          row
-            ? {
-                isApc: true,
-                avgAnnual: row.avgAnnual,
-                isAnnualAvgEmpty: row.isAnnualAvgEmpty,
-                rangAnnuel: row.rangAnnuel,
-                disciplineAnnual: row.disciplineAnnual,
-                disciplineByTerm: [null, null, null],
-                subjects: row.subjects.map((s) => ({
-                  subjectId: s.subjectId,
-                  subjectTitle: s.subjectTitle,
-                  coef: s.coef,
-                  notes: s.notes,
-                  annualAvg: s.moy,
-                })),
-              }
-            : null,
-        );
+        setRawAnnualData({ isApc: true, data });
       } else {
         const data = await loadAnnualReportCardDataForClasse({
           accessToken,
@@ -159,26 +168,7 @@ const ParentChildDetailManager = () => {
           language,
           classeId: found.classe_id,
         });
-        const row = data.students.find((s) => s.studId === found.stud_id);
-        setLoadedChild(
-          row
-            ? {
-                isApc: false,
-                avgAnnual: row.avgAnnual,
-                isAnnualAvgEmpty: row.isAnnualAvgEmpty,
-                rangAnnuel: row.rangAnnuel,
-                disciplineAnnual: row.disciplineAnnual,
-                disciplineByTerm: row.disciplineByTerm,
-                subjects: row.subjects.map((s) => ({
-                  subjectId: s.subjectId,
-                  subjectTitle: s.subjectTitle,
-                  coef: s.coef,
-                  notes: s.notes,
-                  annualAvg: s.moy,
-                })),
-              }
-            : null,
-        );
+        setRawAnnualData({ isApc: false, data });
       }
       setIsLoading(false);
     };
@@ -188,18 +178,65 @@ const ParentChildDetailManager = () => {
 
   const childName = child ? `${child.name} ${child.surname ?? ""}`.trim() : t.detailTitleFallback;
 
+  const loadedChild: LoadedChild | null = useMemo(() => {
+    if (!rawAnnualData || !child) {
+      return null;
+    }
+    // Narrow rawAnnualData (and look up `row` from its already-narrowed `data`) before reading
+    // anything - `row` on its own doesn't carry the discriminant, so TS can't narrow it after the
+    // fact from a separately-checked `rawAnnualData.isApc`.
+    if (rawAnnualData.isApc) {
+      const row = rawAnnualData.data.students.find((s) => s.studId === child.stud_id);
+      if (!row) {
+        return null;
+      }
+      return {
+        avgAnnual: row.avgAnnual,
+        isAnnualAvgEmpty: row.isAnnualAvgEmpty,
+        rangAnnuel: row.rangAnnuel,
+        disciplineAnnual: row.disciplineAnnual,
+        disciplineByTerm: [null, null, null],
+        subjects: row.subjects.map((s) => ({
+          subjectId: s.subjectId,
+          subjectTitle: s.subjectTitle,
+          coef: s.coef,
+          notes: s.notes,
+          annualAvg: s.moy,
+        })),
+      };
+    }
+    const row = rawAnnualData.data.students.find((s) => s.studId === child.stud_id);
+    if (!row) {
+      return null;
+    }
+    return {
+      avgAnnual: row.avgAnnual,
+      isAnnualAvgEmpty: row.isAnnualAvgEmpty,
+      rangAnnuel: row.rangAnnuel,
+      disciplineAnnual: row.disciplineAnnual,
+      disciplineByTerm: row.disciplineByTerm,
+      subjects: row.subjects.map((s) => ({
+        subjectId: s.subjectId,
+        subjectTitle: s.subjectTitle,
+        coef: s.coef,
+        notes: s.notes,
+        annualAvg: s.moy,
+      })),
+    };
+  }, [rawAnnualData, child]);
+
   // Term tab: non-APC slices the term's 2 sequences out of the 6-entry `notes` and averages them;
   // APC's `notes[term-1]` is already the per-term subject average, used directly. Annual tab uses
   // `annualAvg` regardless of kind.
   const subjectRowsForTab = useMemo(() => {
-    if (!loadedChild) {
+    if (!loadedChild || !rawAnnualData) {
       return [] as { id: number; label: string; coef: number; seq1: number | null; seq2: number | null; value: number | null }[];
     }
     return loadedChild.subjects.map((s) => {
       if (tab === "annual") {
         return { id: s.subjectId, label: s.subjectTitle, coef: s.coef, seq1: null, seq2: null, value: s.annualAvg };
       }
-      if (loadedChild.isApc) {
+      if (rawAnnualData.isApc) {
         return {
           id: s.subjectId,
           label: s.subjectTitle,
@@ -215,7 +252,7 @@ const ParentChildDetailManager = () => {
       const value = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
       return { id: s.subjectId, label: s.subjectTitle, coef: s.coef, seq1, seq2, value };
     });
-  }, [loadedChild, tab, selectedTerm]);
+  }, [loadedChild, rawAnnualData, tab, selectedTerm]);
 
   const chartEntries: MarksChartEntry[] = useMemo(
     () => subjectRowsForTab.map((s) => ({ id: s.id, label: s.label, mark: s.value })),
@@ -233,63 +270,105 @@ const ParentChildDetailManager = () => {
       ? loadedChild.disciplineAnnual
       : loadedChild.disciplineByTerm[selectedTerm - 1];
 
+  // Generates the exact same official document ADMIN prints for this classe (same
+  // exportReportCardsToPdf/exportNonApcReportCardsToPdf/exportAnnualReportCardsToPdf/
+  // exportAnnualReportCardsApcToPdf builders), filtered to just this one child, under the
+  // "RELEVÉ DE NOTES..." title instead of "BULLETIN DE NOTES...".
   const handleExportPdf = async () => {
-    if (!child || !loadedChild) {
+    if (!child || !classe || !rawAnnualData) {
       return;
     }
-    if (tab === "term") {
-      const tableHead = loadedChild.isApc
-        ? [t.subjectHeader, t.subjectAvgHeader]
-        : [t.subjectHeader, t.sequence1Header, t.sequence2Header, t.subjectAvgHeader];
-      const tableBody = subjectRowsForTab.map((s) =>
-        loadedChild.isApc
-          ? [s.label, s.value === null ? "" : s.value.toFixed(2)]
-          : [
-              s.label,
-              s.seq1 === null ? "" : s.seq1.toFixed(2),
-              s.seq2 === null ? "" : s.seq2.toFixed(2),
-              s.value === null ? "" : s.value.toFixed(2),
-            ],
-      );
-      await exportChildDetailsPdf(
-        schoolHeader,
-        childName,
-        child.matricule,
-        child.classe_name,
-        {
-          headerLine: t.term(selectedTerm).toUpperCase(),
-          tableHead,
-          tableBody,
-          overallAverageLine: `${t.termAvgLabel} ${
-            termOverallAverage === null ? "-" : termOverallAverage.toFixed(2)
-          }/20`,
-          disciplineRows: activeDiscipline ? disciplineRows(activeDiscipline, t) : [],
-        },
-        buildTimestampedFilename(`${childName} - ${t.term(selectedTerm)}`, [], "pdf"),
-      );
-    } else {
-      const tableBody = subjectRowsForTab.map((s) => [s.label, s.value === null ? "" : s.value.toFixed(2)]);
-      await exportChildDetailsPdf(
-        schoolHeader,
-        childName,
-        child.matricule,
-        child.classe_name,
-        {
-          headerLine: t.tabAnnual.toUpperCase(),
-          tableHead: [t.subjectHeader, t.annualSubjectAvgHeader],
-          tableBody,
-          overallAverageLine: `${t.annualAvgLabel} ${
-            loadedChild.isAnnualAvgEmpty ? "-" : loadedChild.avgAnnual.toFixed(2)
-          }/20`,
-          disciplineRows: disciplineRows(loadedChild.disciplineAnnual, t),
-        },
-        buildTimestampedFilename(`${childName} - ${t.tabAnnual}`, [], "pdf"),
-      );
+    setIsExporting(true);
+    try {
+      const classeInfo = { classe_name: classe.classe_name, classe_master_name: classe.classe_master_name };
+      const photosByStudId = new Map([[child.stud_id, childPhoto]]);
+
+      if (tab === "term") {
+        const data = await loadReportCardDataForClasse({
+          accessToken,
+          connection,
+          schoolYear,
+          section: child.section_name,
+          language,
+          classeId: child.classe_id,
+          term: selectedTerm,
+          isApc: rawAnnualData.isApc,
+        });
+        const studentRow = data.students.find((s) => s.studId === child.stud_id);
+        if (!studentRow) {
+          return;
+        }
+        const filename = buildTimestampedFilename(`${childName} - ${t.term(selectedTerm)}`, [], "pdf");
+        const titleOverride = buildReleveDeNotesTitle(selectedTerm);
+        if (rawAnnualData.isApc) {
+          await exportReportCardsToPdf(
+            [studentRow],
+            data.classeStats,
+            classeInfo,
+            selectedTerm,
+            schoolYear,
+            schoolHeader,
+            filename,
+            photosByStudId,
+            language,
+            titleOverride,
+          );
+        } else {
+          await exportNonApcReportCardsToPdf(
+            [studentRow],
+            data.classeStats,
+            classeInfo,
+            selectedTerm,
+            schoolYear,
+            schoolHeader,
+            filename,
+            photosByStudId,
+            language,
+            titleOverride,
+          );
+        }
+      } else {
+        const filename = buildTimestampedFilename(`${childName} - ${t.tabAnnual}`, [], "pdf");
+        if (rawAnnualData.isApc) {
+          const studentRow = rawAnnualData.data.students.find((s) => s.studId === child.stud_id);
+          if (!studentRow) {
+            return;
+          }
+          await exportAnnualReportCardsApcToPdf(
+            [studentRow] as AnnualStudentDataApc[],
+            rawAnnualData.data.classeStats,
+            classeInfo,
+            schoolYear,
+            schoolHeader,
+            filename,
+            photosByStudId,
+            ANNUAL_RELEVE_TITLE,
+          );
+        } else {
+          const studentRow = rawAnnualData.data.students.find((s) => s.studId === child.stud_id);
+          if (!studentRow) {
+            return;
+          }
+          await exportAnnualReportCardsToPdf(
+            [studentRow] as AnnualStudentData[],
+            rawAnnualData.data.classeStats,
+            classeInfo,
+            schoolYear,
+            schoolHeader,
+            filename,
+            photosByStudId,
+            ANNUAL_RELEVE_TITLE,
+          );
+        }
+      }
+    } finally {
+      setIsExporting(false);
     }
   };
 
   return (
     <div className="page-shell-wide">
+      {isExporting && <LoadingOverlay />}
       <div className="page-header">
         <button
           type="button"
@@ -341,8 +420,10 @@ const ParentChildDetailManager = () => {
             <div className="surface-card p-4 md:p-5 mb-6">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 {tab === "term" && (
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="parentTermSelect">{t.termSelectorLabel}</label>
+                  <div className="flex flex-nowrap items-center gap-2">
+                    <label htmlFor="parentTermSelect" className="whitespace-nowrap">
+                      {t.termSelectorLabel}
+                    </label>
                     <select
                       id="parentTermSelect"
                       className="select select-sm"
@@ -366,7 +447,12 @@ const ParentChildDetailManager = () => {
                     <BarChart3 className="w-4 h-4" />
                     {t.graphBtn}
                   </button>
-                  <button type="button" className="btn btn-outline btn-sm gap-2" onClick={handleExportPdf}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm gap-2"
+                    disabled={isExporting}
+                    onClick={handleExportPdf}
+                  >
                     <Download className="w-4 h-4" />
                     {t.exportPdfBtn}
                   </button>
@@ -378,7 +464,7 @@ const ParentChildDetailManager = () => {
                   <thead>
                     <tr>
                       <th>{t.subjectHeader}</th>
-                      {tab === "term" && !loadedChild.isApc && (
+                      {tab === "term" && rawAnnualData && !rawAnnualData.isApc && (
                         <>
                           <th>{t.sequence1Header}</th>
                           <th>{t.sequence2Header}</th>
@@ -391,7 +477,7 @@ const ParentChildDetailManager = () => {
                     {subjectRowsForTab.map((s) => (
                       <tr key={s.id}>
                         <td>{s.label}</td>
-                        {tab === "term" && !loadedChild.isApc && (
+                        {tab === "term" && rawAnnualData && !rawAnnualData.isApc && (
                           <>
                             <td>{s.seq1 === null ? "" : s.seq1.toFixed(2)}</td>
                             <td>{s.seq2 === null ? "" : s.seq2.toFixed(2)}</td>
