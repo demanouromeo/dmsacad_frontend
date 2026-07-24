@@ -256,7 +256,7 @@ const drawFooterGrid = (
   gridTop: number,
 ): void => {
   const gridColWidth = (RIGHT_X - LEFT_X) / 3;
-  const disciplineWidth = gridColWidth - 9;
+  const disciplineWidth = gridColWidth - 4;
   const profilWidth = gridColWidth - 6;
   const travailWidth = gridColWidth + 16;
   const disciplineX = LEFT_X;
@@ -265,15 +265,21 @@ const drawFooterGrid = (
 
   const fc = [
     disciplineX,
-    disciplineX + disciplineWidth * 0.42,
+    // Value1/value2 sub-columns (Abs non just(h)/Avert. values) widened by 2 each, redistributed
+    // from the two label sub-columns within DISCIPLINE itself (disciplineWidth unchanged) - the
+    // values can run to 3 digits (e.g. 209, 100). Label1 ("Abs non just(h):") widened a further 1
+    // (value1 gives back 1), label2 ("Avert.:") narrowed a further 1 (value2 gains that 1).
+    disciplineX + disciplineWidth * 0.42 - 1,
     disciplineX + disciplineWidth * 0.52,
-    disciplineX + disciplineWidth * 0.9,
+    disciplineX + disciplineWidth * 0.9 - 3,
     travailX,
-    travailX + travailWidth * 0.4 + 2,
+    travailX + travailWidth * 0.4 - 3,
     travailX + travailWidth * 0.6,
-    travailX + travailWidth * 0.84 - 5,
+    travailX + travailWidth * 0.84 - 3,
     profilX,
-    profilX + profilWidth * 0.55 + 2,
+    // PROFIL DE LA CLASSE's label/value split, shifted 6 further toward the label side (was
+    // "+ 2") so the [MIN-MAX] value ("[x.xx - y.yy]") has enough room to fit its cell.
+    profilX + profilWidth * 0.55 - 4,
     RIGHT_X,
   ];
   const fcx = (i: number): number => fc[i];
@@ -306,7 +312,6 @@ const drawFooterGrid = (
     ["Abs non just(h):", disciplineCell(disc.absNonJust), "Avert.:", disciplineCell(disc.avertissement)],
     ["Abs just(h):", disciplineCell(disc.absJust), "Blâme:", disciplineCell(disc.blame)],
     ["Retards:", disciplineCell(disc.lateness), "Excl(j):", disciplineCell(disc.exclusionJours)],
-    ["Consignes(h):", disciplineCell(disc.consigne), "Excl déf.:", disciplineCell(disc.exclusionDefinitive)],
   ];
   disciplineRows.forEach(([l1, v1, l2, v2], i) => {
     const ry = footerRowTop(i) + FOOTER_ROW_H / 2 + 1;
@@ -321,13 +326,28 @@ const drawFooterGrid = (
     doc.setFont("helvetica", "normal");
   });
 
+  // Consignes(h)/Excl déf. cells merge downward with the two otherwise-empty rows below them
+  // (rows 4-5) - DISCIPLINE only has 4 rows of real data against the grid's 6-row height, matching
+  // the RANG/Ecart type merges above - see the disciplineMergeRowY border skips below. Text is
+  // top-aligned within the merged cell (same vertical offset as a normal single row) rather than
+  // centered across the full 3-row height, per explicit request.
+  const consignesRy = footerRowTop(3) + FOOTER_ROW_H / 2 + 1;
+  doc.setFont("helvetica", "normal");
+  doc.text("Consignes(h):", fcx(0) + 1, consignesRy);
+  doc.setFont("helvetica", "bold");
+  doc.text(disciplineCell(disc.consigne), fcx(1) + 1, consignesRy);
+  doc.setFont("helvetica", "normal");
+  doc.text("Excl déf.:", fcx(2) + 1, consignesRy);
+  doc.setFont("helvetica", "bold");
+  doc.text(disciplineCell(disc.exclusionDefinitive), fcx(3) + 1, consignesRy);
+  doc.setFont("helvetica", "normal");
+
   const apprLabels = ["CTBA", "CBA", "CA", "CMA", "CNA"];
   const travailRows: [string, string][] = [
     ["Total général:", formatRcNumber(student.totalGeneral)],
     ["COEF:", student.coefSum.toFixed(1)],
-    ["MOYENNE ANNUELLE:", formatRcNumber(student.avgAnnual)],
+    ["MOY. ANNUELLE:", formatRcNumber(student.avgAnnual)],
     ["COTE:", student.cote],
-    ["RANG:", formatRangText(student.rangAnnuel, student.sexe, "fr")],
   ];
   travailRows.forEach(([label, value], i) => {
     const ry = footerRowTop(i) + FOOTER_ROW_H / 2 + 1;
@@ -339,6 +359,18 @@ const drawFooterGrid = (
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
   });
+
+  // RANG label/value cells merge with the empty row below them (row 5 is otherwise unused in
+  // this sub-block) so RANG occupies the full remaining height, matching the APPRECIATIONS
+  // block's 6-row span - see the rangMergeRowY border skip below.
+  const rangRy = footerRowTop(4) + FOOTER_ROW_H + 1;
+  doc.setFont("helvetica", "normal");
+  doc.text("RANG:", fcx(4) + 1, rangRy);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(formatRangText(student.rangAnnuel, student.sexe, "fr"), fcx(5) + 1, rangRy);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
 
   doc.setFont("helvetica", "bold");
   doc.text("APPRECIATIONS", fcCenter(6, 8), footerRowTop(0) + FOOTER_ROW_H / 2 + 1, { align: "center" });
@@ -363,18 +395,31 @@ const drawFooterGrid = (
     ],
     ["Nombre de moyennes:", String(classeStats.nombreMoyennes)],
     ["Taux de réussite:", `${formatRcNumber(classeStats.tauxReussite)}%`],
-    ["Ecart type:", formatRcNumber(classeStats.ecartType)],
   ];
   profilRows.forEach(([label, value], i) => {
     const ry = footerRowTop(i) + FOOTER_ROW_H / 2 + 1;
     doc.setFont("helvetica", "normal");
     doc.text(label, fcx(8) + 1, ry);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(value, fcx(9) + 1, ry);
+    // [MIN-MAX] is one unit smaller than the other PROFIL DE LA CLASSE values (its bracketed
+    // "[x - y]" text is wider than a plain number/percentage) so it fits its cell; truncated as a
+    // safety net on top of the redistributed column width so it never overflows past the border.
+    doc.setFontSize(label === "[MIN-MAX]:" ? 8 : 9);
+    doc.text(truncateToWidth(doc, value, fcx(10) - fcx(9) - 2), fcx(9) + 1, ry);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
   });
+
+  // Ecart type's label/value cells merge downward with the otherwise-empty row 5, same as RANG's
+  // merge in the TRAVAIL DE L'ÉLÈVE block above - see the ecartMergeRowY border skip below.
+  const ecartRy = footerRowTop(4) + FOOTER_ROW_H + 1;
+  doc.setFont("helvetica", "normal");
+  doc.text("Ecart type:", fcx(8) + 1, ecartRy);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(formatRcNumber(classeStats.ecartType), fcx(9) + 1, ecartRy);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
 
   // Bottom row: DÉCISION DU CONSEIL DE FIN D'ANNÉE | Visa parent | Nom et visa prof principal |
   // Fait à.../Le X - same 4-cell shape as the term layout's signature row, first cell repurposed.
@@ -405,6 +450,8 @@ const drawFooterGrid = (
   doc.setDrawColor(0);
   doc.setLineWidth(0.3);
   const apprMergeRowY = footerRowTop(1);
+  const row4Y = footerRowTop(4);
+  const row5Y = footerRowTop(5);
   [
     gridTop,
     ...Array.from({ length: FOOTER_ROW_COUNT + 1 }, (_, i) => footerRowTop(i)),
@@ -414,6 +461,20 @@ const drawFooterGrid = (
     if (rowY === apprMergeRowY) {
       doc.line(fcx(0), rowY, fcx(6), rowY);
       doc.line(fcx(8), rowY, fcx(10), rowY);
+      return;
+    }
+    // Consignes(h)/Excl déf. (DISCIPLINE, cols 0-4) merges through rows 3-5, so this boundary
+    // (between rows 3 and 4) only needs the DISCIPLINE segment skipped - TRAVAIL/PROFIL still
+    // have a real COTE/Taux-de-réussite row ending here.
+    if (rowY === row4Y) {
+      doc.line(fcx(4), rowY, fcx(10), rowY);
+      return;
+    }
+    // At row 4-5's boundary, DISCIPLINE's merged Consignes cell, RANG (TRAVAIL, cols 4-6), and
+    // Ecart type (PROFIL, cols 8-10) all merge through it - skip all three, keeping only the
+    // APPRECIATIONS column's own CMA/CNA separator (cols 6-8, a real row boundary there).
+    if (rowY === row5Y) {
+      doc.line(fcx(6), rowY, fcx(8), rowY);
       return;
     }
     // The decision block/Visa cells draw their own borders (drawAnnualDecisionBlock rects itself,

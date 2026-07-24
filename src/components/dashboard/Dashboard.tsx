@@ -6,7 +6,7 @@ import { dashboardTranslations } from "../../i18n/translations";
 import AdminMenuGrid from "./AdminMenuGrid";
 
 const Dashboard = () => {
-  const { authPayload, schoolYear, section, logout } = useAuth();
+  const { authPayload, logout } = useAuth();
   const [language] = useLanguage();
   const t = dashboardTranslations[language];
   const navigate = useNavigate();
@@ -36,16 +36,6 @@ const Dashboard = () => {
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
             {authPayload?.name}
           </h1>
-          {authPayload?.role === "ADMIN" && (
-            <div className="flex items-center gap-2 mt-2">
-              <span className="badge badge-primary badge-outline">
-                {schoolYear}
-              </span>
-              <span className="badge badge-secondary badge-outline capitalize">
-                {section}
-              </span>
-            </div>
-          )}
         </div>
         {/* The only entry point non-ADMIN roles have into "Manage credential" - they never see
             AdminMenuGrid (mounted only for role === "ADMIN" below), so this button is deliberately

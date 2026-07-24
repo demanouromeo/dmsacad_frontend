@@ -39,6 +39,7 @@ import { exportNonApcReportCardsToPdf } from "../../../utils/reportCard/exportRe
 import { exportAnnualReportCardsToPdf } from "../../../utils/reportCard/exportAnnualReportCardPdf";
 import { exportAnnualReportCardsApcToPdf } from "../../../utils/reportCard/exportAnnualReportCardApcPdf";
 import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportThPdf";
+import { exportAnnualThPdf, type AnnualThPageData } from "../../../utils/reportCard/exportThAnnualPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
@@ -779,6 +780,110 @@ const ReportCardManager = () => {
     setIsSaving(false);
   };
 
+  // Whole-section ANNUAL Tableau d'Honneur batch - same "one page per deserving student, two
+  // separate PDFs (APC vs non-APC)" shape as handlePrintTh, but scored on the school YEAR's own
+  // annual average/rank/cote (loadAnnualReportCardDataForClasse/loadAnnualApcReportCardDataForClasse)
+  // instead of one term's. A dismissed student (decision.kind === "exclu" - i.e.
+  // computeMustDismiss already returned true while that student's annual data was built) never
+  // deserves the annual Honor Roll even when computeThEligibility alone would otherwise qualify
+  // them - an extra gate the term certificate has no equivalent of, since a student can't be
+  // dismissed mid-term. Same background art (RESOLUTION100/150/200, keyed off thparam.val1) for
+  // both kinds - see exportThAnnualPdf.ts.
+  const handlePrintAnnualTh = async () => {
+    if (classes.length === 0) {
+      showToast(t.printThEmpty, { type: "warning" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const thParam = await ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear);
+      if (!thParam) {
+        showToast(t.printThEmpty, { type: "warning" });
+        setIsSaving(false);
+        return;
+      }
+      const apcPages: AnnualThPageData[] = [];
+      const nonApcPages: AnnualThPageData[] = [];
+      for (const classe of classes) {
+        const isApc = apcLevels.get(classe.level) === true;
+        if (isApc) {
+          const data = await loadAnnualApcReportCardDataForClasse(classe.classe_id);
+          data.students.forEach((student) => {
+            if (student.decision.kind === "exclu") {
+              return;
+            }
+            const eligibility = computeThEligibility(
+              thParam,
+              student.disciplineAnnual.absNonJust,
+              student.avgAnnual,
+              student.isClassifiedAnnual,
+            );
+            if (eligibility.deserves) {
+              apcPages.push({
+                name: student.name,
+                surname: student.surname,
+                sexe: student.sexe,
+                classeName: classe.classe_name,
+                effectif: data.classeStats.effectif,
+                avgAnnual: student.avgAnnual,
+                rangAnnuel: null,
+                cote: student.cote,
+                encouragement: eligibility.encouragement,
+                felicitation: eligibility.felicitation,
+              });
+            }
+          });
+        } else {
+          const data = await loadAnnualReportCardDataForClasse(classe.classe_id);
+          data.students.forEach((student) => {
+            if (student.decision.kind === "exclu") {
+              return;
+            }
+            const eligibility = computeThEligibility(
+              thParam,
+              student.disciplineAnnual.absNonJust,
+              student.avgAnnual,
+              student.isClassifiedAnnual,
+            );
+            if (eligibility.deserves) {
+              nonApcPages.push({
+                name: student.name,
+                surname: student.surname,
+                sexe: student.sexe,
+                classeName: classe.classe_name,
+                effectif: data.classeStats.effectif,
+                avgAnnual: student.avgAnnual,
+                rangAnnuel: student.rangAnnuel,
+                cote: "",
+                encouragement: eligibility.encouragement,
+                felicitation: eligibility.felicitation,
+              });
+            }
+          });
+        }
+      }
+      if (apcPages.length === 0 && nonApcPages.length === 0) {
+        showToast(t.printThEmpty, { type: "warning" });
+        setIsSaving(false);
+        return;
+      }
+      const sectionSegment = `Section ${capitalizeSectionName(section)}`;
+      if (apcPages.length > 0) {
+        const filename = buildTimestampedFilename("APC TH ANNUEL", [sectionSegment], "pdf");
+        await exportAnnualThPdf("apc", apcPages, schoolHeader, thParam.val1, filename, language);
+      }
+      if (nonApcPages.length > 0) {
+        const filename = buildTimestampedFilename("NON APC TH ANNUEL", [sectionSegment], "pdf");
+        await exportAnnualThPdf("nonApc", nonApcPages, schoolHeader, thParam.val1, filename, language);
+      }
+      showToast(t.printSuccess, { type: "info" });
+    } catch (error) {
+      console.error("ReportCardManager.handlePrintAnnualTh(): Error", error);
+      showToast(t.printFailure, { type: "danger" });
+    }
+    setIsSaving(false);
+  };
+
   const handlePrintAll = () => handlePrint(students);
   const handlePrintSelection = () => {
     if (selectedIds.size === 0) {
@@ -884,6 +989,92 @@ const ReportCardManager = () => {
     handlePrintAnnual(selectedIds);
   };
 
+  // Prints one annual PDF per classe of the current section - same load-then-export-then-loop
+  // shape as handlePrintAllClasses (term RC), but for the annual "Bulletin Annuel", branching
+  // APC vs non-APC per classe the same way handlePrintAnnual already does for the single-classe
+  // path. Classes with an empty annual roster are skipped entirely.
+  const handlePrintAllClassesAnnual = async () => {
+    if (classes.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    let anyPrinted = false;
+    try {
+      for (const classe of classes) {
+        const isApc = apcLevels.get(classe.level) === true;
+        const classeArg = {
+          classe_name: classe.classe_name,
+          classe_master_name: classe.classe_master_name,
+        };
+        const filename = buildTimestampedFilename(
+          `Bulletin ANNUEL ${classe.classe_name}`,
+          [`Section ${capitalizeSectionName(section)}`],
+          "pdf",
+        );
+        if (isApc) {
+          const data = await loadAnnualApcReportCardDataForClasse(classe.classe_id);
+          if (data.students.length === 0) {
+            continue;
+          }
+          anyPrinted = true;
+          const photosByStudId = new Map<number, HTMLImageElement | null>(
+            await Promise.all(
+              data.students.map(
+                async (s): Promise<[number, HTMLImageElement | null]> => [
+                  s.studId,
+                  await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
+                ],
+              ),
+            ),
+          );
+          await exportAnnualReportCardsApcToPdf(
+            data.students,
+            data.classeStats,
+            classeArg,
+            schoolYear,
+            schoolHeader,
+            filename,
+            photosByStudId,
+          );
+        } else {
+          const data = await loadAnnualReportCardDataForClasse(classe.classe_id);
+          if (data.students.length === 0) {
+            continue;
+          }
+          anyPrinted = true;
+          const photosByStudId = new Map<number, HTMLImageElement | null>(
+            await Promise.all(
+              data.students.map(
+                async (s): Promise<[number, HTMLImageElement | null]> => [
+                  s.studId,
+                  await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
+                ],
+              ),
+            ),
+          );
+          await exportAnnualReportCardsToPdf(
+            data.students,
+            data.classeStats,
+            classeArg,
+            schoolYear,
+            schoolHeader,
+            filename,
+            photosByStudId,
+          );
+        }
+      }
+      if (anyPrinted) {
+        showToast(t.printSuccess, { type: "info" });
+      } else {
+        showToast(t.printAllClassesEmpty, { type: "warning" });
+      }
+    } catch (error) {
+      console.error("ReportCardManager.handlePrintAllClassesAnnual(): Error", error);
+      showToast(t.printFailure, { type: "danger" });
+    }
+    setIsSaving(false);
+  };
+
   return (
     <div className="page-shell">
       {isSaving && <LoadingOverlay />}
@@ -974,6 +1165,15 @@ const ReportCardManager = () => {
               </button>
               <button
                 type="button"
+                className="btn btn-accent gap-2"
+                disabled={classes.length === 0}
+                onClick={handlePrintAnnualTh}
+              >
+                <Award className="w-4 h-4" />
+                {t.printAnnualThBtn}
+              </button>
+              <button
+                type="button"
                 className="btn btn-outline gap-2"
                 disabled={isLoadingData || !reportCardData || students.length === 0}
                 onClick={handlePrintAllAnnual}
@@ -989,6 +1189,15 @@ const ReportCardManager = () => {
               >
                 <Printer className="w-4 h-4" />
                 {t.printSelectionAnnualBtn(selectedIds.size)}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary gap-2"
+                disabled={isLoadingClasses || classes.length === 0}
+                onClick={handlePrintAllClassesAnnual}
+              >
+                <Printer className="w-4 h-4" />
+                {t.printAllClassesAnnualBtn}
               </button>
             </div>
           </div>

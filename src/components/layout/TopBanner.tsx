@@ -22,6 +22,7 @@ import { MyConstants } from "../../dbmanger/MyConstants";
 import type { SchoolYear } from "../../interfaces/SchoolYear";
 import type { SchoolHeaderConfig } from "../../interfaces/SchoolHeaderConfig";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
+import { capitalizeSectionName } from "../../utils/exportData";
 
 const TopBanner = () => {
   const {
@@ -148,6 +149,12 @@ const TopBanner = () => {
                 <GraduationCap className="w-5 h-5" />
               </button>
             </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <span className="badge badge-primary badge-outline">{schoolYear}</span>
+            <span className="badge badge-secondary badge-outline capitalize">
+              {capitalizeSectionName(section)}
+            </span>
           </div>
         </div>
 
