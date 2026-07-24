@@ -2083,8 +2083,6 @@ export const reportCardManagerTranslations = {
     printThBtn: "Imprimer le tableau d'honneur (toutes les classes)",
     printAnnualBtn: "Imprimer le bulletin annuel",
     printSelectionAnnualBtn: "Imprimer la sélection - bulletin annuel",
-    printAnnualApcUnsupported:
-      "L'impression du bulletin annuel n'est disponible que pour les classes non-APC pour le moment.",
     printSuccess: "Bulletin(s) généré(s) avec succès.",
     printFailure: "Échec de la génération du/des bulletin(s).",
     printAllClassesEmpty: "Aucun élève trouvé dans les classes de cette section.",
@@ -2116,8 +2114,6 @@ export const reportCardManagerTranslations = {
     printThBtn: "Print Honor Roll (all classes)",
     printAnnualBtn: "Print Annual RC",
     printSelectionAnnualBtn: "Print Selection - Annual RC",
-    printAnnualApcUnsupported:
-      "Printing the annual report card is only available for non-APC classes for now.",
     printSuccess: "Report card(s) generated successfully.",
     printFailure: "Failed to generate the report card(s).",
     printAllClassesEmpty: "No student found in any classe of this section.",

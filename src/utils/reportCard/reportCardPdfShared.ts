@@ -1,4 +1,5 @@
 import type { jsPDF } from "jspdf";
+import type { AnnualDecision } from "../../interfaces/AnnualReportCard";
 
 // Layout-agnostic drawing helpers shared by both the APC (exportReportCardPdf.ts) and non-APC
 // (exportReportCardNonApcPdf.ts) bulletin builders - extracted here so the two table/footer
@@ -141,4 +142,100 @@ export const fitImageInBox = (
     w = h * ratio;
   }
   return { w, h };
+};
+
+// drawAnnualDecisionBlock() - the "DÉCISION DU CONSEIL DE FIN D'ANNÉE" box shared by both the
+// non-APC (exportAnnualReportCardPdf.ts) and APC (exportAnnualReportCardApcPdf.ts) annual
+// bulletins - per apcAnnual.md, "Decision bloc is build similarly as we did for non APC RC", so
+// this is the exact same drawing code for both, parameterized over just the already-computed
+// AnnualDecision + sexe (not a whole student record) so both callers' differently-shaped student
+// data can share it. Hand-drawn with jsPDF vector primitives rather than embedded images - the
+// reference mockups (promu_en.png, redouble.png, etc.) are throwaway design references, not
+// bundled assets, same "no icon asset, draw it" precedent as drawDefaultPersonIcon above.
+const DECISION_HEADER_FR = "DÉCISION DU CONSEIL DE FIN D'ANNÉE";
+const EXCLUSION_OPTIONS: { code: number; label: string }[] = [
+  { code: 1, label: "ÂGE" },
+  { code: 4, label: "Ne peut trippler" },
+  { code: 2, label: "Conduite" },
+  { code: 5, label: "Abandon" },
+  { code: 3, label: "Travail" },
+  { code: 6, label: "Insolvable" },
+];
+
+export const drawAnnualDecisionBlock = (
+  doc: jsPDF,
+  decision: AnnualDecision,
+  sexe: string,
+  x: number,
+  top: number,
+  w: number,
+  h: number,
+): void => {
+  const headerH = 6;
+  doc.setFillColor(219, 234, 254);
+  doc.rect(x, top, w, headerH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.text(DECISION_HEADER_FR, x + w / 2, top + headerH - 1.5, { align: "center" });
+
+  const contentY = top + headerH;
+  const contentH = h - headerH;
+
+  if (decision.kind === "promu") {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    const label = sexe.toLowerCase() === "f" ? "PROMUE EN:" : "PROMU EN:";
+    const text = decision.promuEnClasseName ?? "";
+    doc.text(`${label} ${text || "___________"}`, x + w / 2, contentY + contentH / 2, {
+      align: "center",
+      maxWidth: w - 4,
+    });
+  } else if (decision.kind === "redouble") {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Redouble", x + w / 2, contentY + contentH / 2, { align: "center" });
+  } else if (decision.kind === "redoubleSiEchec") {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(decision.redoubleSiEchecText ?? "", x + w / 2, contentY + contentH / 2, {
+      align: "center",
+      maxWidth: w - 4,
+    });
+  } else if (decision.kind === "nc") {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("NC", x + w / 2, contentY + contentH / 2, { align: "center" });
+  } else {
+    // exclu
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    const label = sexe.toLowerCase() === "f" ? "EXCLUE POUR:" : "EXCLU POUR:";
+    doc.text(label, x + w / 2, contentY + 3.5, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    const colW = w / 2;
+    const rowH = (contentH - 5) / 3;
+    EXCLUSION_OPTIONS.forEach((opt, i) => {
+      const col = Math.floor(i / 3);
+      const row = i % 3;
+      const cx = x + col * colW + 4;
+      const cy = contentY + 6 + row * rowH;
+      doc.setDrawColor(0);
+      doc.setLineWidth(0.2);
+      doc.circle(cx, cy, 1);
+      if (opt.code === decision.exclusionCode) {
+        doc.setFillColor(0, 0, 0);
+        doc.circle(cx, cy, 0.5, "F");
+      }
+      doc.text(opt.label, cx + 2.5, cy + 1);
+    });
+  }
+
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+  doc.rect(x, top, w, h);
+  doc.setLineWidth(0.15);
+  doc.line(x, contentY, x + w, contentY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
 };

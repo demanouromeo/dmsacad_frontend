@@ -1,4 +1,5 @@
 import type { SubjectClasseRow } from "../../interfaces/SubjectClasseRow";
+import type { SubjectCompetence } from "../../interfaces/SubjectCompetence";
 import type { Mark } from "../../interfaces/Mark";
 import type { ClassifiedParam } from "../../interfaces/ClassifiedParam";
 import type { StudentClasseInfo } from "../../interfaces/StudentClasseInfo";
@@ -10,11 +11,14 @@ import type {
   AnnualClasseStats,
   AnnualDecision,
   AnnualReportCardData,
+  AnnualReportCardDataApc,
   AnnualStudentData,
+  AnnualStudentDataApc,
   AnnualSubjectRow,
+  AnnualSubjectRowApc,
   AnnualTermSummary,
 } from "../../interfaces/AnnualReportCard";
-import { round2, getNonApcComment } from "./reportCardCompute";
+import { round2, getNonApcComment, getCote, getCompComment, computeSubjectAverage } from "./reportCardCompute";
 import type { ReportCardRosterEntry } from "./reportCardCompute";
 
 // Annual (whole-school-year) counterpart to reportCardCompute.ts's term algorithm - see
@@ -520,6 +524,293 @@ export const buildAnnualReportCardData = (
       disciplineByTerm: discipline,
       disciplineAnnual,
       termSummaries,
+      decision,
+    };
+  });
+
+  const classified = built
+    .filter((s) => s.isClassifiedAnnual)
+    .sort((a, b) => b.avgAnnual - a.avgAnnual);
+  const notClassified = built
+    .filter((s) => !s.isClassifiedAnnual)
+    .sort((a, b) => b.avgAnnual - a.avgAnnual);
+  classified.forEach((s, index) => {
+    s.rangAnnuel = index + 1;
+  });
+  const students = [...classified, ...notClassified];
+
+  const classeStats = computeAnnualClasseStats(built.map((s) => s.avgAnnual));
+
+  return { students, classeStats };
+};
+
+// ---- APC annual ----
+// apcAnnual.md explicitly reuses the non-APC annual machinery (computeClassifiedAnnual,
+// computeMustDismiss/computeMustRepeat/computeAnnualDecision, and even
+// simpleComputeAnnualAverageAPC/complexComputeAnnualAverageAPC are structurally identical to
+// computeSimpleAnnualAverage/computeComplexAnnualAverage above) - see the plan's findings for why
+// none of that is reimplemented here. What genuinely differs for APC is the marks-table shape (one
+// row per subject, Trim1/2/3 = that subject's own per-term average rather than 6 dbsequence notes)
+// and the footer (no RÉCAPITULATIF DES MOYENNES/CONDUITE ANNUELLE boxes, no per-subject Rang - see
+// exportAnnualReportCardApcPdf.ts).
+
+// One subject's full-year raw data for APC - competences/marks fetched per term (3x), unlike the
+// non-APC bundle's single 6-dbsequence bulk fetch, since APC competences are scoped per term_id
+// with no equivalent linear numbering to bulk-read across terms.
+export interface AnnualSubjectBundleApc {
+  subject: SubjectClasseRow;
+  staffLabel: string;
+  competencesByTerm: [SubjectCompetence[], SubjectCompetence[], SubjectCompetence[]];
+  marksByCompetenceByTerm: [
+    Map<number, Map<number, Mark>>,
+    Map<number, Map<number, Mark>>,
+    Map<number, Map<number, Mark>>,
+  ];
+}
+
+// getStudCompTermAvg() from apcAnnual.md - identical to the already-exported computeSubjectAverage
+// (average of that term's isEmpty=0 competence marks, null if none), just run once per term rather
+// than once for the currently-selected term.
+const computeApcSubjectTermAverages = (
+  bundle: AnnualSubjectBundleApc,
+  studId: number,
+): [number | null, number | null, number | null] => [
+  computeSubjectAverage(bundle.competencesByTerm[0], bundle.marksByCompetenceByTerm[0], studId),
+  computeSubjectAverage(bundle.competencesByTerm[1], bundle.marksByCompetenceByTerm[1], studId),
+  computeSubjectAverage(bundle.competencesByTerm[2], bundle.marksByCompetenceByTerm[2], studId),
+];
+
+// computeAnnulAverageOfStudentInSubjectAPC() from apcAnnual.md - "average of whichever of the 3
+// term averages are present", the exact same shape as computeSimpleAnnualAverage above (a
+// subject's own annual average is structurally identical to a student's own simple annual
+// average), so reused directly rather than reimplemented.
+const computeApcSubjectAnnualAverage = (
+  notes: [number | null, number | null, number | null],
+): { avgAnnual: number; isAnnualAvgEmpty: boolean } =>
+  computeSimpleAnnualAverage([
+    { avg: notes[0] ?? 0, isEmpty: notes[0] === null },
+    { avg: notes[1] ?? 0, isEmpty: notes[1] === null },
+    { avg: notes[2] ?? 0, isEmpty: notes[2] === null },
+  ]);
+
+// computeAnnualSubjectMinMaxApc() - per-subject [min,max] of every student's ANNUAL subject
+// average (missing treated as 0, same "0 not excluded for classe-wide stats" convention as the
+// term layout's own per-subject min/max).
+const computeAnnualSubjectMinMaxApc = (
+  roster: ReportCardRosterEntry[],
+  notesByStud: Map<number, [number | null, number | null, number | null]>,
+): [number, number] => {
+  if (roster.length === 0) {
+    return [0, 0];
+  }
+  const averages = roster
+    .map(
+      (s) =>
+        computeApcSubjectAnnualAverage(notesByStud.get(s.stud_id) ?? [null, null, null]).avgAnnual,
+    )
+    .sort((a, b) => a - b);
+  return [averages[0], averages[averages.length - 1]];
+};
+
+export interface BuildAnnualReportCardDataApcInput {
+  roster: ReportCardRosterEntry[];
+  subjectsData: AnnualSubjectBundleApc[];
+  // Full term ReportCardData for terms 1, 2, 3, built by the caller via the existing
+  // buildReportCardData with "apc" bundles - same role as the non-APC path's termsData.
+  termsData: [ReportCardData, ReportCardData, ReportCardData];
+  classifiedParam: ClassifiedParam | null;
+  studentClasseByStudId: Map<number, StudentClasseInfo>;
+  classe: {
+    level: number;
+    avgDismissalTh: number;
+    repeatUB: number;
+    totalAbsTh: number;
+    totalExclusionTh: number;
+  };
+  isTechnique: boolean;
+  computationMethod: number | null;
+  affichagePromotion: boolean;
+  classeNameById: Map<number, string>;
+  language: "fr" | "en";
+}
+
+export const buildAnnualReportCardDataApc = (
+  input: BuildAnnualReportCardDataApcInput,
+): AnnualReportCardDataApc => {
+  const {
+    roster,
+    subjectsData: rawSubjectsData,
+    termsData,
+    classifiedParam,
+    studentClasseByStudId,
+    classe,
+    isTechnique,
+    computationMethod,
+    affichagePromotion,
+    classeNameById,
+    language,
+  } = input;
+
+  // A subject with zero competences across ALL 3 terms is skipped entirely (same
+  // "apcHasNoCompetence" precedent used elsewhere in the app) - a subject missing competences in
+  // just one term is kept, since computeSubjectAverage naturally returns null for that term alone.
+  const subjectsData = rawSubjectsData.filter((b) =>
+    b.competencesByTerm.some((comps) => comps.length > 0),
+  );
+  const nbMatieres = subjectsData.length;
+
+  const notesBySubjectStud = new Map<
+    number,
+    Map<number, [number | null, number | null, number | null]>
+  >();
+  subjectsData.forEach((bundle) => {
+    const byStud = new Map<number, [number | null, number | null, number | null]>();
+    roster.forEach((s) => byStud.set(s.stud_id, computeApcSubjectTermAverages(bundle, s.stud_id)));
+    notesBySubjectStud.set(bundle.subject.subject_id, byStud);
+  });
+  const subjectMinMaxById = new Map<number, [number, number]>();
+  subjectsData.forEach((bundle) => {
+    const byStud = notesBySubjectStud.get(bundle.subject.subject_id);
+    if (byStud) {
+      subjectMinMaxById.set(bundle.subject.subject_id, computeAnnualSubjectMinMaxApc(roster, byStud));
+    }
+  });
+
+  const termStudentMaps = termsData.map((t) => new Map(t.students.map((s) => [s.studId, s])));
+
+  const built: AnnualStudentDataApc[] = roster.map((student) => {
+    const studentClasse = studentClasseByStudId.get(student.stud_id) ?? null;
+
+    const subjects: AnnualSubjectRowApc[] = subjectsData.map((bundle) => {
+      const notes =
+        notesBySubjectStud.get(bundle.subject.subject_id)?.get(student.stud_id) ?? [
+          null,
+          null,
+          null,
+        ];
+      const { avgAnnual: subjectAvg, isAnnualAvgEmpty: subjectAvgEmpty } =
+        computeApcSubjectAnnualAverage(notes);
+      const moy = subjectAvgEmpty ? null : subjectAvg;
+      const mCoef = moy !== null ? round2(moy * bundle.subject.coef) : null;
+      const [subjectMin, subjectMax] = subjectMinMaxById.get(bundle.subject.subject_id) ?? [0, 0];
+      return {
+        subjectId: bundle.subject.subject_id,
+        subjectTitle: bundle.subject.subject_title,
+        staffLabel: bundle.staffLabel,
+        coef: bundle.subject.coef,
+        notes,
+        moy,
+        mCoef,
+        cote: moy !== null ? getCote(moy) : "",
+        subjectMin,
+        subjectMax,
+        appr: moy !== null ? getCompComment(moy) : "",
+      };
+    });
+
+    let totalGeneral = 0;
+    let coefSum = 0;
+    subjects.forEach((row) => {
+      if (row.moy !== null && row.mCoef !== null) {
+        totalGeneral += row.mCoef;
+        coefSum += row.coef;
+      }
+    });
+    totalGeneral = round2(totalGeneral);
+    coefSum = round2(coefSum);
+
+    const termAvgInputs = termStudentMaps.map((m) => {
+      const s = m.get(student.stud_id);
+      return { avg: s?.moyenneTrim ?? 0, isEmpty: s === undefined };
+    }) as [TermAvgInput, TermAvgInput, TermAvgInput];
+
+    const { avgAnnual, isAnnualAvgEmpty } =
+      computationMethod === 0
+        ? computeComplexAnnualAverage(subjects)
+        : computeSimpleAnnualAverage(termAvgInputs);
+
+    const termIsClassified = termStudentMaps.map(
+      (m) => m.get(student.stud_id)?.isClassified ?? false,
+    ) as [boolean, boolean, boolean];
+    const isClassifiedAnnual = computeAnnualClassified(
+      studentClasse?.isMannullalyClassified ?? 2,
+      classifiedParam,
+      termIsClassified,
+      nbMatieres,
+    );
+
+    const emptyDiscipline: ReportCardDiscipline = {
+      absNonJust: 0,
+      absJust: 0,
+      lateness: 0,
+      consigne: 0,
+      avertissement: 0,
+      blame: 0,
+      exclusionJours: 0,
+      exclusionDefinitive: 0,
+    };
+    const disciplineRows = termStudentMaps.map(
+      (m) => m.get(student.stud_id)?.discipline ?? emptyDiscipline,
+    );
+    const disciplineAnnual = sumDiscipline(disciplineRows);
+
+    const isRepeating = Number(student.repeating ?? 0) === 1;
+    const { mustDismiss, code: dismissCode } = computeMustDismiss(
+      studentClasse?.isMannullalyDismissed ?? 2,
+      studentClasse?.codeExclusion ?? 0,
+      disciplineAnnual.absNonJust,
+      disciplineAnnual.exclusionJours,
+      avgAnnual,
+      classe.avgDismissalTh,
+      classe.repeatUB,
+      isRepeating,
+      classe.totalExclusionTh,
+      classe.totalAbsTh,
+      studentClasse?.solvable1 ?? null,
+    );
+    const mustRepeat = computeMustRepeat(
+      studentClasse?.mustRepeat ?? 2,
+      avgAnnual,
+      classe.repeatUB,
+      isRepeating,
+      mustDismiss,
+    );
+
+    const promuEnClasseName =
+      studentClasse?.promuEn != null ? classeNameById.get(studentClasse.promuEn) ?? null : null;
+    const decision = computeAnnualDecision(
+      classe.level,
+      isTechnique,
+      mustDismiss,
+      dismissCode,
+      mustRepeat,
+      isClassifiedAnnual,
+      avgAnnual,
+      classe.repeatUB,
+      promuEnClasseName,
+      affichagePromotion,
+      language,
+    );
+
+    return {
+      studId: student.stud_id,
+      matricule: student.matricule ?? "",
+      name: student.name,
+      surname: student.surname ?? "",
+      bday: student.bday ?? "",
+      bplace: student.bplace ?? "",
+      sexe: student.sexe,
+      repeating: isRepeating,
+      subjects,
+      totalGeneral,
+      coefSum,
+      avgAnnual,
+      isAnnualAvgEmpty,
+      isClassifiedAnnual,
+      cote: getCote(avgAnnual),
+      rangAnnuel: null,
+      apprAnnuelle: isAnnualAvgEmpty ? "" : getCompComment(avgAnnual),
+      disciplineAnnual,
       decision,
     };
   });

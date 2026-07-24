@@ -1,10 +1,12 @@
 import type { ReportCardDiscipline } from "./ReportCard";
 
-// Shapes for the non-APC annual report card ("Bulletin Annuel") - see
+// Shapes for the annual report card ("Bulletin Annuel") - see
 // src/utils/reportCard/annualReportCardCompute.ts for how these are assembled and
-// src/utils/reportCard/exportAnnualReportCardPdf.ts for how they're drawn. Distinct from (but
-// reuses ReportCardDiscipline from) the term report card's ReportCard.tsx shapes - annual RC is
-// non-APC only for now, see ReportCardManager.tsx's isSelectedClasseApc gate.
+// src/utils/reportCard/exportAnnualReportCardPdf.ts / exportAnnualReportCardApcPdf.ts for how
+// they're drawn. Distinct from (but reuses ReportCardDiscipline from) the term report card's
+// ReportCard.tsx shapes. Non-APC classes use AnnualStudentData/AnnualSubjectRow below; APC classes
+// use AnnualStudentDataApc/AnnualSubjectRowApc further down - the two layouts genuinely differ
+// (see apcAnnual.md / the plan) so they're kept as separate shapes rather than one union.
 
 export interface AnnualSubjectRow {
   subjectId: number;
@@ -86,5 +88,56 @@ export interface AnnualClasseStats {
 
 export interface AnnualReportCardData {
   students: AnnualStudentData[];
+  classeStats: AnnualClasseStats;
+}
+
+// ---- APC annual shapes ----
+// A classe-year row here is one SUBJECT (not one competence, unlike the term APC RC) - Trim1/2/3
+// are that subject's own per-term average (getStudCompTermAvg in apcAnnual.md), MOY is the
+// subject's annual average across whichever of the 3 terms have data. No per-subject Rang (unlike
+// the non-APC annual layout) - COTE/[Min-Max] take its place instead, matching the term APC
+// layout's own per-subject columns.
+export interface AnnualSubjectRowApc {
+  subjectId: number;
+  subjectTitle: string;
+  staffLabel: string;
+  coef: number;
+  // [Trim1, Trim2, Trim3] - null where that term has no real (isEmpty=0) data for this subject.
+  notes: [number | null, number | null, number | null];
+  moy: number | null;
+  mCoef: number | null;
+  cote: string;
+  subjectMin: number;
+  subjectMax: number;
+  appr: string;
+}
+
+export interface AnnualStudentDataApc {
+  studId: number;
+  matricule: string;
+  name: string;
+  surname: string;
+  bday: string;
+  bplace: string;
+  sexe: string;
+  repeating: boolean;
+  subjects: AnnualSubjectRowApc[];
+  totalGeneral: number;
+  coefSum: number;
+  avgAnnual: number;
+  isAnnualAvgEmpty: boolean;
+  isClassifiedAnnual: boolean;
+  cote: string;
+  // 1-based rank among classified students, sorted by avgAnnual desc; null for NC students.
+  rangAnnuel: number | null;
+  apprAnnuelle: string;
+  // Annual totals only - unlike the non-APC annual layout's DISCIPLINE box, the APC sample shows
+  // no per-term breakdown (see the plan's finding #3).
+  disciplineAnnual: ReportCardDiscipline;
+  decision: AnnualDecision;
+}
+
+export interface AnnualReportCardDataApc {
+  students: AnnualStudentDataApc[];
   classeStats: AnnualClasseStats;
 }

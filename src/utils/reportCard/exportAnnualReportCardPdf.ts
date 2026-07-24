@@ -12,6 +12,7 @@ import {
 import {
   centerTextY,
   disciplineCell,
+  drawAnnualDecisionBlock,
   drawLabelValue,
   drawStudentPhoto,
   fitImageInBox,
@@ -400,98 +401,6 @@ const drawRow2 = (
   doc.setFontSize(9);
 };
 
-const DECISION_HEADER_FR = "DÉCISION DU CONSEIL DE FIN D'ANNÉE";
-const EXCLUSION_OPTIONS: { code: number; label: string }[] = [
-  { code: 1, label: "ÂGE" },
-  { code: 4, label: "Ne peut trippler" },
-  { code: 2, label: "Conduite" },
-  { code: 5, label: "Abandon" },
-  { code: 3, label: "Travail" },
-  { code: 6, label: "Insolvable" },
-];
-
-// Hand-drawn decision block - the reference mockups (promu_en.png, redouble.png,
-// redouble_si_echec.png, nc.png, eclu_pour.png) are throwaway design references, not bundled
-// assets, so this is drawn with jsPDF vector primitives rather than embedded images (same
-// precedent as drawDefaultPersonIcon).
-const drawDecisionBlock = (
-  doc: jsPDF,
-  student: AnnualStudentData,
-  x: number,
-  top: number,
-  w: number,
-  h: number,
-): void => {
-  const headerH = 6;
-  doc.setFillColor(...HEADER_FILL);
-  doc.rect(x, top, w, headerH, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text(DECISION_HEADER_FR, x + w / 2, top + headerH - 1.5, { align: "center" });
-
-  const contentY = top + headerH;
-  const contentH = h - headerH;
-  const { decision } = student;
-
-  if (decision.kind === "promu") {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    const label = student.sexe.toLowerCase() === "f" ? "PROMUE EN:" : "PROMU EN:";
-    const text = decision.promuEnClasseName ?? "";
-    doc.text(`${label} ${text || "___________"}`, x + w / 2, contentY + contentH / 2, {
-      align: "center",
-      maxWidth: w - 4,
-    });
-  } else if (decision.kind === "redouble") {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Redouble", x + w / 2, contentY + contentH / 2, { align: "center" });
-  } else if (decision.kind === "redoubleSiEchec") {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(decision.redoubleSiEchecText ?? "", x + w / 2, contentY + contentH / 2, {
-      align: "center",
-      maxWidth: w - 4,
-    });
-  } else if (decision.kind === "nc") {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("NC", x + w / 2, contentY + contentH / 2, { align: "center" });
-  } else {
-    // exclu
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    const label = student.sexe.toLowerCase() === "f" ? "EXCLUE POUR:" : "EXCLU POUR:";
-    doc.text(label, x + w / 2, contentY + 3.5, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    const colW = w / 2;
-    const rowH = (contentH - 5) / 3;
-    EXCLUSION_OPTIONS.forEach((opt, i) => {
-      const col = Math.floor(i / 3);
-      const row = i % 3;
-      const cx = x + col * colW + 4;
-      const cy = contentY + 6 + row * rowH;
-      doc.setDrawColor(0);
-      doc.setLineWidth(0.2);
-      doc.circle(cx, cy, 1);
-      if (opt.code === decision.exclusionCode) {
-        doc.setFillColor(0, 0, 0);
-        doc.circle(cx, cy, 0.5, "F");
-      }
-      doc.text(opt.label, cx + 2.5, cy + 1);
-    });
-  }
-
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.3);
-  doc.rect(x, top, w, h);
-  doc.setLineWidth(0.15);
-  doc.line(x, contentY, x + w, contentY);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-};
-
 // Row 3: CONDUITE ANNUELLE | DÉCISION DU CONSEIL DE FIN D'ANNÉE | VISA DU CHEF D'ÉTABLISSEMENT.
 const drawRow3 = (
   doc: jsPDF,
@@ -570,7 +479,7 @@ const drawRow3 = (
   }
 
   // DÉCISION DU CONSEIL DE FIN D'ANNÉE
-  drawDecisionBlock(doc, student, decisionX, top, decisionW, ROW3_HEIGHT);
+  drawAnnualDecisionBlock(doc, student.decision, student.sexe, decisionX, top, decisionW, ROW3_HEIGHT);
 
   // VISA DU CHEF D'ÉTABLISSEMENT
   doc.setFillColor(...HEADER_FILL);

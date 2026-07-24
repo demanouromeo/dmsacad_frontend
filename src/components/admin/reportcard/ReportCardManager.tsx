@@ -20,7 +20,7 @@ import type { Classe } from "../../../interfaces/Classe";
 import type { Mark } from "../../../interfaces/Mark";
 import type { Staff } from "../../../interfaces/Staff";
 import type { ReportCardData } from "../../../interfaces/ReportCard";
-import type { AnnualReportCardData } from "../../../interfaces/AnnualReportCard";
+import type { AnnualReportCardData, AnnualReportCardDataApc } from "../../../interfaces/AnnualReportCard";
 import {
   buildReportCardData,
   computeThEligibility,
@@ -30,11 +30,14 @@ import {
 } from "../../../utils/reportCard/reportCardCompute";
 import {
   buildAnnualReportCardData,
+  buildAnnualReportCardDataApc,
   type AnnualSubjectBundle,
+  type AnnualSubjectBundleApc,
 } from "../../../utils/reportCard/annualReportCardCompute";
 import { exportReportCardsToPdf } from "../../../utils/reportCard/exportReportCardPdf";
 import { exportNonApcReportCardsToPdf } from "../../../utils/reportCard/exportReportCardNonApcPdf";
 import { exportAnnualReportCardsToPdf } from "../../../utils/reportCard/exportAnnualReportCardPdf";
+import { exportAnnualReportCardsApcToPdf } from "../../../utils/reportCard/exportAnnualReportCardApcPdf";
 import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportThPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
@@ -52,15 +55,15 @@ const buildStaffLabel = (staff: Staff | undefined): string => {
   return civility ? `${civility} ${surname}` : surname;
 };
 
-// "Bulletins" (Print report cards) - term RC only for this phase, both APC and non-APC classes (see
+// "Bulletins" (Print report cards) - both term and annual RC, both APC and non-APC classes (see
 // the backend and frontend CLAUDE.md's "Classified / Not Classified (NC) parameter" section for the
 // classification algorithm this reuses, and src/utils/reportCard/ for the compute + PDF layers this
 // screen drives). Every classe is selectable; whether the selected classe's level is flagged APC
 // (same isLevelApc/apcLevels pattern as SubjectCompetenceManager/MarkEntryManager) decides whether
 // its subjects are fetched as competences (stud_comp_mark) or as the term's two sequences
 // (student_subject, via MarkReader.fetchSeqMarks + computeDbSequence) - see
-// ReportCardSubjectBundleApc/NonApc in reportCardCompute.ts. Annual RC is out of scope this phase
-// (buttons render, disabled, "coming soon").
+// ReportCardSubjectBundleApc/NonApc in reportCardCompute.ts, and, for the annual layout,
+// buildAnnualReportCardDataApc/buildAnnualReportCardData in annualReportCardCompute.ts.
 const ReportCardManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
   const showToast = useToast();
@@ -381,6 +384,162 @@ const ReportCardManager = () => {
     [accessToken, connection, schoolYear, section, classes, schoolHeader, language],
   );
 
+  // APC annual RC ("Bulletin Annuel") - unlike non-APC's single 6-dbsequence bulk fetch, APC
+  // competences are scoped per term_id with no equivalent linear numbering, so each subject's
+  // competences/marks are fetched once per term (3x) - same per-subject Promise.all shape
+  // loadReportCardDataForClasse's own APC branch already uses, just without its
+  // zero-competence-this-term filter (see the plan's finding #6: a term missing competences for a
+  // subject naturally yields a null term average via computeSubjectAverage, matching the spec's
+  // own getStudCompTermAvg behavior, rather than dropping the subject from that term entirely).
+  const loadAnnualApcReportCardDataForClasse = useCallback(
+    async (classeId: number): Promise<AnnualReportCardDataApc> => {
+      const classe = classes.find((c) => c.classe_id === classeId);
+      const [
+        studentsRaw,
+        studentClasseRaw,
+        subjectsRaw,
+        attributions,
+        staffList,
+        classifiedParam,
+        annualParams,
+      ] = await Promise.all([
+        StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
+        StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
+        SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classeId),
+        StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
+        StaffReader.fetchStaff(accessToken, connection, schoolYear),
+        ClassifiedParamReader.fetchClassifiedParamOfYear(accessToken, connection, schoolYear),
+        SchoolInfoReader.fetchAnnualReportCardParams(accessToken, connection, schoolYear),
+      ]);
+
+      const studentClasseByStudId = new Map(studentClasseRaw.map((info) => [info.stud_id, info]));
+      const roster: ReportCardRosterEntry[] = studentsRaw.map((s) => ({
+        stud_id: s.stud_id,
+        matricule: s.matricule,
+        name: s.name,
+        surname: s.surname,
+        bday: s.bday,
+        bplace: s.bplace,
+        sexe: s.sexe,
+        repeating: studentClasseByStudId.get(s.stud_id)?.repeating ?? s.repeating,
+      }));
+
+      const subjectsSorted = [...subjectsRaw].sort((a, b) =>
+        a.subject_title.localeCompare(b.subject_title, "fr", { sensitivity: "base" }),
+      );
+
+      const staffById = new Map(staffList.map((s) => [s.staff_id, s]));
+      const findStaffLabel = (subjectId: number) => {
+        const attribution = attributions.find(
+          (a) => a.subject_id === subjectId && a.classe_id === classeId,
+        );
+        return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
+      };
+
+      // Each subject's competences + marks, all 3 terms.
+      const subjectsData: AnnualSubjectBundleApc[] = await Promise.all(
+        subjectsSorted.map(async (subject) => {
+          const perTerm = await Promise.all(
+            [1, 2, 3].map(async (term) => {
+              const competences = await SubjectReader.fetchCompetences(
+                accessToken,
+                connection,
+                schoolYear,
+                section,
+                classeId,
+                subject.subject_id,
+                term,
+              );
+              const marksByCompetence = new Map<number, Map<number, Mark>>();
+              await Promise.all(
+                competences.map(async (comp) => {
+                  const marks = await MarkReader.fetchCompMarks(
+                    accessToken,
+                    connection,
+                    schoolYear,
+                    classeId,
+                    subject.subject_id,
+                    term,
+                    comp.subject_competence_id,
+                  );
+                  marksByCompetence.set(
+                    comp.subject_competence_id,
+                    new Map(marks.map((m) => [m.stud_id, m])),
+                  );
+                }),
+              );
+              return { competences, marksByCompetence };
+            }),
+          );
+          return {
+            subject,
+            staffLabel: findStaffLabel(subject.subject_id),
+            competencesByTerm: [perTerm[0].competences, perTerm[1].competences, perTerm[2].competences],
+            marksByCompetenceByTerm: [
+              perTerm[0].marksByCompetence,
+              perTerm[1].marksByCompetence,
+              perTerm[2].marksByCompetence,
+            ],
+          };
+        }),
+      );
+
+      // Term 1/2/3 full ReportCardData, via the existing buildReportCardData with "apc" bundles -
+      // sliced from the already-fetched per-term competences/marks (no refetch).
+      const termsData = (await Promise.all(
+        [1, 2, 3].map(async (term) => {
+          const idx = term - 1;
+          const disciplineRows = await DisciplineReader.fetchDisciplineOfClasse(
+            accessToken,
+            connection,
+            schoolYear,
+            term,
+            classeId,
+          );
+          const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
+          const bundlesForTerm: ReportCardSubjectBundle[] = subjectsData.map((bundle) => ({
+            kind: "apc" as const,
+            subject: bundle.subject,
+            staffLabel: bundle.staffLabel,
+            competences: bundle.competencesByTerm[idx],
+            marksByCompetence: bundle.marksByCompetenceByTerm[idx],
+          }));
+          return buildReportCardData({
+            roster,
+            subjectsData: bundlesForTerm,
+            classifiedParam,
+            thParam: null,
+            disciplineByStudId,
+            language,
+          });
+        }),
+      )) as [ReportCardData, ReportCardData, ReportCardData];
+
+      const classeNameById = new Map(classes.map((c) => [c.classe_id, c.classe_name]));
+
+      return buildAnnualReportCardDataApc({
+        roster,
+        subjectsData,
+        termsData,
+        classifiedParam,
+        studentClasseByStudId,
+        classe: {
+          level: classe?.level ?? 0,
+          avgDismissalTh: classe?.avgDismissalTh ?? 7.5,
+          repeatUB: classe?.repeatUB ?? 9,
+          totalAbsTh: classe?.totalAbsTh ?? 40,
+          totalExclusionTh: classe?.totalExclusionTh ?? 8,
+        },
+        isTechnique: computeIsTechnique(schoolHeader.config?.type ?? ""),
+        computationMethod: annualParams?.computationMethod ?? null,
+        affichagePromotion: annualParams?.affichagePromotion === 1,
+        classeNameById,
+        language,
+      });
+    },
+    [accessToken, connection, schoolYear, section, classes, schoolHeader, language],
+  );
+
   useEffect(() => {
     const load = async () => {
       if (selectedClasseId === null) {
@@ -629,53 +788,85 @@ const ReportCardManager = () => {
     handlePrint(students.filter((s) => selectedIds.has(s.studId)));
   };
 
-  // Annual RC ("Bulletin Annuel") - non-APC classes only for now (see the plan) - subsetStudIds
-  // null means "the whole classe roster" (mirrors handlePrintAll), otherwise only those ids
-  // (mirrors handlePrintSelection), matched against the freshly-loaded annual roster rather than
-  // the on-screen term `students` list (same studIds, different data shape).
+  // Annual RC ("Bulletin Annuel") - both APC and non-APC classes, branching on
+  // isSelectedClasseApc the same way exportClasseReportCards already branches for the term print
+  // path. subsetStudIds null means "the whole classe roster" (mirrors handlePrintAll), otherwise
+  // only those ids (mirrors handlePrintSelection), matched against the freshly-loaded annual
+  // roster rather than the on-screen term `students` list (same studIds, different data shape).
   const handlePrintAnnual = async (subsetStudIds: Set<number> | null) => {
     if (!selectedClasse) {
       return;
     }
-    if (isSelectedClasseApc) {
-      showToast(t.printAnnualApcUnsupported, { type: "warning" });
-      return;
-    }
     setIsSaving(true);
     try {
-      const data = await loadAnnualReportCardDataForClasse(selectedClasse.classe_id);
-      const subset = subsetStudIds
-        ? data.students.filter((s) => subsetStudIds.has(s.studId))
-        : data.students;
-      if (subset.length === 0) {
-        showToast(t.emptyStudents, { type: "warning" });
-        setIsSaving(false);
-        return;
-      }
       const filename = buildTimestampedFilename(
         `Bulletin ANNUEL ${selectedClasse.classe_name}`,
         [`Section ${capitalizeSectionName(section)}`],
         "pdf",
       );
-      const photosByStudId = new Map<number, HTMLImageElement | null>(
-        await Promise.all(
-          subset.map(
-            async (s): Promise<[number, HTMLImageElement | null]> => [
-              s.studId,
-              await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-            ],
+      const classeArg = {
+        classe_name: selectedClasse.classe_name,
+        classe_master_name: selectedClasse.classe_master_name,
+      };
+      if (isSelectedClasseApc) {
+        const data = await loadAnnualApcReportCardDataForClasse(selectedClasse.classe_id);
+        const subset = subsetStudIds
+          ? data.students.filter((s) => subsetStudIds.has(s.studId))
+          : data.students;
+        if (subset.length === 0) {
+          showToast(t.emptyStudents, { type: "warning" });
+          setIsSaving(false);
+          return;
+        }
+        const photosByStudId = new Map<number, HTMLImageElement | null>(
+          await Promise.all(
+            subset.map(
+              async (s): Promise<[number, HTMLImageElement | null]> => [
+                s.studId,
+                await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
+              ],
+            ),
           ),
-        ),
-      );
-      await exportAnnualReportCardsToPdf(
-        subset,
-        data.classeStats,
-        { classe_name: selectedClasse.classe_name, classe_master_name: selectedClasse.classe_master_name },
-        schoolYear,
-        schoolHeader,
-        filename,
-        photosByStudId,
-      );
+        );
+        await exportAnnualReportCardsApcToPdf(
+          subset,
+          data.classeStats,
+          classeArg,
+          schoolYear,
+          schoolHeader,
+          filename,
+          photosByStudId,
+        );
+      } else {
+        const data = await loadAnnualReportCardDataForClasse(selectedClasse.classe_id);
+        const subset = subsetStudIds
+          ? data.students.filter((s) => subsetStudIds.has(s.studId))
+          : data.students;
+        if (subset.length === 0) {
+          showToast(t.emptyStudents, { type: "warning" });
+          setIsSaving(false);
+          return;
+        }
+        const photosByStudId = new Map<number, HTMLImageElement | null>(
+          await Promise.all(
+            subset.map(
+              async (s): Promise<[number, HTMLImageElement | null]> => [
+                s.studId,
+                await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
+              ],
+            ),
+          ),
+        );
+        await exportAnnualReportCardsToPdf(
+          subset,
+          data.classeStats,
+          classeArg,
+          schoolYear,
+          schoolHeader,
+          filename,
+          photosByStudId,
+        );
+      }
       showToast(t.printSuccess, { type: "info" });
     } catch (error) {
       console.error("ReportCardManager.handlePrintAnnual(): Error", error);
