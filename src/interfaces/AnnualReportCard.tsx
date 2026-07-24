@@ -1,4 +1,5 @@
 import type { ReportCardDiscipline } from "./ReportCard";
+import type { ClassifiedParam } from "./ClassifiedParam";
 
 // Shapes for the annual report card ("Bulletin Annuel") - see
 // src/utils/reportCard/annualReportCardCompute.ts for how these are assembled and
@@ -75,6 +76,10 @@ export interface AnnualStudentData {
   disciplineAnnual: ReportCardDiscipline;
   termSummaries: [AnnualTermSummary, AnnualTermSummary, AnnualTermSummary];
   decision: AnnualDecision;
+  // Each term's own already-computed isClassified flag (see buildReportCardData) - exposed so a
+  // caller (the Promotion module) can re-run computeAnnualClassified live against a manually-edited
+  // override value without redoing the whole 3-term fetch. Not used by the RC print itself.
+  termIsClassified: [boolean, boolean, boolean];
 }
 
 export interface AnnualClasseStats {
@@ -89,6 +94,11 @@ export interface AnnualClasseStats {
 export interface AnnualReportCardData {
   students: AnnualStudentData[];
   classeStats: AnnualClasseStats;
+  // classifiedParam/nbMatieres are the ingredients computeAnnualClassified needs beyond
+  // termIsClassified - exposed here (rather than only used internally) for the same live-recompute
+  // reason as termIsClassified above.
+  classifiedParam: ClassifiedParam | null;
+  nbMatieres: number;
 }
 
 // ---- APC annual shapes ----
@@ -135,9 +145,14 @@ export interface AnnualStudentDataApc {
   // no per-term breakdown (see the plan's finding #3).
   disciplineAnnual: ReportCardDiscipline;
   decision: AnnualDecision;
+  // See AnnualStudentData.termIsClassified above.
+  termIsClassified: [boolean, boolean, boolean];
 }
 
 export interface AnnualReportCardDataApc {
   students: AnnualStudentDataApc[];
   classeStats: AnnualClasseStats;
+  // See AnnualReportCardData.classifiedParam/nbMatieres above.
+  classifiedParam: ClassifiedParam | null;
+  nbMatieres: number;
 }

@@ -286,6 +286,37 @@ export class StudentReader {
     );
   };
 
+  // Batch upsert of the end-of-year decision override fields - StudentController::updatePromotionInfo.
+  // dismissalReason is an unused legacy column (this app derives the display reason from
+  // codeExclusion everywhere else, e.g. EXCLUSION_OPTIONS in reportCardPdfShared.ts) - always sent
+  // empty. promuEn null means "not manually set" (AUTO), matching StudentClasseInfo's own field.
+  public static updatePromotionInfo = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    updates: {
+      stud_id: number;
+      classe_id: number;
+      isMannullalyClassified: number;
+      isMannullalyDismissed: number;
+      mustRepeat: number;
+      promuEn: number | null;
+      codeExclusion: number;
+    }[],
+  ): Promise<ApiResult> => {
+    return StudentReader.postJson(
+      "api/students/updatePromotionInfo",
+      accessToken,
+      {
+        connection,
+        year,
+        data: JSON.stringify(updates.map((u) => ({ ...u, dismissalReason: "" }))),
+        data_size: updates.length,
+      },
+      "updatePromotionInfo",
+    );
+  };
+
   public static deleteStudents = async (
     accessToken: string | null,
     connection: string,

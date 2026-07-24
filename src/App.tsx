@@ -34,6 +34,7 @@ import ThParamManager from "./components/admin/settings/ThParamManager";
 import PromotionSettingsManager from "./components/admin/settings/PromotionSettingsManager";
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
+import PromotionManager from "./components/admin/promotion/PromotionManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -123,6 +124,10 @@ function App() {
                 <Route
                   path="/admin/insolvables"
                   element={<InsolvableManager />}
+                />
+                <Route
+                  path="/admin/promotion"
+                  element={<PromotionManager />}
                 />
               </Route>
             </Route>

@@ -532,6 +532,7 @@ export const buildAnnualReportCardData = (
       disciplineAnnual,
       termSummaries,
       decision,
+      termIsClassified,
     };
   });
 
@@ -548,7 +549,7 @@ export const buildAnnualReportCardData = (
 
   const classeStats = computeAnnualClasseStats(built.map((s) => s.avgAnnual));
 
-  return { students, classeStats };
+  return { students, classeStats, classifiedParam, nbMatieres };
 };
 
 // ---- APC annual ----
@@ -821,6 +822,7 @@ export const buildAnnualReportCardDataApc = (
       apprAnnuelle: isAnnualAvgEmpty ? "" : getCompComment(avgAnnual),
       disciplineAnnual,
       decision,
+      termIsClassified,
     };
   });
 
@@ -837,5 +839,5 @@ export const buildAnnualReportCardDataApc = (
 
   const classeStats = computeAnnualClasseStats(built.map((s) => s.avgAnnual));
 
-  return { students, classeStats };
+  return { students, classeStats, classifiedParam, nbMatieres };
 };
