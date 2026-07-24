@@ -988,7 +988,7 @@ const ReportCardManager = () => {
                 onClick={handlePrintSelectionAnnual}
               >
                 <Printer className="w-4 h-4" />
-                {t.printSelectionAnnualBtn}
+                {t.printSelectionAnnualBtn(selectedIds.size)}
               </button>
             </div>
           </div>

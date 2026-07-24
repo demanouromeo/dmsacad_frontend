@@ -256,24 +256,24 @@ const drawFooterGrid = (
   gridTop: number,
 ): void => {
   const gridColWidth = (RIGHT_X - LEFT_X) / 3;
-  const COL_WIDTH_SHIFT = 6;
-  const travailWidth = gridColWidth + COL_WIDTH_SHIFT;
-  const profilWidth = gridColWidth - COL_WIDTH_SHIFT;
+  const disciplineWidth = gridColWidth - 9;
+  const profilWidth = gridColWidth - 6;
+  const travailWidth = gridColWidth + 16;
   const disciplineX = LEFT_X;
-  const travailX = LEFT_X + gridColWidth;
+  const travailX = disciplineX + disciplineWidth;
   const profilX = travailX + travailWidth;
 
   const fc = [
     disciplineX,
-    disciplineX + gridColWidth * 0.42,
-    disciplineX + gridColWidth * 0.52,
-    disciplineX + gridColWidth * 0.9,
+    disciplineX + disciplineWidth * 0.42,
+    disciplineX + disciplineWidth * 0.52,
+    disciplineX + disciplineWidth * 0.9,
     travailX,
-    travailX + travailWidth * 0.4,
+    travailX + travailWidth * 0.4 + 2,
     travailX + travailWidth * 0.6,
-    travailX + travailWidth * 0.84,
+    travailX + travailWidth * 0.84 - 5,
     profilX,
-    profilX + profilWidth * 0.55,
+    profilX + profilWidth * 0.55 + 2,
     RIGHT_X,
   ];
   const fcx = (i: number): number => fc[i];
@@ -334,7 +334,9 @@ const drawFooterGrid = (
     doc.setFont("helvetica", "normal");
     doc.text(label, fcx(4) + 1, ry);
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
     doc.text(value, fcx(5) + 1, ry);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
   });
 
@@ -354,20 +356,23 @@ const drawFooterGrid = (
   });
 
   const profilRows: [string, string][] = [
-    ["Moyenne Générale:", formatRcNumber(classeStats.moyenneGenerale)],
+    ["Moyenne Générale:", formatRcMoyDisplay(classeStats.moyenneGenerale)],
     [
       "[MIN-MAX]:",
       `[${formatRcNumber(classeStats.minMax[0])} - ${formatRcNumber(classeStats.minMax[1])}]`,
     ],
     ["Nombre de moyennes:", String(classeStats.nombreMoyennes)],
     ["Taux de réussite:", `${formatRcNumber(classeStats.tauxReussite)}%`],
+    ["Ecart type:", formatRcNumber(classeStats.ecartType)],
   ];
   profilRows.forEach(([label, value], i) => {
     const ry = footerRowTop(i) + FOOTER_ROW_H / 2 + 1;
     doc.setFont("helvetica", "normal");
     doc.text(label, fcx(8) + 1, ry);
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
     doc.text(value, fcx(9) + 1, ry);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
   });
 
