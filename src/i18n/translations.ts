@@ -1929,6 +1929,57 @@ export const disciplineManagerTranslations = {
   },
 };
 
+export const insolvableManagerTranslations = {
+  fr: {
+    title: "Insolvables",
+    classeLabel: "Classe :",
+    effectifTotal: (n: number) => `Effectif total : ${n}`,
+    searchPlaceholder: "Rechercher un élève (nom, prénom, matricule)…",
+    emptyClasses: "Aucune classe pour cette section.",
+    emptyRoster: "Aucun élève dans cette classe.",
+    noSearchResults: "Aucun élève ne correspond à cette recherche.",
+    tableHeaderIndex: "Nº",
+    tableHeaderName: "Nom",
+    tableHeaderMatricule: "Matricule",
+    tableHeaderInsolvable: "Insolvable",
+    insolvableYes: "OUI",
+    insolvableNo: "NON",
+    statInsolvables: (n: number) => `Insolvables : ${n}`,
+    markSelectedInsolvableBtn: "Marquer la sélection insolvable (OUI)",
+    markSelectedSolvableBtn: "Marquer la sélection solvable (NON)",
+    noSelectionWarning: "Veuillez sélectionner au moins un élève.",
+    updateSuccess: "Statut mis à jour avec succès.",
+    updateFailure: "Échec de la mise à jour du statut.",
+    exportExcelLabel: "Excel",
+    exportPdfLabel: "PDF",
+    pdfTitle: (classeName: string) => `Insolvables - ${classeName}`,
+  },
+  en: {
+    title: "Insolvent students",
+    classeLabel: "Classe:",
+    effectifTotal: (n: number) => `Total headcount: ${n}`,
+    searchPlaceholder: "Search a student (name, surname, matricule)...",
+    emptyClasses: "No classes for this section.",
+    emptyRoster: "No students in this class.",
+    noSearchResults: "No students match this search.",
+    tableHeaderIndex: "No.",
+    tableHeaderName: "Name",
+    tableHeaderMatricule: "Matricule",
+    tableHeaderInsolvable: "Insolvent",
+    insolvableYes: "YES",
+    insolvableNo: "NO",
+    statInsolvables: (n: number) => `Insolvent: ${n}`,
+    markSelectedInsolvableBtn: "Mark selection insolvent (YES)",
+    markSelectedSolvableBtn: "Mark selection solvent (NO)",
+    noSelectionWarning: "Please select at least one student.",
+    updateSuccess: "Status updated successfully.",
+    updateFailure: "Failed to update the status.",
+    exportExcelLabel: "Excel",
+    exportPdfLabel: "PDF",
+    pdfTitle: (classeName: string) => `Insolvent students - ${classeName}`,
+  },
+};
+
 // Landing page for the "settings" dashboard card - only one sub-module built so far
 // ("classifiedParam", see classifiedParamManagerTranslations below). Same SubjectsHub/AccountHub
 // pattern - add a new key here alongside its own *ManagerTranslations dictionary as further settings
@@ -1939,12 +1990,14 @@ export const settingsHubTranslations = {
     classifiedParam: "Classement des élèves (Classés/NC)",
     annualRcAvgParam: "Paramètres du bulletin annuel",
     thParam: "Paramètres du tableau d'honneur",
+    promotionSettings: "Paramètres de promotion",
   },
   en: {
     title: "Settings",
     classifiedParam: "Classified / Not Classified (NC) parameter",
     annualRcAvgParam: "Annual report card parameters",
     thParam: "Honors Roll parameters",
+    promotionSettings: "Promotion settings",
   },
 };
 
@@ -1964,6 +2017,7 @@ export const classifiedParamManagerTranslations = {
     optionAllDescription:
       "En choisissant cette option, tous les élèves seront classés",
     saveBtn: "Enregistrer",
+    closeBtn: "Fermer",
     saveSuccess: "Paramètres de classement enregistrés avec succès.",
     saveFailure: "Échec de l'enregistrement des paramètres de classement.",
   },
@@ -1975,6 +2029,7 @@ export const classifiedParamManagerTranslations = {
     optionAllTitle: "Classify all students",
     optionAllDescription: "By choosing this option, all students will be classified",
     saveBtn: "Save",
+    closeBtn: "Close",
     saveSuccess: "Classification parameters saved successfully.",
     saveFailure: "Failed to save classification parameters.",
   },
@@ -2001,6 +2056,7 @@ export const annualRcAvgManagerTranslations = {
     affichagePromotionHintOn: "Exemple : Promu en 5e B",
     affichagePromotionHintOff: "Exemple : Promu en ______________",
     saveBtn: "Save",
+    closeBtn: "Fermer",
     saveSuccess: "Paramètres enregistrés avec succès.",
     saveFailure: "Échec de l'enregistrement des paramètres.",
   },
@@ -2019,6 +2075,7 @@ export const annualRcAvgManagerTranslations = {
     affichagePromotionHintOn: "Example: Promoted to 5e B",
     affichagePromotionHintOff: "Example: Promoted to ______________",
     saveBtn: "Save",
+    closeBtn: "Close",
     saveSuccess: "Settings saved successfully.",
     saveFailure: "Failed to save settings.",
   },
@@ -2044,6 +2101,7 @@ export const thParamManagerTranslations = {
     resolutionMedium: "Moyenne résolution",
     resolutionHigh: "Haute résolution",
     saveBtn: "Enregistrer",
+    closeBtn: "Fermer",
     saveSuccess: "Paramètres du tableau d'honneur enregistrés avec succès.",
     saveFailure: "Échec de l'enregistrement des paramètres du tableau d'honneur.",
     rangeError: "La borne inférieure doit être strictement inférieure à la borne supérieure.",
@@ -2060,9 +2118,69 @@ export const thParamManagerTranslations = {
     resolutionMedium: "Medium resolution",
     resolutionHigh: "High resolution",
     saveBtn: "Save",
+    closeBtn: "Close",
     saveSuccess: "Honors Roll parameters saved successfully.",
     saveFailure: "Failed to save Honors Roll parameters.",
     rangeError: "The lower bound must be strictly less than the upper bound.",
+  },
+};
+
+// "Paramètres de promotion" / "Promotion settings" - per-classe end-of-year decision thresholds
+// (classe_year.totalAbsTh/totalExclusionTh/avgDismissalTh/repeatUB), the same fields the annual
+// report card's computeMustDismiss/computeMustRepeat algorithm already reads (see the Classe
+// interface and annualReportCardCompute.ts) - this screen is what lets ADMIN actually edit them,
+// via ClasseController::updateClassSettings. Classe-scoped like SubjectCompetenceManager (a classe
+// <select> drives the form below it), not a single whole-year record like classifiedParam/thParam.
+export const promotionSettingsManagerTranslations = {
+  fr: {
+    title: "Paramètres de promotion",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    classeLabel: "Classe :",
+    emptyClasses: "Aucune classe pour cette section/année.",
+    formTitle: (classeName: string) => `Paramètres supplémentaires de ('${classeName}')`,
+    totalAbsThLabel: "Seuil des absences :",
+    totalAbsThHint: "(Exclut l'élève si le nombre d'heures d'absence est supérieur à ce seuil)",
+    totalExclusionThLabel: "Seuil des exclusions :",
+    totalExclusionThHint:
+      "(Exclut l'élève si le nombre de jours d'exclusion total est supérieur à ce seuil)",
+    avgDismissalThLabel: "Exclure si moyenne <",
+    avgDismissalThHint: "(Exclut l'élève si sa moyenne est inférieure à ce seuil)",
+    repeatIntervalLabel: "Redouble si moyenne dans",
+    repeatIntervalHint: (lb: number, ub: number) =>
+      `(L'élève redouble si sa moyenne est dans cette intervalle (moy. >= ${lb} et moy. < ${ub}))`,
+    admittedIntervalText: (ub: number, totalAbsTh: number, totalExclusionTh: number) =>
+      `Moyenne dans [${ub}, 20] : l'élève est admis(e) s'il a moins de ${totalAbsTh}h d'absences et moins de ${totalExclusionTh} jours d'exclusion`,
+    rangeError: "Le seuil d'exclusion doit être strictement inférieur à la borne de redoublement.",
+    saveBtn: "Enregistrer",
+    closeBtn: "Fermer",
+    saveSuccess: "Paramètres de promotion enregistrés avec succès.",
+    saveFailure: "Échec de l'enregistrement des paramètres de promotion.",
+  },
+  en: {
+    title: "Promotion settings",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to change section.`,
+    classeLabel: "Classe:",
+    emptyClasses: "No classes for this section/year.",
+    formTitle: (classeName: string) => `Additional settings of ('${classeName}')`,
+    totalAbsThLabel: "Absence threshold:",
+    totalAbsThHint: "(Dismisses the student if their number of absence hours exceeds this threshold)",
+    totalExclusionThLabel: "Exclusion threshold:",
+    totalExclusionThHint:
+      "(Dismisses the student if their total number of exclusion days exceeds this threshold)",
+    avgDismissalThLabel: "Dismiss if average <",
+    avgDismissalThHint: "(Dismisses the student if their average is below this threshold)",
+    repeatIntervalLabel: "Repeats if average in",
+    repeatIntervalHint: (lb: number, ub: number) =>
+      `(The student repeats if their average is within this interval (avg >= ${lb} and avg < ${ub}))`,
+    admittedIntervalText: (ub: number, totalAbsTh: number, totalExclusionTh: number) =>
+      `Average in [${ub}, 20]: the student is admitted if they have fewer than ${totalAbsTh}h of absences and fewer than ${totalExclusionTh} exclusion days`,
+    rangeError: "The dismissal threshold must be strictly lower than the repeat upper bound.",
+    saveBtn: "Save",
+    closeBtn: "Close",
+    saveSuccess: "Promotion settings saved successfully.",
+    saveFailure: "Failed to save promotion settings.",
   },
 };
 
@@ -2103,6 +2221,13 @@ export const reportCardManagerTranslations = {
     printThEmpty:
       "Aucun élève ne mérite le tableau d'honneur dans les classes de cette section (ou les paramètres du tableau d'honneur n'ont pas été configurés).",
     noSelectionWarning: "Veuillez sélectionner au moins un élève.",
+    progressLoadingPhotos: "Chargement des photos",
+    progressLoadingPhotosDetail: (done: number, total: number) =>
+      `Chargement des photos (${done}/${total})`,
+    progressLoadingData: "Chargement des données...",
+    progressClasse: (current: number, total: number, name: string) =>
+      `Classe ${current}/${total} : ${name}`,
+    progressGeneratingDocument: "Génération du document...",
   },
   en: {
     title: "Print report cards",
@@ -2137,5 +2262,12 @@ export const reportCardManagerTranslations = {
     printThEmpty:
       "No student deserves the Honor Roll in this section's classes (or the Honor Roll settings haven't been configured).",
     noSelectionWarning: "Please select at least one student.",
+    progressLoadingPhotos: "Loading photos",
+    progressLoadingPhotosDetail: (done: number, total: number) =>
+      `Loading photos (${done}/${total})`,
+    progressLoadingData: "Loading data...",
+    progressClasse: (current: number, total: number, name: string) =>
+      `Classe ${current}/${total}: ${name}`,
+    progressGeneratingDocument: "Generating document...",
   },
 };

@@ -243,19 +243,27 @@ boolean computeDismiss(student, classe, year){
  
 //----> Here is how to find out if a student repeats or not
 computeRepeat(student, classe, year){
+    //On settings, we shall make sure it is not possible to make a student to repeat manually and to be dissmissed manually at the same time that is student_classe.isManuallyDismissed=1 and student_classe.mustRepeat=1
 	mustRepeat = read mustRepeat from student_classe for the current student, classe and year  
-	if(mustRepeat == 1){
-		return true;
-	}else if(mustRepeat == 0){
+    isManuallyDismissed = read mustRepeat from student_classe for the current student, classe and year 
+    boolean isDismissed = computeDismiss(student, classe, year);
+
+	if(mustRepeat == 1 && isManuallyDismissed){//When a student is dissmissed manually, he can't repeat, he will be dismissed
+		return false;
+	}else if(mustRepeat == 1 && !isManuallyDismissed){
+        return true;
+    }
+    else if(mustRepeat == 0){
 		return false;
 	}
 	//mustRepeat == 2
 	repeatUb = read repeatUb from classe_year for the current class (class_id) and year (sy_id)
+    avgDismissalTh = read avgDismissalTh from classe_year for the current class (class_id) and year (sy_id)
 	repeating = read repeating from student_classe for the current student, class (class_id) and year (sy_id)
-	if (studend.avgAnnual < repeatUb && repeating == 0) {
-        if( computeDismiss(student, classe, year)) //If student is dissmissed?
+	if (student.avgAnnual < repeatUb && repeating == 0 && student.avgAnnual >= avgDismissalTh ) {
+        if( isDismissed) //If student is dissmissed?
             return false;//ON NE PEUT REDOUBLER ET ETRE EXCLU AU MEME MOMEN
-	    else
+        else
 			return true;
     } else {
 		return false;
@@ -281,7 +289,7 @@ computeRepeat(student, classe, year){
 	boolean mustRepeat = computeRepeat(student, classe, year); //true if student must repeat the next school year
 	repeatUb = read repeatUb from classe_year for the current class (class_id) and year (sy_id)
     
-	if (level == 6 || level == 7 || (level == 4 && isTechnique)) && mustDismiss !=1){	  
+	if ((level == 6 || level == 7 || (level == 4 && isTechnique)) && mustDismiss !=1){	  
 		How decision bloc should look like in this case is shown on image @/assets/SAMPLE_RC/redouble_si_echec.png	
 		if display language is french
 			build the decision bloc with message "Redouble si echec" 

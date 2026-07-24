@@ -210,20 +210,25 @@ export const computeMustDismiss = (
   return { mustDismiss: true, code };
 };
 
-// computeMustRepeat() - manual override wins; else spec's formula: below repeatUb and not already
-// a repeater may repeat, unless also dismissed (can't repeat and be excluded at once) - an
-// already-repeating student below repeatUb instead falls into computeMustDismiss's "Ne peut
-// trippler" reason.
+// computeMustRepeat() - manual override wins, but a manual "must dismiss" override takes priority
+// over it (a student can't be manually set to both repeat and be dismissed at once - settings is
+// expected to prevent that combination, but this is the tie-breaker if it ever happens); else the
+// spec's formula: below repeatUb, not already a repeater, and not below avgDismissalTh (that's
+// computeMustDismiss's "Travail" reason instead) may repeat, unless also (computed) dismissed for
+// another reason (e.g. Conduite) - can't repeat and be excluded at once. An already-repeating
+// student below repeatUb instead falls into computeMustDismiss's "Ne peut trippler" reason.
 export const computeMustRepeat = (
   manualOverride: number,
+  isManuallyDismissed: number,
   avgAnnual: number,
   repeatUb: number,
+  avgDismissalTh: number,
   repeating: boolean,
   mustDismiss: boolean,
 ): boolean => {
-  if (manualOverride === 1) return true;
+  if (manualOverride === 1) return isManuallyDismissed !== 1;
   if (manualOverride === 0) return false;
-  if (avgAnnual < repeatUb && !repeating) {
+  if (avgAnnual < repeatUb && !repeating && avgAnnual >= avgDismissalTh) {
     return !mustDismiss;
   }
   return false;
@@ -467,8 +472,10 @@ export const buildAnnualReportCardData = (
     );
     const mustRepeat = computeMustRepeat(
       studentClasse?.mustRepeat ?? 2,
+      studentClasse?.isMannullalyDismissed ?? 2,
       avgAnnual,
       classe.repeatUB,
+      classe.avgDismissalTh,
       isRepeating,
       mustDismiss,
     );
@@ -770,8 +777,10 @@ export const buildAnnualReportCardDataApc = (
     );
     const mustRepeat = computeMustRepeat(
       studentClasse?.mustRepeat ?? 2,
+      studentClasse?.isMannullalyDismissed ?? 2,
       avgAnnual,
       classe.repeatUB,
+      classe.avgDismissalTh,
       isRepeating,
       mustDismiss,
     );

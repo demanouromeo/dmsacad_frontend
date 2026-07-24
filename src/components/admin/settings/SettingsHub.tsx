@@ -4,10 +4,11 @@ import AdminMenuCard from "../../dashboard/AdminMenuCard";
 import iconClassifiedParam from "../../../assets/compo/settings/classified_settings.svg";
 import iconAnnualRcAvgParam from "../../../assets/compo/settings/bulletin_settings.svg";
 import iconThParam from "../../../assets/compo/settings/th_settings.svg";
+import iconPromotionSettings from "../../../assets/compo/promotion/promo_settings.svg";
 
 // Landing page for the "settings" dashboard card - sub-modules: "classifiedParam" ->
-// ClassifiedParamManager, "annualRcAvgParam" -> AnnualRcAvgManager, "thParam" -> ThParamManager.
-// Same SubjectsHub/AccountHub pattern.
+// ClassifiedParamManager, "annualRcAvgParam" -> AnnualRcAvgManager, "thParam" -> ThParamManager,
+// "promotionSettings" -> PromotionSettingsManager. Same SubjectsHub/AccountHub pattern.
 const SettingsHub = () => {
   const [language] = useLanguage();
   const t = settingsHubTranslations[language];
@@ -30,6 +31,12 @@ const SettingsHub = () => {
       label: t.thParam,
       icon: iconThParam,
       to: "/admin/settings/th-param",
+    },
+    {
+      key: "promotionSettings",
+      label: t.promotionSettings,
+      icon: iconPromotionSettings,
+      to: "/admin/settings/promotion",
     },
   ];
 

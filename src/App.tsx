@@ -31,7 +31,9 @@ import SettingsHub from "./components/admin/settings/SettingsHub";
 import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamManager";
 import AnnualRcAvgManager from "./components/admin/settings/AnnualRcAvgManager";
 import ThParamManager from "./components/admin/settings/ThParamManager";
+import PromotionSettingsManager from "./components/admin/settings/PromotionSettingsManager";
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
+import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -111,8 +113,16 @@ function App() {
                   element={<ThParamManager />}
                 />
                 <Route
+                  path="/admin/settings/promotion"
+                  element={<PromotionSettingsManager />}
+                />
+                <Route
                   path="/admin/report-cards"
                   element={<ReportCardManager />}
+                />
+                <Route
+                  path="/admin/insolvables"
+                  element={<InsolvableManager />}
                 />
               </Route>
             </Route>

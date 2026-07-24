@@ -77,7 +77,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: "promotions", icon: iconPromotions },
   { key: "basculement", icon: iconBasculement },
   { key: "scholarship", icon: iconScholarship },
-  { key: "insolvents", icon: iconInsolvents },
+  { key: "insolvents", icon: iconInsolvents, to: "/admin/insolvables" },
 ];
 
 const AdminMenuGrid = () => {

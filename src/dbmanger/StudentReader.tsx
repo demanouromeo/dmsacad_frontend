@@ -264,6 +264,28 @@ export class StudentReader {
     );
   };
 
+  // Batch upsert of student_classe.solvable1 - StudentController::updateSolvable. Despite the
+  // column name, solvable1=0 means "insolvable" (hasn't paid) and solvable1=1 means "solvable"
+  // (has paid) - see InsolvableManager, which is the only caller.
+  public static updateSolvable = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    updates: { stud_id: number; classe_id: number; solvable1: number }[],
+  ): Promise<ApiResult> => {
+    return StudentReader.postJson(
+      "api/students/updateSolvable",
+      accessToken,
+      {
+        connection,
+        year,
+        data: JSON.stringify(updates),
+        data_size: updates.length,
+      },
+      "updateSolvable",
+    );
+  };
+
   public static deleteStudents = async (
     accessToken: string | null,
     connection: string,

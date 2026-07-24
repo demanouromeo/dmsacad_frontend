@@ -42,7 +42,9 @@ import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportTh
 import { exportAnnualThPdf, type AnnualThPageData } from "../../../utils/reportCard/exportThAnnualPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
-import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import LoadingOverlay, {
+  type LoadingOverlayProgress,
+} from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 
 const TERMS = [1, 2, 3];
@@ -81,6 +83,7 @@ const ReportCardManager = () => {
   const [reportCardData, setReportCardData] = useState<ReportCardData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [printProgress, setPrintProgress] = useState<LoadingOverlayProgress | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -598,6 +601,33 @@ const ReportCardManager = () => {
     });
   };
 
+  // Loads every student's photo in parallel (same shape every photosByStudId Promise.all in this
+  // file already used) while reporting progress as each one resolves - onProgress decides how that
+  // maps onto the visible bar (see exportClasseReportCards/handlePrintAnnual/
+  // handlePrintAllClassesAnnual for the two different ways it's used: bar tracks photos directly
+  // for a single-classe print, or just updates the label under an already-classe-scoped bar for a
+  // whole-section loop).
+  const loadPhotosWithProgress = async (
+    subset: { studId: number }[],
+    onProgress: (done: number, total: number) => void,
+  ): Promise<Map<number, HTMLImageElement | null>> => {
+    const total = subset.length;
+    if (total === 0) {
+      return new Map();
+    }
+    let done = 0;
+    onProgress(done, total);
+    const entries = await Promise.all(
+      subset.map(async (s): Promise<[number, HTMLImageElement | null]> => {
+        const photo = await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId);
+        done += 1;
+        onProgress(done, total);
+        return [s.studId, photo];
+      }),
+    );
+    return new Map(entries);
+  };
+
   // Generates + saves one classe's PDF (APC vs non-APC branch, same exporters either way) - shared
   // by handlePrint (current classe/current selection) and handlePrintAllClasses below, which just
   // calls this once per classe of the section instead of once for the selected classe.
@@ -607,22 +637,14 @@ const ReportCardManager = () => {
     term: number,
     classeStats: ReportCardData["classeStats"],
     subset: typeof students,
+    onPhotoProgress: (done: number, total: number) => void,
   ) => {
     const filename = buildTimestampedFilename(
       `Bulletin ${classe.classe_name} TRIM${term}`,
       [`Section ${capitalizeSectionName(section)}`],
       "pdf",
     );
-    const photosByStudId = new Map<number, HTMLImageElement | null>(
-      await Promise.all(
-        subset.map(
-          async (s): Promise<[number, HTMLImageElement | null]> => [
-            s.studId,
-            await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-          ],
-        ),
-      ),
-    );
+    const photosByStudId = await loadPhotosWithProgress(subset, onPhotoProgress);
     const classeArg = {
       classe_name: classe.classe_name,
       classe_master_name: classe.classe_master_name,
@@ -666,6 +688,8 @@ const ReportCardManager = () => {
         selectedTerm,
         reportCardData.classeStats,
         subset,
+        (done, total) =>
+          setPrintProgress({ current: done, total, label: t.progressLoadingPhotos }),
       );
       showToast(t.printSuccess, { type: "info" });
     } catch (error) {
@@ -673,6 +697,7 @@ const ReportCardManager = () => {
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
+    setPrintProgress(null);
   };
 
   // Prints one PDF per classe of the current section (same load-then-export pipeline as the
@@ -686,14 +711,31 @@ const ReportCardManager = () => {
     setIsSaving(true);
     let anyPrinted = false;
     try {
-      for (const classe of classes) {
+      const total = classes.length;
+      for (let i = 0; i < classes.length; i++) {
+        const classe = classes[i];
+        const overall = t.progressClasse(i + 1, total, classe.classe_name);
+        setPrintProgress({ current: i, total, label: t.progressLoadingData, overall });
         const isApc = apcLevels.get(classe.level) === true;
         const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, isApc);
         if (data.students.length === 0) {
           continue;
         }
         anyPrinted = true;
-        await exportClasseReportCards(classe, isApc, selectedTerm, data.classeStats, data.students);
+        await exportClasseReportCards(
+          classe,
+          isApc,
+          selectedTerm,
+          data.classeStats,
+          data.students,
+          (done, photoTotal) =>
+            setPrintProgress({
+              current: i,
+              total,
+              label: t.progressLoadingPhotosDetail(done, photoTotal),
+              overall,
+            }),
+        );
       }
       if (anyPrinted) {
         showToast(t.printSuccess, { type: "info" });
@@ -705,6 +747,7 @@ const ReportCardManager = () => {
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
+    setPrintProgress(null);
   };
 
   // Whole-section "Tableau d'Honneur" (Honor Roll) certificate batch - every classe of the section,
@@ -725,11 +768,20 @@ const ReportCardManager = () => {
       if (!thParam) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);
+        setPrintProgress(null);
         return;
       }
       const apcPages: ThPageData[] = [];
       const nonApcPages: ThPageData[] = [];
-      for (const classe of classes) {
+      const total = classes.length;
+      for (let i = 0; i < classes.length; i++) {
+        const classe = classes[i];
+        setPrintProgress({
+          current: i,
+          total,
+          label: t.progressLoadingData,
+          overall: t.progressClasse(i + 1, total, classe.classe_name),
+        });
         const isApc = apcLevels.get(classe.level) === true;
         const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, isApc);
         data.students.forEach((student) => {
@@ -753,8 +805,10 @@ const ReportCardManager = () => {
       if (apcPages.length === 0 && nonApcPages.length === 0) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);
+        setPrintProgress(null);
         return;
       }
+      setPrintProgress({ current: total, total, label: t.progressGeneratingDocument });
       const sectionSegment = `Section ${capitalizeSectionName(section)}`;
       if (apcPages.length > 0) {
         const filename = buildTimestampedFilename("APC TH", [sectionSegment], "pdf");
@@ -778,6 +832,7 @@ const ReportCardManager = () => {
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
+    setPrintProgress(null);
   };
 
   // Whole-section ANNUAL Tableau d'Honneur batch - same "one page per deserving student, two
@@ -800,11 +855,20 @@ const ReportCardManager = () => {
       if (!thParam) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);
+        setPrintProgress(null);
         return;
       }
       const apcPages: AnnualThPageData[] = [];
       const nonApcPages: AnnualThPageData[] = [];
-      for (const classe of classes) {
+      const total = classes.length;
+      for (let i = 0; i < classes.length; i++) {
+        const classe = classes[i];
+        setPrintProgress({
+          current: i,
+          total,
+          label: t.progressLoadingData,
+          overall: t.progressClasse(i + 1, total, classe.classe_name),
+        });
         const isApc = apcLevels.get(classe.level) === true;
         if (isApc) {
           const data = await loadAnnualApcReportCardDataForClasse(classe.classe_id);
@@ -865,8 +929,10 @@ const ReportCardManager = () => {
       if (apcPages.length === 0 && nonApcPages.length === 0) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);
+        setPrintProgress(null);
         return;
       }
+      setPrintProgress({ current: total, total, label: t.progressGeneratingDocument });
       const sectionSegment = `Section ${capitalizeSectionName(section)}`;
       if (apcPages.length > 0) {
         const filename = buildTimestampedFilename("APC TH ANNUEL", [sectionSegment], "pdf");
@@ -882,6 +948,7 @@ const ReportCardManager = () => {
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
+    setPrintProgress(null);
   };
 
   const handlePrintAll = () => handlePrint(students);
@@ -921,17 +988,11 @@ const ReportCardManager = () => {
         if (subset.length === 0) {
           showToast(t.emptyStudents, { type: "warning" });
           setIsSaving(false);
+          setPrintProgress(null);
           return;
         }
-        const photosByStudId = new Map<number, HTMLImageElement | null>(
-          await Promise.all(
-            subset.map(
-              async (s): Promise<[number, HTMLImageElement | null]> => [
-                s.studId,
-                await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-              ],
-            ),
-          ),
+        const photosByStudId = await loadPhotosWithProgress(subset, (done, total) =>
+          setPrintProgress({ current: done, total, label: t.progressLoadingPhotos }),
         );
         await exportAnnualReportCardsApcToPdf(
           subset,
@@ -950,17 +1011,11 @@ const ReportCardManager = () => {
         if (subset.length === 0) {
           showToast(t.emptyStudents, { type: "warning" });
           setIsSaving(false);
+          setPrintProgress(null);
           return;
         }
-        const photosByStudId = new Map<number, HTMLImageElement | null>(
-          await Promise.all(
-            subset.map(
-              async (s): Promise<[number, HTMLImageElement | null]> => [
-                s.studId,
-                await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-              ],
-            ),
-          ),
+        const photosByStudId = await loadPhotosWithProgress(subset, (done, total) =>
+          setPrintProgress({ current: done, total, label: t.progressLoadingPhotos }),
         );
         await exportAnnualReportCardsToPdf(
           subset,
@@ -978,6 +1033,7 @@ const ReportCardManager = () => {
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
+    setPrintProgress(null);
   };
 
   const handlePrintAllAnnual = () => handlePrintAnnual(null);
@@ -1000,7 +1056,11 @@ const ReportCardManager = () => {
     setIsSaving(true);
     let anyPrinted = false;
     try {
-      for (const classe of classes) {
+      const total = classes.length;
+      for (let i = 0; i < classes.length; i++) {
+        const classe = classes[i];
+        const overall = t.progressClasse(i + 1, total, classe.classe_name);
+        setPrintProgress({ current: i, total, label: t.progressLoadingData, overall });
         const isApc = apcLevels.get(classe.level) === true;
         const classeArg = {
           classe_name: classe.classe_name,
@@ -1017,15 +1077,13 @@ const ReportCardManager = () => {
             continue;
           }
           anyPrinted = true;
-          const photosByStudId = new Map<number, HTMLImageElement | null>(
-            await Promise.all(
-              data.students.map(
-                async (s): Promise<[number, HTMLImageElement | null]> => [
-                  s.studId,
-                  await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-                ],
-              ),
-            ),
+          const photosByStudId = await loadPhotosWithProgress(data.students, (done, photoTotal) =>
+            setPrintProgress({
+              current: i,
+              total,
+              label: t.progressLoadingPhotosDetail(done, photoTotal),
+              overall,
+            }),
           );
           await exportAnnualReportCardsApcToPdf(
             data.students,
@@ -1042,15 +1100,13 @@ const ReportCardManager = () => {
             continue;
           }
           anyPrinted = true;
-          const photosByStudId = new Map<number, HTMLImageElement | null>(
-            await Promise.all(
-              data.students.map(
-                async (s): Promise<[number, HTMLImageElement | null]> => [
-                  s.studId,
-                  await StudentReader.loadStudentPhotoImage(accessToken, connection, s.studId),
-                ],
-              ),
-            ),
+          const photosByStudId = await loadPhotosWithProgress(data.students, (done, photoTotal) =>
+            setPrintProgress({
+              current: i,
+              total,
+              label: t.progressLoadingPhotosDetail(done, photoTotal),
+              overall,
+            }),
           );
           await exportAnnualReportCardsToPdf(
             data.students,
@@ -1073,11 +1129,12 @@ const ReportCardManager = () => {
       showToast(t.printFailure, { type: "danger" });
     }
     setIsSaving(false);
+    setPrintProgress(null);
   };
 
   return (
     <div className="page-shell">
-      {isSaving && <LoadingOverlay />}
+      {isSaving && <LoadingOverlay progress={printProgress} />}
       <div className="page-header">
         <div>
           <h1 className="page-title">{t.title}</h1>

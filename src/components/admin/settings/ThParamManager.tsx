@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Save, X } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -23,6 +24,7 @@ const MAX_SEUIL_ABS = 100;
 const ThParamManager = () => {
   const { connection, schoolYear, accessToken } = useAuth();
   const showToast = useToast();
+  const navigate = useNavigate();
   const [language] = useLanguage();
   const t = thParamManagerTranslations[language];
 
@@ -188,15 +190,26 @@ const ThParamManager = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary gap-2 self-center mt-2"
-            disabled={isSaving || isRangeInvalid}
-            onClick={handleSave}
-          >
-            <Save className="w-4 h-4" />
-            {t.saveBtn}
-          </button>
+          <div className="flex gap-3 justify-center mt-2">
+            <button
+              type="button"
+              className="btn btn-primary gap-2"
+              disabled={isSaving || isRangeInvalid}
+              onClick={handleSave}
+            >
+              <Save className="w-4 h-4" />
+              {t.saveBtn}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost gap-2"
+              disabled={isSaving}
+              onClick={() => navigate("/admin/settings")}
+            >
+              <X className="w-4 h-4" />
+              {t.closeBtn}
+            </button>
+          </div>
         </div>
       )}
     </div>

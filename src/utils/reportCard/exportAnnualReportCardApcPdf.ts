@@ -393,7 +393,7 @@ const drawFooterGrid = (
       "[MIN-MAX]:",
       `[${formatRcNumber(classeStats.minMax[0])} - ${formatRcNumber(classeStats.minMax[1])}]`,
     ],
-    ["Nombre de moyennes:", String(classeStats.nombreMoyennes)],
+    ["Nb. de moyennes:", String(classeStats.nombreMoyennes)],
     ["Taux de réussite:", `${formatRcNumber(classeStats.tauxReussite)}%`],
   ];
   profilRows.forEach(([label, value], i) => {

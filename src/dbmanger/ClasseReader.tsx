@@ -203,6 +203,38 @@ export class ClasseReader {
     }
   };
 
+  // Updates a single classe's classe_year end-of-year decision thresholds (Promotion settings
+  // sub-module) - passMark isn't editable in that screen yet, so callers pass through the value
+  // already loaded on the Classe unchanged, same "unedited fields still round-tripped" convention
+  // updateClasses uses for classe_master_id/sg_id.
+  public static updateClassSettings = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    classeId: number,
+    totalAbsTh: number,
+    totalExclusionTh: number,
+    avgDismissalTh: number,
+    repeatUb: number,
+    passMark: number,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/updateClassSettings",
+      accessToken,
+      {
+        connection,
+        year,
+        classe_id: classeId,
+        totalAbsTh,
+        totalExclusionTh,
+        avgDismissalTh,
+        repeatUb,
+        passMark,
+      },
+      "updateClassSettings",
+    );
+  };
+
   // Upserts the (year, section, level) APC flag - affects every classe at that level, not just one.
   public static updateApcLevel = async (
     accessToken: string | null,

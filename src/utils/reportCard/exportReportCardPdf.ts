@@ -107,15 +107,16 @@ interface StudentLayout {
 
 const MAX_COMPETENCE_LINES = 3;
 
-// Extra vertical breathing room around each competence's text block within the COMPÉTENCES
+// Extra vertical breathing room above/below each competence's text block within the COMPÉTENCES
 // ÉVALUÉES column, expressed as a fraction of the line-height (lh) rather than a fixed mm value so
 // it scales with whichever font size the shrink-to-fit loop below picks for a given student.
-const COMPETENCE_ROW_PADDING = 0.05;
+const COMPETENCE_ROW_TOP_PADDING = 0.2;
+const COMPETENCE_ROW_BOTTOM_PADDING = 0.05;
 
 // Extra whitespace above/below each subject's whole row (between the row's top border and the
 // first competence line, and between the last competence line and the row's bottom border), same
-// lh-fraction convention as COMPETENCE_ROW_PADDING above.
-const CELL_ROW_TOP_PADDING = 0.3;
+// lh-fraction convention as COMPETENCE_ROW_TOP_PADDING/COMPETENCE_ROW_BOTTOM_PADDING above.
+const CELL_ROW_TOP_PADDING = 0;
 const CELL_ROW_BOTTOM_PADDING = 0.2;
 
 const measureStudent = (
@@ -148,7 +149,10 @@ const measureStudent = (
     // Each real competence row gets top+bottom padding; the length-1 fallback row (a subject with
     // zero competences) doesn't, since no competence loop iteration runs for it below.
     const contentHeight =
-      rowCount * competenceLh + subject.competences.length * 2 * COMPETENCE_ROW_PADDING * competenceLh;
+      rowCount * competenceLh +
+      subject.competences.length *
+        (COMPETENCE_ROW_TOP_PADDING + COMPETENCE_ROW_BOTTOM_PADDING) *
+        competenceLh;
     const height =
       contentHeight + (CELL_ROW_TOP_PADDING + CELL_ROW_BOTTOM_PADDING) * competenceLh;
     tableHeight += height;
@@ -379,17 +383,19 @@ const drawStudentPage = (
 
     // COMPÉTENCES ÉVALUÉES + N/20 - one sub-row per competence, wrapped text handled by
     // subjectLayout.compLines (already measured/truncated at competenceFontSize, see
-    // measureStudent). Each row gets COMPETENCE_ROW_PADDING*competenceLh of top/bottom padding.
+    // measureStudent). Each row gets COMPETENCE_ROW_TOP_PADDING/COMPETENCE_ROW_BOTTOM_PADDING
+    // (both *competenceLh) of top/bottom padding respectively.
     let rowY = contentTop;
-    const competencePadding = COMPETENCE_ROW_PADDING * competenceLh;
+    const competenceTopPadding = COMPETENCE_ROW_TOP_PADDING * competenceLh;
+    const competenceBottomPadding = COMPETENCE_ROW_BOTTOM_PADDING * competenceLh;
     doc.setFontSize(competenceFontSize);
     subject.competences.forEach((comp, compIndex) => {
       const lines = subjectLayout.compLines[compIndex];
-      const textTop = rowY + competencePadding;
+      const textTop = rowY + competenceTopPadding;
       lines.forEach((line, lineIdx) => {
         doc.text(line, colX("competence") + 1, textTop + competenceLh * (lineIdx + 1));
       });
-      const rowHeight = lines.length * competenceLh + 2 * competencePadding;
+      const rowHeight = lines.length * competenceLh + competenceTopPadding + competenceBottomPadding;
       const markText = comp.mark !== null ? formatRcMarkDisplay(comp.mark) : "";
       if (markText) {
         doc.setFontSize(n20FontSize);
@@ -594,6 +600,7 @@ const drawStudentPage = (
     ],
     ["Nombre de moyennes:", String(classeStats.nombreMoyennes)],
     ["Taux de réussite:", `${formatRcNumber(classeStats.tauxReussite)}%`],
+    ["Ecart type:", formatRcNumber(classeStats.ecartType)],
   ];
   // Unlike Discipline/Travail's inline "label value" pairs, Profil has its own dedicated value
   // sub-column (fcx(9)-fcx(10), matching the vertical divider already drawn there) - label and
