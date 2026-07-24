@@ -16,6 +16,7 @@ import SubjectCompetenceManager from "./components/admin/subjectcompetence/Subje
 import StaffManager from "./components/admin/staff/StaffManager";
 import StudentManager from "./components/admin/student/StudentManager";
 import CourseAssignmentManager from "./components/admin/courseassignment/CourseAssignmentManager";
+import VpManager from "./components/admin/vp/VpManager";
 import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
 import EffectifsManager from "./components/admin/effectifs/EffectifsManager";
 import MarkEntryManager from "./components/admin/marks/MarkEntryManager";
@@ -35,6 +36,9 @@ import PromotionSettingsManager from "./components/admin/settings/PromotionSetti
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
 import PromotionManager from "./components/admin/promotion/PromotionManager";
+import ParentManager from "./components/admin/parent/ParentManager";
+import ParentDashboard from "./components/parent/ParentDashboard";
+import ParentChildDetailManager from "./components/parent/ParentChildDetailManager";
 import { useCookies } from "react-cookie";
 
 function App() {
@@ -85,6 +89,10 @@ function App() {
                   element={<CourseAssignmentManager />}
                 />
                 <Route
+                  path="/admin/vp-management"
+                  element={<VpManager />}
+                />
+                <Route
                   path="/admin/school-info"
                   element={<SchoolInfoManager />}
                 />
@@ -128,6 +136,14 @@ function App() {
                 <Route
                   path="/admin/promotion"
                   element={<PromotionManager />}
+                />
+                <Route path="/admin/parents" element={<ParentManager />} />
+              </Route>
+              <Route element={<RequireRole allow={["PARENT"]} />}>
+                <Route path="/parent/dashboard" element={<ParentDashboard />} />
+                <Route
+                  path="/parent/child/:studId"
+                  element={<ParentChildDetailManager />}
                 />
               </Route>
             </Route>

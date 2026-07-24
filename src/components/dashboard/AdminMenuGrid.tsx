@@ -11,6 +11,7 @@ import iconClasses from "../../assets/menu/Gestion des classes.svg";
 import iconSubjects from "../../assets/menu/Matières.svg";
 import iconStaff from "../../assets/menu/Gestion du personnel.svg";
 import iconAssignCourses from "../../assets/menu/Attribution.svg";
+import iconManageVp from "../../assets/menu/censeur.svg";
 import iconStudents from "../../assets/menu/Gestion des élèves.svg";
 import iconMarksEntry from "../../assets/menu/Saisie des notes.svg";
 import iconMarkSheet from "../../assets/menu/Fiches de report de notes.svg";
@@ -62,6 +63,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: iconAssignCourses,
     to: "/admin/course-assignment",
   },
+  { key: "manageVp", icon: iconManageVp, to: "/admin/vp-management" },
   { key: "students", icon: iconStudents, to: "/admin/students" },
   { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
   { key: "markSheet", icon: iconMarkSheet, to: "/admin/mark-sheet" },
@@ -71,7 +73,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: "summary", icon: iconSummary, to: "/admin/effectifs" },
   { key: "sms", icon: iconSms },
   { key: "schoolReport", icon: iconSchoolReport },
-  { key: "parents", icon: iconParents },
+  { key: "parents", icon: iconParents, to: "/admin/parents" },
   { key: "manageAccount", icon: iconManageAccount, to: "/admin/manage-accounts" },
   { key: "settings", icon: iconSettings, to: "/admin/settings" },
   { key: "promotions", icon: iconPromotions, to: "/admin/promotion" },

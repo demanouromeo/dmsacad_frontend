@@ -11,6 +11,16 @@ const Dashboard = () => {
   const t = dashboardTranslations[language];
   const navigate = useNavigate();
 
+  // PARENT has its own dedicated dashboard (children list) rather than this admin-oriented one -
+  // bounce there immediately, before the history-guard effect below runs, to avoid a stray extra
+  // history entry from pushState followed by a replace-navigate.
+  useEffect(() => {
+    if (authPayload?.role === "PARENT") {
+      navigate("/parent/dashboard", { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authPayload]);
+
   // Dashboard is the first authenticated screen after login (LoginForm pushes "/dashboard" onto
   // "/"'s history entry) - browser Back from here would otherwise silently land back on "/" while
   // the access token stays live in memory (AuthContext.logout() is never called), letting the
@@ -18,6 +28,9 @@ const Dashboard = () => {
   // means the first Back press fires `popstate` while Dashboard is still mounted, so it can be
   // treated as an explicit logout instead of a silent, incomplete one.
   useEffect(() => {
+    if (authPayload?.role === "PARENT") {
+      return;
+    }
     window.history.pushState(null, "", window.location.href);
     const handlePopState = () => {
       logout();
@@ -26,7 +39,7 @@ const Dashboard = () => {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authPayload]);
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto">

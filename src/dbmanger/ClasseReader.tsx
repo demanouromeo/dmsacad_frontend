@@ -3,6 +3,7 @@ import type { Classe } from "../interfaces/Classe";
 import type { ApiResult } from "../interfaces/ApiResult";
 import type { ApcLevel } from "../interfaces/ApcLevel";
 import type { ClasseOfSubject } from "../interfaces/ClasseOfSubject";
+import type { VpClasse } from "../interfaces/VpClasse";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
   status: false,
@@ -307,6 +308,104 @@ export class ClasseReader {
       );
       return [];
     }
+  };
+
+  // Backs the "Manage Vice principals" screen's right panel - classes currently assigned to one VP
+  // (classe_year.vp_id) in the current section+year (ClasseController::allVpClasses). 404 means this
+  // VP has no classes assigned yet, same "empty state, not an error" handling as fetchClasses' 404.
+  public static fetchVpClasses = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    section: string,
+    vpId: number,
+  ): Promise<VpClasse[]> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/classes/allVpClasses` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&year=${encodeURIComponent(year)}` +
+      `&section=${encodeURIComponent(section)}` +
+      `&vp_id=${vpId}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (response.status === 404) {
+        return [];
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(
+        `ClasseReader.fetchVpClasses(): Error fetching VP classes: ${error}`,
+      );
+      return [];
+    }
+  };
+
+  // Batch-assigns several classes to one VP in one call (ClasseController::assignClassesToAVp) - a
+  // classe already assigned to this VP is simply overwritten with the same value (no-op), same
+  // "same triple is a no-op" tolerance StaffReader.batchAssignCourses relies on.
+  public static assignClassesToVp = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    vpId: number,
+    classeIds: number[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/assignClassesToAVp",
+      accessToken,
+      {
+        connection,
+        year,
+        vp_id: vpId,
+        data: JSON.stringify(classeIds.map((id) => ({ classe_id: id }))),
+        data_size: classeIds.length,
+      },
+      "assignClassesToVp",
+    );
+  };
+
+  // Unassigns one classe from one VP (ClasseController::removeAClassFromAVp) - note the backend
+  // param is `class_id`, not `classe_id`, unlike every other classe-scoped endpoint in this file.
+  public static removeClasseFromVp = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    vpId: number,
+    classeId: number,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/removeAClassFromAVp",
+      accessToken,
+      { connection, year, vp_id: vpId, class_id: classeId },
+      "removeClasseFromVp",
+      "DELETE",
+    );
+  };
+
+  // Unassigns every classe currently assigned to one VP, in the current year
+  // (ClasseController::removeALLVpClasses) - backs the "Remove all" button.
+  public static removeAllClassesFromVp = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    vpId: number,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/removeALLVpClasses",
+      accessToken,
+      { connection, year, vp_id: vpId },
+      "removeAllClassesFromVp",
+      "DELETE",
+    );
   };
 
   private static postJson = async (
