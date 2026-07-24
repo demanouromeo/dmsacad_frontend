@@ -12,6 +12,7 @@ import type { Classe } from "../../../interfaces/Classe";
 import type { VpClasse } from "../../../interfaces/VpClasse";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import SearchInput from "../../sharedcomp/SearchInput";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
@@ -63,6 +64,12 @@ const VpManager = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // "Assign per VP" (dual-list, one VP at a time) vs. "Assign from class list" (one row per classe,
+  // VP picked directly in a per-row combobox) - two views over the same underlying classe_year.vp_id
+  // data, per the admin's request to add the latter alongside the existing former view.
+  const [viewMode, setViewMode] = useState<"perVp" | "classList">("perVp");
+  const [classListSearchQuery, setClassListSearchQuery] = useState("");
 
   const sortedVpStaff = [...staffList]
     .filter((s) => s.function === VP_FUNCTION)
@@ -154,6 +161,11 @@ const VpManager = () => {
     });
 
   const classesWithoutVp = classes.filter((c) => c.vp_id === null);
+
+  const classListQuery = classListSearchQuery.trim().toLowerCase();
+  const filteredClassList = classes.filter((c) =>
+    c.classe_name.toLowerCase().includes(classListQuery),
+  );
 
   // Toolbox export - every classe of the section (not just the selected VP's), independent of the
   // dual-list panels above, with an empty cell for classes that have no VP yet - same
@@ -330,6 +342,98 @@ const VpManager = () => {
     await reloadClassesAndVpClasses(selectedVpId);
   };
 
+  // Refreshes the classes list after a row-level VP change in the "class list" view - also refreshes
+  // the selected VP's dual-list panels if one happens to be selected, since a change made here can
+  // add/remove a classe from that VP's own assigned set.
+  const refreshClasses = async () => {
+    const classeList = await ClasseReader.fetchClasses(
+      accessToken,
+      connection,
+      schoolYear,
+      section,
+    );
+    setClasses(classeList);
+    if (selectedVpId !== null) {
+      const vpClasseList = await ClasseReader.fetchVpClasses(
+        accessToken,
+        connection,
+        schoolYear,
+        section,
+        selectedVpId,
+      );
+      setVpClasses(vpClasseList);
+    }
+  };
+
+  // Handles the "class list" view's per-row VP combobox: an empty selection removes the classe's
+  // current VP (if any), any other selection assigns/reassigns it - classe_year.vp_id being a plain
+  // column overwrite means picking a new VP silently replaces whatever was there before, so the
+  // confirm message always names both the outgoing and incoming VP when there is a change.
+  const handleChangeRowVp = async (classe: Classe, rawValue: string) => {
+    const newVpId = rawValue === "" ? null : Number(rawValue);
+    if (newVpId === classe.vp_id) {
+      return;
+    }
+    const oldVp =
+      classe.vp_id !== null
+        ? (staffList.find((s) => s.staff_id === classe.vp_id) ?? null)
+        : null;
+    const oldVpLabel = oldVp ? formatStaffLabel(oldVp) : "";
+
+    if (newVpId === null) {
+      if (classe.vp_id === null) {
+        return;
+      }
+      const confirmed = await confirm(
+        t.removeVpConfirm(classe.classe_name, oldVpLabel),
+        { danger: true },
+      );
+      if (!confirmed) {
+        return;
+      }
+      setIsSaving(true);
+      const result = await ClasseReader.removeClasseFromVp(
+        accessToken,
+        connection,
+        schoolYear,
+        classe.vp_id,
+        classe.classe_id,
+      );
+      setIsSaving(false);
+      showToast(result.status ? t.removeSuccess : t.removeFailure, {
+        type: result.status ? "info" : "danger",
+      });
+      if (result.status) {
+        await refreshClasses();
+      }
+      return;
+    }
+
+    const newVp = staffList.find((s) => s.staff_id === newVpId) ?? null;
+    const newVpLabel = newVp ? formatStaffLabel(newVp) : "";
+    const confirmed = await confirm(
+      t.changeVpConfirm(classe.classe_name, oldVpLabel, newVpLabel),
+    );
+    if (!confirmed) {
+      return;
+    }
+    setIsSaving(true);
+    const result = await ClasseReader.assignVpToClasse(
+      accessToken,
+      connection,
+      schoolYear,
+      newVpId,
+      classe.classe_id,
+    );
+    setIsSaving(false);
+    showToast(result.status ? t.saveSuccess : t.saveFailure, {
+      type: result.status ? "info" : "danger",
+    });
+    if (result.status) {
+      await refreshClasses();
+    }
+  };
+
   return (
     <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
@@ -381,28 +485,110 @@ const VpManager = () => {
             </div>
           </div>
 
-          <div className="surface-card p-4 flex flex-wrap gap-6 mb-6">
-            <div className="flex items-center gap-2">
-              <label className="font-medium">{t.vpLabel}</label>
-              <select
-                className="select w-64"
-                value={selectedVpId ?? ""}
-                onChange={(e) => setSelectedVpId(Number(e.target.value))}
-                disabled={sortedVpStaff.length === 0}
-              >
-                {sortedVpStaff.length === 0 && (
-                  <option value="">{t.noVpOption}</option>
-                )}
-                {sortedVpStaff.map((staff) => (
-                  <option key={staff.staff_id} value={staff.staff_id}>
-                    {formatStaffLabel(staff)} ({staff.staff_id})
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === "perVp" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => setViewMode("perVp")}
+            >
+              {t.viewModeTabPerVp}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === "classList" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => setViewMode("classList")}
+            >
+              {t.viewModeTabClassList}
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {viewMode === "classList" ? (
+            <div className="surface-card overflow-hidden mb-6">
+              <div className="p-4 border-b border-base-content/10">
+                <SearchInput
+                  value={classListSearchQuery}
+                  onChange={setClassListSearchQuery}
+                  placeholder={t.classListSearchPlaceholder}
+                  className="w-full max-w-sm"
+                />
+              </div>
+              <div className="overflow-x-auto max-h-128 overflow-y-auto">
+                <table className="table table-zebra data-table">
+                  <thead>
+                    <tr>
+                      <th>{t.tableHeaderIndex}</th>
+                      <th>{t.tableHeaderClasse}</th>
+                      <th>{t.tableHeaderVp}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredClassList.map((row, index) => (
+                      <tr key={row.classe_id}>
+                        <td>{index + 1}</td>
+                        <td>{row.classe_name}</td>
+                        <td>
+                          <div
+                            className="tooltip"
+                            data-tip={t.classListVpSelectTooltip}
+                          >
+                            <select
+                              className="select select-sm w-64"
+                              value={row.vp_id ?? ""}
+                              onChange={(e) =>
+                                handleChangeRowVp(row, e.target.value)
+                              }
+                              disabled={sortedVpStaff.length === 0}
+                            >
+                              <option value="">{t.classListNoVpOption}</option>
+                              {sortedVpStaff.map((staff) => (
+                                <option key={staff.staff_id} value={staff.staff_id}>
+                                  {formatStaffLabel(staff)} ({staff.staff_id})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredClassList.length === 0 && (
+                      <tr>
+                        <td colSpan={3}>
+                          <p className="empty-state">
+                            {classes.length === 0
+                              ? t.classListEmpty
+                              : t.classListNoResults}
+                          </p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="surface-card p-4 flex flex-wrap gap-6 mb-6">
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">{t.vpLabel}</label>
+                  <select
+                    className="select w-64"
+                    value={selectedVpId ?? ""}
+                    onChange={(e) => setSelectedVpId(Number(e.target.value))}
+                    disabled={sortedVpStaff.length === 0}
+                  >
+                    {sortedVpStaff.length === 0 && (
+                      <option value="">{t.noVpOption}</option>
+                    )}
+                    {sortedVpStaff.map((staff) => (
+                      <option key={staff.staff_id} value={staff.staff_id}>
+                        {formatStaffLabel(staff)} ({staff.staff_id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div className="surface-card overflow-hidden">
               <h2 className="font-semibold p-4 border-b border-base-content/10">
                 {selectedVp ? t.leftPanelTitle(selectedVpLabel) : ""}
@@ -429,7 +615,7 @@ const VpManager = () => {
                   </label>
                 ))}
               </div>
-              <div className="p-3 border-t border-base-content/10 flex justify-end">
+              <div className="p-3 border-t border-base-content/10 flex justify-start">
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -515,6 +701,8 @@ const VpManager = () => {
               </div>
             </div>
           </div>
+            </>
+          )}
         </>
       )}
 

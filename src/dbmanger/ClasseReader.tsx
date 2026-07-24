@@ -373,6 +373,25 @@ export class ClasseReader {
     );
   };
 
+  // Assigns (or reassigns) a single classe to a single VP (ClasseController::assignVpAClass) -
+  // backs the "Assign from class list" view's per-row VP combobox, where each row change concerns
+  // exactly one classe rather than a batch. Since classe_year.vp_id is a plain column overwrite,
+  // this silently replaces whatever VP the classe previously had, if any.
+  public static assignVpToClasse = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    vpId: number,
+    classeId: number,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/assignVpAClass",
+      accessToken,
+      { connection, year, vp_id: vpId, classe_id: classeId },
+      "assignVpToClasse",
+    );
+  };
+
   // Unassigns one classe from one VP (ClasseController::removeAClassFromAVp) - note the backend
   // param is `class_id`, not `classe_id`, unlike every other classe-scoped endpoint in this file.
   public static removeClasseFromVp = async (

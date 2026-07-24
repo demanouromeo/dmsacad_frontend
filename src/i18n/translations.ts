@@ -1519,6 +1519,19 @@ export const vpManagerTranslations = {
     noVpDialogTitle: "Classes sans censeur",
     noVpDialogEmpty: "Toutes les classes de cette section ont un censeur attribué.",
     closeBtn: "Fermer",
+    viewModeTabPerVp: "Attribution par censeur",
+    viewModeTabClassList: "Attribution par liste de classes",
+    classListSearchPlaceholder: "Rechercher une classe...",
+    classListNoVpOption: "-- Aucun censeur --",
+    classListNoResults: "Aucune classe ne correspond à la recherche.",
+    classListEmpty: "Aucune classe dans cette section.",
+    classListVpSelectTooltip: "Choisir ou changer le censeur de cette classe.",
+    changeVpConfirm: (classeName: string, oldVpLabel: string, newVpLabel: string) =>
+      oldVpLabel
+        ? `Remplacer le censeur de '${classeName}' ('${oldVpLabel}') par '${newVpLabel}' ?`
+        : `Attribuer '${classeName}' à '${newVpLabel}' ?`,
+    removeVpConfirm: (classeName: string, oldVpLabel: string) =>
+      `Retirer '${classeName}' de son censeur actuel ('${oldVpLabel}') ?`,
   },
   en: {
     title: "Manage vice principals",
@@ -1561,6 +1574,19 @@ export const vpManagerTranslations = {
     noVpDialogTitle: "Classes without a VP",
     noVpDialogEmpty: "Every class in this section has a vice principal assigned.",
     closeBtn: "Close",
+    viewModeTabPerVp: "Assign per VP",
+    viewModeTabClassList: "Assign from class list",
+    classListSearchPlaceholder: "Search a class...",
+    classListNoVpOption: "-- No vice principal --",
+    classListNoResults: "No class matches the search.",
+    classListEmpty: "No class in this section.",
+    classListVpSelectTooltip: "Pick or change this class's vice principal.",
+    changeVpConfirm: (classeName: string, oldVpLabel: string, newVpLabel: string) =>
+      oldVpLabel
+        ? `Replace '${classeName}''s vice principal ('${oldVpLabel}') with '${newVpLabel}'?`
+        : `Assign '${classeName}' to '${newVpLabel}'?`,
+    removeVpConfirm: (classeName: string, oldVpLabel: string) =>
+      `Remove '${classeName}' from its current vice principal ('${oldVpLabel}')?`,
   },
 };
 
