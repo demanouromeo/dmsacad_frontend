@@ -772,7 +772,7 @@ const ReportCardManager = () => {
           language,
         );
       }
-      showToast(t.printSuccess, { type: "info" });
+      showToast(t.printThSuccess, { type: "info" });
     } catch (error) {
       console.error("ReportCardManager.handlePrintTh(): Error", error);
       showToast(t.printFailure, { type: "danger" });
@@ -876,7 +876,7 @@ const ReportCardManager = () => {
         const filename = buildTimestampedFilename("NON APC TH ANNUEL", [sectionSegment], "pdf");
         await exportAnnualThPdf("nonApc", nonApcPages, schoolHeader, thParam.val1, filename, language);
       }
-      showToast(t.printSuccess, { type: "info" });
+      showToast(t.printThSuccess, { type: "info" });
     } catch (error) {
       console.error("ReportCardManager.handlePrintAnnualTh(): Error", error);
       showToast(t.printFailure, { type: "danger" });

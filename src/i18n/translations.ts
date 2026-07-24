@@ -25,6 +25,10 @@ export const loginTranslations = {
       `Veuillez sélectionner une école [${school}]`,
     alertBadCredentials: (school: string) =>
       `Login ou mot de passe incorrect \nECOLE:[${school}]`,
+    fetchSchoolsError:
+      "Échec du chargement de la liste des écoles. Veuillez réessayer plus tard.",
+    fetchSchoolYearsError:
+      "Échec du chargement des années scolaires. Veuillez réessayer plus tard.",
     settingsPrompt: (missingSchool: boolean, missingYear: boolean) =>
       missingSchool && missingYear
         ? "Veuillez d'abord définir l'école et l'année scolaire en cliquant sur l'icône ⚙ Paramètres, à côté des drapeaux de langue."
@@ -55,6 +59,10 @@ export const loginTranslations = {
     alertNoSchool: (school: string) => `Please select a school [${school}]`,
     alertBadCredentials: (school: string) =>
       `Incorrect username or password \nSCHOOL:[${school}]`,
+    fetchSchoolsError:
+      "Failed to load the list of schools. Please try again later.",
+    fetchSchoolYearsError:
+      "Failed to load school years. Please try again later.",
     settingsPrompt: (missingSchool: boolean, missingYear: boolean) =>
       missingSchool && missingYear
         ? "Please set your school and school year first by clicking the ⚙ Settings icon next to the language flags."
@@ -85,6 +93,8 @@ export const bannerTranslations = {
     profileMenuSettings: "Paramètres",
     profileMenuLogout: "Déconnexion",
     comingSoonTooltip: "Bientôt disponible",
+    fetchSchoolYearsError:
+      "Échec du chargement des années scolaires. Veuillez réessayer plus tard.",
   },
   en: {
     logoAlt: "School logo",
@@ -106,6 +116,7 @@ export const bannerTranslations = {
     profileMenuSettings: "Settings",
     profileMenuLogout: "Logout",
     comingSoonTooltip: "Coming soon",
+    fetchSchoolYearsError: "Failed to load school years. Please try again later.",
   },
 };
 
@@ -2086,6 +2097,7 @@ export const reportCardManagerTranslations = {
     printSelectionAnnualBtn: (count: number) => `Imprimer la sélection - bulletin annuel (${count})`,
     printAllClassesAnnualBtn: "Imprimer le bulletin annuel de toutes les classes",
     printSuccess: "Bulletin(s) généré(s) avec succès.",
+    printThSuccess: "Tableau(x) d'honneurs généré(s) avec succès.",
     printFailure: "Échec de la génération du/des bulletin(s).",
     printAllClassesEmpty: "Aucun élève trouvé dans les classes de cette section.",
     printThEmpty:
@@ -2119,6 +2131,7 @@ export const reportCardManagerTranslations = {
     printSelectionAnnualBtn: (count: number) => `Print Selection - Annual RC (${count})`,
     printAllClassesAnnualBtn: "Print Annual RC of all classes",
     printSuccess: "Report card(s) generated successfully.",
+    printThSuccess: "Honor Roll(s) generated successfully.",
     printFailure: "Failed to generate the report card(s).",
     printAllClassesEmpty: "No student found in any classe of this section.",
     printThEmpty:

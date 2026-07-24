@@ -1,5 +1,6 @@
 import { MyConstants } from "./MyConstants";
 import type { LoginResponse } from "../interfaces/LoginResponse";
+import type { SchoolYear } from "../interfaces/SchoolYear";
 
 //const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const API_OPTIONS = {
@@ -11,7 +12,10 @@ const API_OPTIONS = {
 };
 
 export class MyReader {
-  public static fetchSchools = async () => {
+  // Returns null on failure (network error or an API-level `Response: "False"`) so callers can
+  // distinguish "failed to load" (toast) from "loaded, genuinely empty" ([]) - see LoginForm's
+  // loadSchools/loadSchoolYears and TopBanner's openSchoolYearDialog for the toast side of this.
+  public static fetchSchools = async (): Promise<string[] | null> => {
     try {
       const response = await fetch(
         `${MyConstants.getBaseUrl()}api/configs/allSchools`,
@@ -22,27 +26,23 @@ export class MyReader {
       }
       const data = await response.json();
       if (data.Response === "False") {
-        alert(
-          data.Error || "MyReader.fetchSchools(): Failed to fetch schools.",
+        console.error(
+          `MyReader.fetchSchools(): ${data.Error || "Failed to fetch schools."}`,
         );
-        return [];
+        return null;
       }
-      //console.log(data);
-      //return data.results;
       return data;
     } catch (error) {
-      //console.error("Error fetching movies:", error);
       console.error(
         `MyReader.fetchSchools(): Error fetching schools: ${error}`,
       );
-      alert(
-        "MyReader.fetchSchools(): Failed to fetch schools. Please try again later.",
-      );
-      return [];
+      return null;
     }
   };
 
-  public static fetchSchoolYears = async (connection = "") => {
+  public static fetchSchoolYears = async (
+    connection = "",
+  ): Promise<SchoolYear[] | null> => {
     const targetUrl = `${MyConstants.getBaseUrl()}api/configs/getSchoolYears?connection=${encodeURIComponent(connection)}`;
     try {
       const response = await fetch(targetUrl, API_OPTIONS);
@@ -51,28 +51,24 @@ export class MyReader {
       }
       const data = await response.json();
       if (data.Response === "False") {
-        alert(
-          data.Error ||
-            "MyReader.fetchSchoolYears(): Failed to fetch school years.",
+        console.error(
+          `MyReader.fetchSchoolYears(): ${data.Error || "Failed to fetch school years."}`,
         );
-        return [];
+        return null;
       }
       return data;
     } catch (error) {
       console.error(
         `MyReader.fetchSchoolYears(): Error fetching school years: ${error}`,
       );
-      alert(
-        "MyReader.fetchSchoolYears(): Failed to fetch school years. Please try again later.",
-      );
-      return [];
+      return null;
     }
   };
 
-  // Unlike the fetch* methods above, login/refreshToken return null on failure instead of
-  // alert()ing, so LoginForm can distinguish "bad credentials" from "network error" for
-  // inline UI feedback. The backend's login/refresh responses also use a `status` boolean,
-  // not the `Response: "False"` convention the other endpoints use.
+  // login/refreshToken return null on failure too (same as the fetch* methods above), so
+  // LoginForm can distinguish "bad credentials" from "network error" for inline UI feedback.
+  // The backend's login/refresh responses also use a `status` boolean, not the
+  // `Response: "False"` convention the other endpoints use.
   public static login = async (
     login: string,
     pwd: string,

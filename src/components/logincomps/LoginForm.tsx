@@ -66,13 +66,23 @@ const LoginForm = () => {
 
   const loadSchools = async () => {
     const list = await MyReader.fetchSchools();
-    setSchoolList(list);
+    if (list === null) {
+      showToast(t.fetchSchoolsError, { type: "danger" });
+      setSchoolList([]);
+    } else {
+      setSchoolList(list);
+    }
     setIsLoading(false);
   };
 
   const loadSchoolYears = async (connection = "") => {
     const list = await MyReader.fetchSchoolYears(connection);
-    setSchoolYearList(list);
+    if (list === null) {
+      showToast(t.fetchSchoolYearsError, { type: "danger" });
+      setSchoolYearList([]);
+    } else {
+      setSchoolYearList(list);
+    }
   };
 
   const handleBackendTargetChange = (target: BackendTarget) => {

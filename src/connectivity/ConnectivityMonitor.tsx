@@ -4,8 +4,15 @@ import { useLanguage } from "../i18n/useLanguage";
 import { connectivityTranslations } from "../i18n/translations";
 import { MyConstants } from "../dbmanger/MyConstants";
 
-const CHECK_INTERVAL_MS = 15_000;
-const CHECK_TIMEOUT_MS = 5_000;
+// Timeout kept comfortably under the interval so a slow-but-alive check never overlaps the next
+// tick's fetch. Generous enough to survive a heavy screen's own burst of concurrent requests (e.g.
+// the report card screen's whole-section TH/RC export loops) queuing up ahead of this lightweight
+// health-check on the local XAMPP backend - a short timeout here was flipping this to "offline"
+// mid-export even though the export itself was succeeding, since it competes for the same limited
+// backend for its own duration (a real outage still gets caught every tick, just with a slightly
+// longer window before it's reported).
+const CHECK_INTERVAL_MS = 25_000;
+const CHECK_TIMEOUT_MS = 15_000;
 
 // Renders nothing - just runs a background heartbeat and reports outages/recovery via toast.
 const ConnectivityMonitor = () => {

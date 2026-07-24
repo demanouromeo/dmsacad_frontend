@@ -23,6 +23,7 @@ import type { SchoolYear } from "../../interfaces/SchoolYear";
 import type { SchoolHeaderConfig } from "../../interfaces/SchoolHeaderConfig";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 import { capitalizeSectionName } from "../../utils/exportData";
+import { useToast } from "../../toast/useToast";
 
 const TopBanner = () => {
   const {
@@ -36,6 +37,7 @@ const TopBanner = () => {
   } = useAuth();
   const [language, setLanguage] = useLanguage();
   const t = bannerTranslations[language];
+  const showToast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   // Hidden on /dashboard - it's the root of the authenticated app, so browser history above it is
@@ -75,7 +77,12 @@ const TopBanner = () => {
   const openSchoolYearDialog = async () => {
     setDraftSchoolYear(schoolYear);
     const list = await MyReader.fetchSchoolYears(connection);
-    setSchoolYearList(list);
+    if (list === null) {
+      showToast(t.fetchSchoolYearsError, { type: "danger" });
+      setSchoolYearList([]);
+    } else {
+      setSchoolYearList(list);
+    }
     schoolYearDialogRef.current?.showModal();
   };
 
