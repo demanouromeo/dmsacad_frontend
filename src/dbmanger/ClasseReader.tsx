@@ -427,6 +427,168 @@ export class ClasseReader {
     );
   };
 
+  // ---- Basculement (end-of-year promotion transfer) ----
+  // These wrap ClasseController's existing applyBasculement/removeBasculement/resetBasculement/
+  // cancelAllBasculement/processRedoublants/clearExclus/saveChanges endpoints - a legacy backend
+  // surface (ported from a prior mobile-app feature) that already fully existed and was already
+  // routed before BasculementManager.tsx was built; only the frontend wiring was missing.
+
+  // Transfers selected students out of `classeId` (their current classe) into `newClasseId` for
+  // `nextYear` - sets student_classe.basculated=1/basculated_classe_id on the current-year row and
+  // removes any pre-existing next-year placeholder row created by processRedoublants.
+  public static applyBasculement = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    nextYear: string,
+    classeId: number,
+    newClasseId: number,
+    students: { stud_id: number; cas_social: number }[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/applyBasculement",
+      accessToken,
+      {
+        connection,
+        year,
+        next_year: nextYear,
+        new_classe_id: newClasseId,
+        data: JSON.stringify(students.map((s) => ({ ...s, classe_id: classeId }))),
+        data_size: students.length,
+      },
+      "applyBasculement",
+    );
+  };
+
+  // Undoes a basculement for selected students already transferred into `newClasseId` - resets
+  // basculated/basculated_classe_id on the current-year row and deletes the next-year row.
+  public static removeBasculement = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    nextYear: string,
+    classeId: number,
+    newClasseId: number,
+    students: { stud_id: number }[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/removeBasculement",
+      accessToken,
+      {
+        connection,
+        year,
+        next_year: nextYear,
+        new_classe_id: newClasseId,
+        data: JSON.stringify(students.map((s) => ({ ...s, classe_id: classeId }))),
+        data_size: students.length,
+      },
+      "removeBasculement",
+    );
+  };
+
+  // Cancels every basculement of one current-year classe (deletes every next-year row tied to its
+  // students, resets basculated/basculated_classe_id for the whole classe).
+  public static resetBasculement = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    nextYear: string,
+    classeId: number,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/resetBasculement",
+      accessToken,
+      { connection, year, next_year: nextYear, classe_id: classeId },
+      "resetBasculement",
+      "DELETE",
+    );
+  };
+
+  // Cancels every basculement of every classe of the year (toolbox's "Annuler tout").
+  public static cancelAllBasculement = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    nextYear: string,
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/cancelAllBasculement",
+      accessToken,
+      { connection, year, next_year: nextYear },
+      "cancelAllBasculement",
+      "DELETE",
+    );
+  };
+
+  // Init step 1: pre-registers non-dismissed, not-yet-basculated students of one current-year
+  // classe as repeaters (`repeating=1`) in the SAME classe_id for nextYear - a no-op (skipped, not
+  // an error) server-side for a student who already has that next-year row.
+  public static processRedoublants = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    nextYear: string,
+    classeId: number,
+    students: { stud_id: number; cas_social: number }[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/processRedoublants",
+      accessToken,
+      {
+        connection,
+        year,
+        next_year: nextYear,
+        data: JSON.stringify(students.map((s) => ({ ...s, classe_id: classeId }))),
+        data_size: students.length,
+      },
+      "processRedoublants",
+    );
+  };
+
+  // Init step 2: deletes the next-year placeholder row (if any) for every dismissed student, across
+  // every classe at once - each entry carries its own origin classe_id.
+  public static clearExclus = async (
+    accessToken: string | null,
+    connection: string,
+    nextYear: string,
+    students: { stud_id: number; classe_id: number }[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/clearExclus",
+      accessToken,
+      {
+        connection,
+        next_year: nextYear,
+        data: JSON.stringify(students),
+        data_size: students.length,
+      },
+      "clearExclus",
+    );
+  };
+
+  // Right panel's per-row "change this student's next-year classe" action - deletes every next-year
+  // row for that stud_id (regardless of classe) and re-inserts one at promuEn.
+  public static saveBasculementChanges = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    nextYear: string,
+    students: { stud_id: number; promuEn: number; cas_social: number }[],
+  ): Promise<ApiResult> => {
+    return ClasseReader.postJson(
+      "api/classes/saveChanges",
+      accessToken,
+      {
+        connection,
+        year,
+        next_year: nextYear,
+        data: JSON.stringify(students),
+        data_size: students.length,
+      },
+      "saveBasculementChanges",
+    );
+  };
+
   private static postJson = async (
     path: string,
     accessToken: string | null,

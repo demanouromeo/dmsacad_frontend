@@ -36,6 +36,8 @@ import PromotionSettingsManager from "./components/admin/settings/PromotionSetti
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
 import PromotionManager from "./components/admin/promotion/PromotionManager";
+import BasculementManager from "./components/admin/basculement/BasculementManager";
+import ScholarshipManager from "./components/admin/scholarship/ScholarshipManager";
 import ParentManager from "./components/admin/parent/ParentManager";
 import ParentDashboard from "./components/parent/ParentDashboard";
 import ParentChildDetailManager from "./components/parent/ParentChildDetailManager";
@@ -136,6 +138,14 @@ function App() {
                 <Route
                   path="/admin/promotion"
                   element={<PromotionManager />}
+                />
+                <Route
+                  path="/admin/basculement"
+                  element={<BasculementManager />}
+                />
+                <Route
+                  path="/admin/scholarship"
+                  element={<ScholarshipManager />}
                 />
                 <Route path="/admin/parents" element={<ParentManager />} />
               </Route>

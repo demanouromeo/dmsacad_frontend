@@ -2393,6 +2393,235 @@ export const promotionManagerTranslations = {
   },
 };
 
+// "Gestion du basculement" - dual-panel end-of-year transfer screen (BasculementManager.tsx). Left
+// panel = current-year classe roster (source), right panel = next-year classe roster (destination).
+// Reuses the same computeMustDismiss-driven "Exclu" concept as promotionManagerTranslations above,
+// but here the combo only ever shows OUI/NON (no AUTO) since it always displays the *computed*
+// value, never the raw stored override.
+export const basculementManagerTranslations = {
+  fr: {
+    title: "Gestion du basculement",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    nextYearMissing: (nextYear: string) =>
+      `L'année scolaire '${nextYear}' n'existe pas encore dans la base de données. Veuillez la créer avant d'utiliser le basculement.`,
+    leftClasseLabel: "Classe :",
+    rightClasseHeader: (classeName: string) =>
+      `Basculer tous les élèves sélectionnés de '${classeName}' en :`,
+    emptyClasses: "Aucune classe pour cette section/année.",
+    emptyRightClasses: "Aucune classe de niveau supérieur disponible.",
+    searchPlaceholder: "Rechercher un élève (nom, prénom, matricule)...",
+    sortByMeritLabel: (year: string) => `Classer les élèves de '${year}' par ordre de mérite ?`,
+    tableHeaderNo: "No",
+    tableHeaderName: "Name",
+    tableHeaderInfo: "Info.",
+    tableHeaderExclu: "Exclu",
+    tableHeaderClasse: "Classe",
+    infoLabel: (moy: string, abs: number) => `Moy.(${moy}); Abs.(${abs});`,
+    optionOui: "OUI",
+    optionNon: "NON",
+    leftListTitle: (classeName: string, year: string) => `Liste des élèves de '${classeName}' (${year})`,
+    rightListTitle: (classeName: string, year: string) => `Liste des élèves de '${classeName}' (${year})`,
+    effectifLabel: "Effectif :",
+    redoublantsLabel: "Redoublants :",
+    exclusLabel: "Exclus :",
+    totalLabel: "Total :",
+    initBtn: "Initialiser le basculement",
+    initConfirmMessage:
+      "Cette action va préinscrire tous les élèves non exclus de chaque classe comme redoublants dans l'année scolaire suivante, et retirer les élèves exclus de toute classe de l'année suivante. Continuer ?",
+    initSuccess: "Initialisation du basculement effectuée avec succès.",
+    initFailure: "Échec de l'initialisation du basculement pour au moins une classe.",
+    basculerBtn: "Basculer",
+    basculerConfirmMessage: (count: number, classeName: string) =>
+      `Basculer ${count} élève(s) sélectionné(s) vers '${classeName}' ?`,
+    basculerSuccess: "Basculement effectué avec succès.",
+    basculerFailure: "Échec du basculement pour au moins un élève.",
+    basculerNoneSelected: "Aucun élève sélectionné.",
+    removeBasculementBtn: "Annuler le basculement des élèves sélectionnés",
+    removeBasculementConfirmMessage: (count: number) =>
+      `Annuler le basculement de ${count} élève(s) sélectionné(s) ?`,
+    removeBasculementSuccess: "Basculement annulé avec succès pour les élèves sélectionnés.",
+    removeBasculementFailure: "Échec de l'annulation du basculement pour au moins un élève.",
+    removeBasculementNoneSelected: "Aucun élève sélectionné.",
+    resetClasseBtn: (classeName: string) => `Annuler le basculement de '${classeName}'`,
+    resetClasseConfirmMessage: (classeName: string) =>
+      `Annuler tout le basculement de la classe '${classeName}' ? Cette action est irréversible.`,
+    resetClasseSuccess: "Basculement de la classe annulé avec succès.",
+    resetClasseFailure: "Échec de l'annulation du basculement de la classe.",
+    refreshBtn: "Actualiser",
+    helpBtn: "Aide",
+    helpTitle: "Aide - Basculement",
+    helpText:
+      "1) Initialisez le basculement pour préinscrire tous les élèves comme redoublants. 2) Sélectionnez des élèves à gauche puis cliquez sur 'Basculer' pour les promouvoir dans la classe choisie à droite. 3) Sélectionnez des élèves à droite puis cliquez sur la flèche rouge pour annuler leur basculement. 4) Changez la classe d'un élève déjà basculé via le menu déroulant 'Classe' à droite.",
+    exclureConfirmOui: (name: string) => `Confirmer l'exclusion de ${name} ?`,
+    exclureConfirmNon: (name: string) => `Confirmer que ${name} n'est pas exclu(e) ?`,
+    exclureSuccess: "Statut d'exclusion mis à jour avec succès.",
+    exclureFailure: "Échec de la mise à jour du statut d'exclusion.",
+    classeChangeConfirmMessage: (name: string, classeName: string) =>
+      `Changer la classe de ${name} vers '${classeName}' ?`,
+    classeChangeSuccess: "Classe mise à jour avec succès.",
+    classeChangeFailure: "Échec de la mise à jour de la classe.",
+    toolboxBtn: "Boîte à outils",
+    cancelAllBtn: "Annuler le basculement de toutes les classes",
+    cancelAllConfirmMessage:
+      "Annuler le basculement de TOUTES les classes de la section ? Cette action est irréversible.",
+    cancelAllSuccess: "Basculement annulé avec succès pour toutes les classes.",
+    cancelAllFailure: "Échec de l'annulation du basculement pour toutes les classes.",
+    printProvisoireBtn: "Imprimer la liste provisoire",
+    printExclusBtn: "Imprimer les élèves exclus",
+    printProvisoireTitle: (nextYear: string) => `Liste provisoire ${nextYear}`,
+    printExclusTitle: (classeName: string) => `Élèves exclus de ${classeName}`,
+    printEmptyProvisoire: "Aucun élève à imprimer pour l'année suivante.",
+    printEmptyExclus: "Aucun élève exclu pour cette classe.",
+    emptyStudents: "Aucun élève trouvé pour cette classe.",
+    emptyRightStudents: "Aucun élève basculé pour cette classe.",
+    noSearchResults: "Aucun élève ne correspond à la recherche.",
+  },
+  en: {
+    title: "Basculement management",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to change section.`,
+    nextYearMissing: (nextYear: string) =>
+      `School year '${nextYear}' does not exist yet in the database. Please create it before using basculement.`,
+    leftClasseLabel: "Classe:",
+    rightClasseHeader: (classeName: string) => `Transfer all selected students of '${classeName}' to:`,
+    emptyClasses: "No classes for this section/year.",
+    emptyRightClasses: "No higher-level classe available.",
+    searchPlaceholder: "Search a student (name, surname, matricule)...",
+    sortByMeritLabel: (year: string) => `Sort students of '${year}' by merit order?`,
+    tableHeaderNo: "No",
+    tableHeaderName: "Name",
+    tableHeaderInfo: "Info.",
+    tableHeaderExclu: "Dismissed",
+    tableHeaderClasse: "Classe",
+    infoLabel: (moy: string, abs: number) => `Avg.(${moy}); Abs.(${abs});`,
+    optionOui: "YES",
+    optionNon: "NO",
+    leftListTitle: (classeName: string, year: string) => `Student list of '${classeName}' (${year})`,
+    rightListTitle: (classeName: string, year: string) => `Student list of '${classeName}' (${year})`,
+    effectifLabel: "Total:",
+    redoublantsLabel: "Repeaters:",
+    exclusLabel: "Dismissed:",
+    totalLabel: "Total:",
+    initBtn: "Initialize basculement",
+    initConfirmMessage:
+      "This will pre-register every non-dismissed student of every classe as a repeater in the next school year, and clear dismissed students from every next-year classe. Continue?",
+    initSuccess: "Basculement initialization completed successfully.",
+    initFailure: "Failed to initialize basculement for at least one classe.",
+    basculerBtn: "Transfer",
+    basculerConfirmMessage: (count: number, classeName: string) =>
+      `Transfer ${count} selected student(s) to '${classeName}'?`,
+    basculerSuccess: "Basculement completed successfully.",
+    basculerFailure: "Failed to transfer at least one student.",
+    basculerNoneSelected: "No student selected.",
+    removeBasculementBtn: "Undo basculement for selected students",
+    removeBasculementConfirmMessage: (count: number) =>
+      `Undo basculement for ${count} selected student(s)?`,
+    removeBasculementSuccess: "Basculement successfully undone for the selected students.",
+    removeBasculementFailure: "Failed to undo basculement for at least one student.",
+    removeBasculementNoneSelected: "No student selected.",
+    resetClasseBtn: (classeName: string) => `Undo basculement of '${classeName}'`,
+    resetClasseConfirmMessage: (classeName: string) =>
+      `Undo all basculement for classe '${classeName}'? This cannot be undone.`,
+    resetClasseSuccess: "Classe basculement undone successfully.",
+    resetClasseFailure: "Failed to undo the classe's basculement.",
+    refreshBtn: "Refresh",
+    helpBtn: "Help",
+    helpTitle: "Help - Basculement",
+    helpText:
+      "1) Initialize basculement to pre-register every student as a repeater. 2) Select students on the left then click 'Transfer' to promote them into the chosen classe on the right. 3) Select students on the right then click the red arrow to undo their basculement. 4) Change an already-transferred student's classe via the right panel's 'Classe' dropdown.",
+    exclureConfirmOui: (name: string) => `Confirm dismissing ${name}?`,
+    exclureConfirmNon: (name: string) => `Confirm that ${name} is not dismissed?`,
+    exclureSuccess: "Dismissal status updated successfully.",
+    exclureFailure: "Failed to update the dismissal status.",
+    classeChangeConfirmMessage: (name: string, classeName: string) =>
+      `Change ${name}'s classe to '${classeName}'?`,
+    classeChangeSuccess: "Classe updated successfully.",
+    classeChangeFailure: "Failed to update the classe.",
+    toolboxBtn: "Toolbox",
+    cancelAllBtn: "Undo basculement for every classe",
+    cancelAllConfirmMessage:
+      "Undo basculement for EVERY classe of the section? This cannot be undone.",
+    cancelAllSuccess: "Basculement successfully undone for every classe.",
+    cancelAllFailure: "Failed to undo basculement for every classe.",
+    printProvisoireBtn: "Print the provisional list",
+    printExclusBtn: "Print dismissed students",
+    printProvisoireTitle: (nextYear: string) => `Provisional list ${nextYear}`,
+    printExclusTitle: (classeName: string) => `Dismissed students of ${classeName}`,
+    printEmptyProvisoire: "No student to print for the next school year.",
+    printEmptyExclus: "No dismissed student for this classe.",
+    emptyStudents: "No student found for this classe.",
+    emptyRightStudents: "No transferred student for this classe.",
+    noSearchResults: "No student matches the search.",
+  },
+};
+
+// "Bourse" (Scholarship) - whole-section, read-only report computed client-side from the same
+// annual-average/dismissal pipeline as Basculement/Promotion (loadAnnualReportCardDataForClasse(Apc)
+// + AnnualStudentData.decision.kind === "exclu" for dismissed), looped over every classe of the
+// current section. A boursier(ère) is any non-dismissed student whose annual average falls in
+// [minAvg, 20] - minAvg is the only user input (the interval's upper bound is always 20, the max
+// possible mark) and is never sent to the backend, only persisted to localStorage
+// (MyConstants.SCHOLARSHIP_MIN_AVG_KEY) since there's no DB column for it.
+export const scholarshipManagerTranslations = {
+  fr: {
+    title: "Bourse",
+    sectionHint: (section: string) =>
+      `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    minAvgLabel: "Moyenne minimale dans :",
+    minAvgInvalid: "La moyenne minimale doit être supérieure à 0 et inférieure à 20.",
+    refreshBtn: "Actualiser",
+    emptyClasses: "Aucune classe pour cette section.",
+    loadingMessage: "Calcul des moyennes annuelles en cours…",
+    statBoursiers: (n: number) => `Boursiers : ${n}`,
+    statBoursieres: (n: number) => `Dont filles boursières : ${n}`,
+    exportBtn: "Export",
+    fillesBoursieresBtn: "Filles boursières",
+    pdfBoursiersLabel: "Liste des boursiers (PDF)",
+    pdfBoursieresLabel: "Liste des boursières (PDF)",
+    tabAll: (n: number) => `Tous les boursiers (${n})`,
+    tabGirls: (n: number) => `Filles boursières (${n})`,
+    tableHeaderNo: "Nº",
+    tableHeaderMatricule: "Matricule",
+    tableHeaderName: "Nom et prénom",
+    tableHeaderClasse: "Classe",
+    tableHeaderSexe: "Sexe",
+    tableHeaderMoyenne: "Moyenne annuelle",
+    emptyBoursiers: "Aucun élève ne remplit les conditions de bourse pour le moment.",
+    emptyBoursieres: "Aucune fille ne remplit les conditions de bourse pour le moment.",
+    pdfTitleBoursiers: (year: string) => `Liste des boursiers - ${year}`,
+    pdfTitleBoursieres: (year: string) => `Liste des boursières - ${year}`,
+  },
+  en: {
+    title: "Scholarship",
+    sectionHint: (section: string) =>
+      `Section: ${section} — use the section icon in the top bar to change section.`,
+    minAvgLabel: "Minimum average within:",
+    minAvgInvalid: "The minimum average must be greater than 0 and less than 20.",
+    refreshBtn: "Refresh",
+    emptyClasses: "No classes for this section.",
+    loadingMessage: "Computing annual averages…",
+    statBoursiers: (n: number) => `Scholars: ${n}`,
+    statBoursieres: (n: number) => `Of which female scholars: ${n}`,
+    exportBtn: "Export",
+    fillesBoursieresBtn: "Female scholars",
+    pdfBoursiersLabel: "Scholars list (PDF)",
+    pdfBoursieresLabel: "Female scholars list (PDF)",
+    tabAll: (n: number) => `All scholars (${n})`,
+    tabGirls: (n: number) => `Female scholars (${n})`,
+    tableHeaderNo: "No.",
+    tableHeaderMatricule: "Matricule",
+    tableHeaderName: "Full name",
+    tableHeaderClasse: "Classe",
+    tableHeaderSexe: "Sex",
+    tableHeaderMoyenne: "Annual average",
+    emptyBoursiers: "No student currently meets the scholarship conditions.",
+    emptyBoursieres: "No female student currently meets the scholarship conditions.",
+    pdfTitleBoursiers: (year: string) => `Scholars list - ${year}`,
+    pdfTitleBoursieres: (year: string) => `Female scholars list - ${year}`,
+  },
+};
+
 // "Bulletins" (Print report cards) - ADMIN-only, APC classes / term RC only for this phase (see
 // ReportCardManager.tsx). Annual RC is out of scope this phase - its two buttons render but stay
 // disabled ("coming soon").

@@ -77,8 +77,8 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { key: "manageAccount", icon: iconManageAccount, to: "/admin/manage-accounts" },
   { key: "settings", icon: iconSettings, to: "/admin/settings" },
   { key: "promotions", icon: iconPromotions, to: "/admin/promotion" },
-  { key: "basculement", icon: iconBasculement },
-  { key: "scholarship", icon: iconScholarship },
+  { key: "basculement", icon: iconBasculement, to: "/admin/basculement" },
+  { key: "scholarship", icon: iconScholarship, to: "/admin/scholarship" },
   { key: "insolvents", icon: iconInsolvents, to: "/admin/insolvables" },
 ];
 

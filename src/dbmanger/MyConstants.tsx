@@ -23,6 +23,10 @@ export class MyConstants {
   public static DEFAULT_SCHOOL_TYPE = "LYCEE";
   public static DEFAULT_RESPONSABLE_FR = "Proviseur";
   public static DEFAULT_RESPONSABLE_EN = "Principal";
+  // Scholarship ("Boursiers") minimum-average threshold - per-browser only, never sent to the
+  // backend (there's no DB column for it), see ScholarshipManager.tsx.
+  public static SCHOLARSHIP_MIN_AVG_KEY = "scholarshipMinAvg";
+  public static DEFAULT_SCHOLARSHIP_MIN_AVG = 12.5;
 
   public static getBackendTarget = (): BackendTarget => {
     return (
