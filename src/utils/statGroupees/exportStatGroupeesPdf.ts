@@ -10,15 +10,18 @@ export const STAT_GROUPEES_TERM_ORDINAL: Record<number, string> = {
   3: "TROISIEME",
 };
 
-const BILAN_ROW_STYLE = {
+export const BILAN_ROW_STYLE = {
   fontStyle: "bold" as const,
   fillColor: [0, 0, 0] as [number, number, number],
   textColor: 255 as const,
 };
 
-const CENTERED = { halign: "center" as const };
+export const CENTERED = { halign: "center" as const };
 
-const HEAD = [
+// Exported for reuse by exportSyntheseResultatsPdf.ts, whose "Par Cycle"/"Par Niveau"/"Par Classe"
+// sections are the exact same 20-column StatGroupeesRow shape as this module's own table - only the
+// section heading and row grouping differ, not the column layout.
+export const HEAD = [
   [
     { content: "CLASSES", rowSpan: 2 },
     { content: "MOY. GENE.", rowSpan: 2 },
@@ -36,9 +39,9 @@ const HEAD = [
 
 // Column index of the free-text APPRÉCIATION cell - kept left-aligned while every numeric column
 // stays centered (see columnStyles below).
-const APPRECIATION_COLUMN = 19;
+export const APPRECIATION_COLUMN = 19;
 
-const buildBodyRow = (row: StatGroupeesRow): (string | number)[] => [
+export const buildBodyRow = (row: StatGroupeesRow): (string | number)[] => [
   row.classeName,
   formatRcNumber(row.moyGene),
   row.effectifG,
@@ -61,7 +64,7 @@ const buildBodyRow = (row: StatGroupeesRow): (string | number)[] => [
   row.appreciation,
 ];
 
-const buildBilanBodyRow = (
+export const buildBilanBodyRow = (
   row: StatGroupeesRow,
 ): { content: string | number; styles: typeof BILAN_ROW_STYLE }[] =>
   buildBodyRow(row).map((content) => ({ content, styles: BILAN_ROW_STYLE }));
