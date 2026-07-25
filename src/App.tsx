@@ -98,29 +98,62 @@ function App() {
                   path="/admin/course-assignment"
                   element={<CourseAssignmentManager />}
                 />
-                <Route
-                  path="/admin/vp-management"
-                  element={<VpManager />}
-                />
+                <Route path="/admin/vp-management" element={<VpManager />} />
                 <Route
                   path="/admin/school-info"
                   element={<SchoolInfoManager />}
                 />
                 <Route path="/admin/effectifs" element={<EffectifsHub />} />
-                <Route path="/admin/effectifs/par-classe" element={<EffectifsManager />} />
+                <Route
+                  path="/admin/effectifs/par-classe"
+                  element={<EffectifsManager />}
+                />
                 <Route path="/admin/effectifs/pv" element={<PvManager />} />
-                <Route path="/admin/effectifs/stat-groupees" element={<StatGroupeesManager />} />
-                <Route path="/admin/effectifs/synthese-globale" element={<SyntheseGlobaleManager />} />
-                <Route path="/admin/effectifs/synthese-resultats" element={<SyntheseResultatsManager />} />
-                <Route path="/admin/effectifs/stats-matiere" element={<StatMatiereManager />} />
-                <Route path="/admin/effectifs/classement" element={<ClassementManager />} />
-                <Route path="/admin/effectifs/stat-par-classe" element={<StatParClasseManager />} />
-                <Route path="/admin/mark-entry" element={<MarkEntryManager />} />
-                <Route path="/admin/mark-sheet" element={<MarkSheetManager />} />
+                <Route
+                  path="/admin/effectifs/stat-groupees"
+                  element={<StatGroupeesManager />}
+                />
+                <Route
+                  path="/admin/effectifs/synthese-globale"
+                  element={<SyntheseGlobaleManager />}
+                />
+                <Route
+                  path="/admin/effectifs/synthese-resultats"
+                  element={<SyntheseResultatsManager />}
+                />
+                <Route
+                  path="/admin/effectifs/stats-matiere"
+                  element={<StatMatiereManager />}
+                />
+                <Route
+                  path="/admin/effectifs/classement"
+                  element={<ClassementManager />}
+                />
+                <Route
+                  path="/admin/effectifs/stat-par-classe"
+                  element={<StatParClasseManager />}
+                />
+                <Route
+                  path="/admin/mark-entry"
+                  element={<MarkEntryManager />}
+                />
+                <Route
+                  path="/admin/mark-sheet"
+                  element={<MarkSheetManager />}
+                />
                 <Route path="/admin/fill-rate" element={<FillRateHub />} />
-                <Route path="/admin/fill-rate/global" element={<FillRateGlobalManager />} />
-                <Route path="/admin/fill-rate/class" element={<FillRateClassManager />} />
-                <Route path="/admin/discipline" element={<DisciplineManager />} />
+                <Route
+                  path="/admin/fill-rate/global"
+                  element={<FillRateGlobalManager />}
+                />
+                <Route
+                  path="/admin/fill-rate/class"
+                  element={<FillRateClassManager />}
+                />
+                <Route
+                  path="/admin/discipline"
+                  element={<DisciplineManager />}
+                />
                 <Route path="/admin/manage-accounts" element={<AccountHub />} />
                 <Route
                   path="/admin/manage-accounts/all"
@@ -151,10 +184,7 @@ function App() {
                   path="/admin/insolvables"
                   element={<InsolvableManager />}
                 />
-                <Route
-                  path="/admin/promotion"
-                  element={<PromotionManager />}
-                />
+                <Route path="/admin/promotion" element={<PromotionManager />} />
                 <Route
                   path="/admin/basculement"
                   element={<BasculementManager />}
