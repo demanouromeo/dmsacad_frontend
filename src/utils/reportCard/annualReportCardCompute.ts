@@ -802,6 +802,10 @@ export const buildAnnualReportCardDataApc = (
       language,
     );
 
+    const bilanTrimByTerm = termStudentMaps.map(
+      (m) => m.get(student.stud_id)?.moyenneTrim ?? 0,
+    ) as [number, number, number];
+
     return {
       studId: student.stud_id,
       matricule: student.matricule ?? "",
@@ -823,6 +827,7 @@ export const buildAnnualReportCardDataApc = (
       disciplineAnnual,
       decision,
       termIsClassified,
+      bilanTrimByTerm,
     };
   });
 

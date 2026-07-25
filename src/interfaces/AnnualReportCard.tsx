@@ -147,6 +147,10 @@ export interface AnnualStudentDataApc {
   decision: AnnualDecision;
   // See AnnualStudentData.termIsClassified above.
   termIsClassified: [boolean, boolean, boolean];
+  // Each term's own moyenneTrim (from the already-computed termsData) - the APC-annual counterpart
+  // of AnnualStudentData.termSummaries[i].bilanTrim, added for the PV "Procès Verbaux" module's
+  // TRAVAIL TRIM1-3 columns. Not used by the RC print itself.
+  bilanTrimByTerm: [number, number, number];
 }
 
 export interface AnnualReportCardDataApc {

@@ -2573,8 +2573,10 @@ export const scholarshipManagerTranslations = {
     refreshBtn: "Actualiser",
     emptyClasses: "Aucune classe pour cette section.",
     loadingMessage: "Calcul des moyennes annuelles en cours…",
+    progressClasse: (current: number, total: number, name: string) =>
+      `Classe ${current}/${total} : ${name}`,
     statBoursiers: (n: number) => `Boursiers : ${n}`,
-    statBoursieres: (n: number) => `Dont filles boursières : ${n}`,
+    statBoursieres: (n: number) => `Nb. filles boursières : ${n}`,
     exportBtn: "Export",
     fillesBoursieresBtn: "Filles boursières",
     pdfBoursiersLabel: "Liste des boursiers (PDF)",
@@ -2601,6 +2603,8 @@ export const scholarshipManagerTranslations = {
     refreshBtn: "Refresh",
     emptyClasses: "No classes for this section.",
     loadingMessage: "Computing annual averages…",
+    progressClasse: (current: number, total: number, name: string) =>
+      `Classe ${current}/${total}: ${name}`,
     statBoursiers: (n: number) => `Scholars: ${n}`,
     statBoursieres: (n: number) => `Of which female scholars: ${n}`,
     exportBtn: "Export",

@@ -21,7 +21,7 @@ import {
 } from "../../../utils/exportData";
 import type { Classe } from "../../../interfaces/Classe";
 import Loading from "../../sharedcomp/Loading";
-import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 
 interface ScholarshipRow {
@@ -59,6 +59,7 @@ const ScholarshipManager = () => {
   const [classes, setClasses] = useState<Classe[]>([]);
   const [allRows, setAllRows] = useState<ScholarshipRow[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [loadProgress, setLoadProgress] = useState<LoadingOverlayProgress | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [viewMode, setViewMode] = useState<"all" | "girls">("all");
 
@@ -69,6 +70,7 @@ const ScholarshipManager = () => {
     let cancelled = false;
     const load = async () => {
       setIsLoadingData(true);
+      setLoadProgress(null);
       const [classeList, apcLevelList] = await Promise.all([
         ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
         ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),
@@ -78,7 +80,15 @@ const ScholarshipManager = () => {
       const apcLevelMap = new Map(apcLevelList.map((entry) => [entry.level, entry.activated]));
 
       const rows: ScholarshipRow[] = [];
-      for (const classe of classeList) {
+      const total = classeList.length;
+      for (let i = 0; i < classeList.length; i++) {
+        const classe = classeList[i];
+        setLoadProgress({
+          current: i,
+          total,
+          label: t.loadingMessage,
+          overall: t.progressClasse(i + 1, total, classe.classe_name),
+        });
         const isApc = apcLevelMap.get(classe.level) === true;
         const params = {
           accessToken,
@@ -112,6 +122,7 @@ const ScholarshipManager = () => {
       if (!cancelled) {
         setAllRows(rows);
         setIsLoadingData(false);
+        setLoadProgress(null);
       }
     };
     load();
@@ -196,7 +207,7 @@ const ScholarshipManager = () => {
 
   return (
     <div className="page-shell">
-      {isLoadingData && <LoadingOverlay />}
+      {isLoadingData && <LoadingOverlay progress={loadProgress} />}
       <div className="page-header">
         <div>
           <h1 className="page-title">{t.title}</h1>

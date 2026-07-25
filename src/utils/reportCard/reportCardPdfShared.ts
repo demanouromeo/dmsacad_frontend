@@ -162,7 +162,9 @@ export const fitImageInBox = (
 // reference mockups (promu_en.png, redouble.png, etc.) are throwaway design references, not
 // bundled assets, same "no icon asset, draw it" precedent as drawDefaultPersonIcon above.
 const DECISION_HEADER_FR = "DÉCISION DU CONSEIL DE FIN D'ANNÉE";
-const EXCLUSION_OPTIONS: { code: number; label: string }[] = [
+// Exported so the PV (Procès Verbaux) module's formatPvDecisionText can reuse the exact same
+// reason-label wording rather than a second, divergent copy.
+export const EXCLUSION_OPTIONS: { code: number; label: string }[] = [
   { code: 1, label: "ÂGE" },
   { code: 4, label: "Ne peut trippler" },
   { code: 2, label: "Conduite" },

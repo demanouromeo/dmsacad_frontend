@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { BarChart3, RefreshCw } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { exportTranslations } from "../../../i18n/translations";
@@ -16,6 +16,7 @@ import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import EffectifsCharts from "./EffectifsCharts";
 
 // Both sections are always fetched regardless of the admin's currently selected section (see
 // useAuth().section elsewhere in this app) - this report is a whole-school statement, not scoped
@@ -88,6 +89,7 @@ const EffectifsManager = () => {
   const [sections, setSections] = useState<SectionEffectif[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
 
   // Guards against StrictMode's double-invoked effect (or a stale in-flight "Actualiser" click)
   // applying an older request's result after a newer one has already resolved - same problem
@@ -176,7 +178,18 @@ const EffectifsManager = () => {
           <RefreshCw className="w-4 h-4" />
           Actualiser
         </button>
+        <button
+          type="button"
+          className={`btn btn-sm gap-2 ${showCharts ? "btn-primary" : "btn-outline"}`}
+          disabled={isLoading || sections.length === 0}
+          onClick={() => setShowCharts((v) => !v)}
+        >
+          <BarChart3 className="w-4 h-4" />
+          Visualisations
+        </button>
       </div>
+
+      {!isLoading && showCharts && sections.length > 0 && <EffectifsCharts sections={sections} />}
 
       {isLoading ? (
         <div className="surface-card flex justify-center py-20">
