@@ -19,7 +19,8 @@
       "Bash(npm ls *)",
       "Bash(node test2.js)",
       "Bash(/c/xampp/php/php.exe artisan tinker '--execute= *)",
-      "Bash(node probe_parent_pdf.mjs)"
+      "Bash(node probe_parent_pdf.mjs)",
+      "Bash(node probe_statmatiere_csv.mjs)"
     ],
     "additionalDirectories": [
       "c:\\xampp\\htdocs\\dmsacad_backend_dev\\routes"

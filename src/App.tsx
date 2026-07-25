@@ -21,6 +21,8 @@ import SchoolInfoManager from "./components/admin/schoolinfo/SchoolInfoManager";
 import EffectifsHub from "./components/admin/effectifs/EffectifsHub";
 import EffectifsManager from "./components/admin/effectifs/EffectifsManager";
 import PvManager from "./components/admin/effectifs/PvManager";
+import StatGroupeesManager from "./components/admin/effectifs/StatGroupeesManager";
+import StatMatiereManager from "./components/admin/effectifs/StatMatiereManager";
 import MarkEntryManager from "./components/admin/marks/MarkEntryManager";
 import MarkSheetManager from "./components/admin/marksheet/MarkSheetManager";
 import FillRateHub from "./components/admin/fillrate/FillRateHub";
@@ -103,6 +105,8 @@ function App() {
                 <Route path="/admin/effectifs" element={<EffectifsHub />} />
                 <Route path="/admin/effectifs/par-classe" element={<EffectifsManager />} />
                 <Route path="/admin/effectifs/pv" element={<PvManager />} />
+                <Route path="/admin/effectifs/stat-groupees" element={<StatGroupeesManager />} />
+                <Route path="/admin/effectifs/stats-matiere" element={<StatMatiereManager />} />
                 <Route path="/admin/mark-entry" element={<MarkEntryManager />} />
                 <Route path="/admin/mark-sheet" element={<MarkSheetManager />} />
                 <Route path="/admin/fill-rate" element={<FillRateHub />} />
