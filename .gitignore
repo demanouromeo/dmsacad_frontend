@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# SAMPLE DOCUMENTS
+STAT/
+SAMPLE_RC/
+SAMPLE_PV/
