@@ -5,23 +5,7 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { adminMenuTranslations, dashboardTranslations } from "../../i18n/translations";
 import AdminMenuGrid from "./AdminMenuGrid";
 import AdminMenuCard from "./AdminMenuCard";
-import iconDiscipline from "../../assets/menu/Discipline.svg";
-import iconMarksEntry from "../../assets/menu/Saisie des notes.svg";
-
-// SG/CENSEUR/TEACHER have no AdminMenuGrid (ADMIN-only, see below) - this is their only navigable
-// entry point into the one or two modules RequireRole now lets them reach (see App.tsx: /admin/
-// discipline allows ADMIN+SG, /admin/mark-entry allows ADMIN+SG+CENSEUR+TEACHER). Each screen does
-// its own further filtering (DisciplineManager by Classe.sg_id, MarkEntryManager by course
-// assignment) - this grid only decides which cards a role sees at all, reusing AdminMenuGrid's own
-// labels/icons rather than duplicating a translation dictionary for two entries.
-const NON_ADMIN_MENU_ITEMS: Record<string, { key: "discipline" | "marksEntry"; icon: string; to: string }[]> = {
-  SG: [
-    { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
-    { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
-  ],
-  TEACHER: [{ key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" }],
-  CENSEUR: [{ key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" }],
-};
+import { NON_ADMIN_MENU_ITEMS } from "./menuItems";
 
 const Dashboard = () => {
   const { authPayload, logout } = useAuth();

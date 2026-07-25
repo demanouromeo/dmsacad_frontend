@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import Loading from "../sharedcomp/Loading";
 import TopBanner from "../layout/TopBanner";
+import MagicAssistant from "../assistant/MagicAssistant";
 
 const RequireAuth = () => {
   const { accessToken, isRestoring } = useAuth();
@@ -24,6 +25,7 @@ const RequireAuth = () => {
       <div className="pt-16">
         <Outlet />
       </div>
+      <MagicAssistant />
     </>
   );
 };

@@ -2956,3 +2956,28 @@ export const parentPortalTranslations = {
     loadingLabel: "Loading...",
   },
 };
+
+export const magicAssistantTranslations = {
+  fr: {
+    buttonLabel: "Assistant",
+    panelTitle: "Assistant",
+    panelSubtitle: "Aide sur l'utilisation de l'application",
+    closeBtn: "Fermer",
+    welcomeMessage: "Bonjour ! Je peux vous aider à utiliser l'application, trouver une fonctionnalité ou résoudre un problème. Que souhaitez-vous savoir ?",
+    inputPlaceholder: "Posez votre question...",
+    sendBtn: "Envoyer",
+    suggestionsTitle: "Questions fréquentes :",
+    fallbackReply: "Je n'ai pas de réponse précise à cela - je peux seulement vous aider sur l'utilisation de cette application (navigation, fonctionnalités, accès selon votre rôle, résolution de problèmes courants). Essayez de reformuler, ou choisissez une des suggestions ci-dessous.",
+  },
+  en: {
+    buttonLabel: "Assistant",
+    panelTitle: "Assistant",
+    panelSubtitle: "Help using the app",
+    closeBtn: "Close",
+    welcomeMessage: "Hi! I can help you use the app, find a feature, or solve a problem. What would you like to know?",
+    inputPlaceholder: "Ask your question...",
+    sendBtn: "Send",
+    suggestionsTitle: "Frequently asked:",
+    fallbackReply: "I don't have a precise answer for that - I can only help with using this app (navigation, features, role-based access, common troubleshooting). Try rephrasing, or pick one of the suggestions below.",
+  },
+};
