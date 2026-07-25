@@ -14,6 +14,7 @@ import type { Classe } from "../../../interfaces/Classe";
 import type { Student } from "../../../interfaces/Student";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import StudentPhotoCell from "./StudentPhotoCell";
@@ -555,6 +556,7 @@ const StudentManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

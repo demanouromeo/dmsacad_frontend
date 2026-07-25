@@ -9,6 +9,7 @@ import { MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH } from "../../../utils/textValidatio
 import { isDuplicateNameError } from "../../../utils/apiErrors";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 // "Manage credential" - self-service login/password change, reachable by ANY authenticated role
 // (see App.tsx: this route sits inside RequireAuth but outside RequireRole). Old password is
@@ -115,7 +116,10 @@ const SelfCredentialsManager = () => {
   return (
     <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="page-title mb-6 text-center">{t.title}</h1>
+      <div className="page-header w-full max-w-sm">
+        <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
+      </div>
 
       {isLoadingAccount ? (
         <div className="surface-card w-full max-w-sm flex justify-center py-16">

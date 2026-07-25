@@ -34,6 +34,7 @@ import {
 } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 const TERMS = [1, 2, 3];
 
@@ -300,6 +301,7 @@ const ClassementManager = () => {
           <h1 className="page-title">Classement</h1>
           <p className="page-subtitle">Année Scolaire: {schoolYear}</p>
         </div>
+        <CloseButton />
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">

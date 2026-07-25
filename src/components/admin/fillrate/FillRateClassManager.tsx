@@ -12,6 +12,7 @@ import { mergeToUnifiedCells, type FillRateCell } from "../../../utils/fillRateA
 import { buildTimestampedFilename, exportRowsToPdf } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import Loading from "../../sharedcomp/Loading";
+import CloseButton from "../../sharedcomp/CloseButton";
 import FillRateChartDialog from "../marks/FillRateChartDialog";
 
 const TERMS = [1, 2, 3];
@@ -135,6 +136,7 @@ const FillRateClassManager = () => {
     <div className="page-shell">
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

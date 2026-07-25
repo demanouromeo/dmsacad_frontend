@@ -30,6 +30,7 @@ import {
 } from "../../../utils/exportData";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 const TERMS = [1, 2, 3];
 
@@ -246,6 +247,7 @@ const StatParClasseManager = () => {
           <h1 className="page-title">Statistiques par classe</h1>
           <p className="page-subtitle">Année Scolaire: {schoolYear}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

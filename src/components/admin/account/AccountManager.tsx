@@ -12,6 +12,7 @@ import { AccountReader } from "../../../dbmanger/AccountReader";
 import type { ManagedAccount } from "../../../interfaces/ManagedAccount";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import { MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH } from "../../../utils/textValidation";
 import { isDuplicateNameError } from "../../../utils/apiErrors";
@@ -174,6 +175,7 @@ const AccountManager = () => {
       {isSaving && <LoadingOverlay />}
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
       </div>
 
       {isLoading ? (

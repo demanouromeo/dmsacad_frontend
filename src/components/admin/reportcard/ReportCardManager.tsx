@@ -31,6 +31,7 @@ import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, {
   type LoadingOverlayProgress,
 } from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 
 const TERMS = [1, 2, 3];
@@ -747,6 +748,7 @@ const ReportCardManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

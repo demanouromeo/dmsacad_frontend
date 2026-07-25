@@ -25,6 +25,7 @@ import type { ClassifiedParam } from "../../../interfaces/ClassifiedParam";
 import type { AnnualDecision } from "../../../interfaces/AnnualReportCard";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import iconPromotionSettings from "../../../assets/compo/promotion/promo_settings.svg";
 
@@ -361,6 +362,7 @@ const PromotionManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

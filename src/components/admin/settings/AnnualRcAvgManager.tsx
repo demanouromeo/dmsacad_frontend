@@ -8,6 +8,7 @@ import { annualRcAvgManagerTranslations } from "../../../i18n/translations";
 import { SchoolInfoReader } from "../../../dbmanger/SchoolInfoReader";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 // "Paramètres du bulletin annuel" - how a student's annual average is derived from their 3 term
 // averages, plus affichagePromotion (whether the annual report card shows the student's next-year
@@ -65,7 +66,10 @@ const AnnualRcAvgManager = () => {
   return (
     <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="page-title mb-6 text-center">{t.title}</h1>
+      <div className="page-header w-full max-w-2xl">
+        <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
+      </div>
 
       {isLoading ? (
         <div className="surface-card w-full max-w-2xl flex justify-center py-16">
@@ -140,7 +144,7 @@ const AnnualRcAvgManager = () => {
               type="button"
               className="btn btn-ghost gap-2"
               disabled={isSaving}
-              onClick={() => navigate("/admin/settings")}
+              onClick={() => navigate(-1)}
             >
               <X className="w-4 h-4" />
               {t.closeBtn}

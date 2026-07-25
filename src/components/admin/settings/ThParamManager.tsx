@@ -8,6 +8,7 @@ import { thParamManagerTranslations } from "../../../i18n/translations";
 import { ThParamReader } from "../../../dbmanger/ThParamReader";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 const DEFAULT_LB = 14;
 const DEFAULT_UB = 20;
@@ -87,7 +88,10 @@ const ThParamManager = () => {
   return (
     <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="page-title mb-6 text-center">{t.title}</h1>
+      <div className="page-header w-full max-w-2xl">
+        <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
+      </div>
 
       {isLoading ? (
         <div className="surface-card w-full max-w-2xl flex justify-center py-16">
@@ -204,7 +208,7 @@ const ThParamManager = () => {
               type="button"
               className="btn btn-ghost gap-2"
               disabled={isSaving}
-              onClick={() => navigate("/admin/settings")}
+              onClick={() => navigate(-1)}
             >
               <X className="w-4 h-4" />
               {t.closeBtn}

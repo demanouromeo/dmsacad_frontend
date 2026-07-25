@@ -19,6 +19,7 @@ import { sanitizeSchoolInfoText } from "../../../utils/textValidation";
 import type { SchoolHeaderConfig } from "../../../interfaces/SchoolHeaderConfig";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 const todayIsoDate = (): string => new Date().toISOString().slice(0, 10);
 
@@ -241,10 +242,13 @@ const SchoolInfoManager = () => {
     <div className="page-shell">
       {isSaving && <LoadingOverlay />}
       <div className="max-w-3xl mx-auto">
-        <h1 className="page-title mb-1 text-center">{t.title}</h1>
-        <p className="page-subtitle mb-6 text-center">
-          {t.requiredHint}
-        </p>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title mb-1">{t.title}</h1>
+            <p className="page-subtitle">{t.requiredHint}</p>
+          </div>
+          <CloseButton />
+        </div>
 
         {isLoading ? (
           <div className="surface-card flex justify-center py-20">

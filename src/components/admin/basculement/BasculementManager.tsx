@@ -27,6 +27,7 @@ import { exportProvisionalListToPdf, type ProvisionalListBlock } from "../../../
 import type { Classe } from "../../../interfaces/Classe";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import iconInitBasculement from "../../../assets/compo/basculement/init_basculement.svg";
 
@@ -683,6 +684,7 @@ const BasculementManager = () => {
           >
             <HelpCircle className="w-4 h-4" />
           </button>
+          <CloseButton />
         </div>
       </div>
 

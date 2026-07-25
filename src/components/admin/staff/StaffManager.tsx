@@ -17,6 +17,7 @@ import StaffPhotoDialog from "./StaffPhotoDialog";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import CloseButton from "../../sharedcomp/CloseButton";
 import {
   MIN_STAFF_NAME_LENGTH,
   MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH,
@@ -529,6 +530,7 @@ const StaffManager = () => {
             <Upload className="w-4 h-4" />
             {t.importBtn}
           </button>
+          <CloseButton />
         </div>
       </div>
 

@@ -22,6 +22,7 @@ import {
 import type { Classe } from "../../../interfaces/Classe";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 
 interface ScholarshipRow {
@@ -213,15 +214,18 @@ const ScholarshipManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm gap-2"
-          disabled={isLoadingData}
-          onClick={() => setReloadToken((n) => n + 1)}
-        >
-          <RefreshCw className="w-4 h-4" />
-          {t.refreshBtn}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm gap-2"
+            disabled={isLoadingData}
+            onClick={() => setReloadToken((n) => n + 1)}
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t.refreshBtn}
+          </button>
+          <CloseButton />
+        </div>
       </div>
 
       {nothingLoadedYet ? (

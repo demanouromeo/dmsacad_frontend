@@ -17,6 +17,7 @@ import type { ClasseOfSubject } from "../../../interfaces/ClasseOfSubject";
 import type { CourseAssignment } from "../../../interfaces/CourseAssignment";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
@@ -496,6 +497,7 @@ const CourseAssignmentManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section, schoolYear)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoading ? (

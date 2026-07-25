@@ -26,6 +26,7 @@ import {
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import Loading from "../../sharedcomp/Loading";
+import CloseButton from "../../sharedcomp/CloseButton";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import SearchInput from "../../sharedcomp/SearchInput";
 import FillRateChartDialog from "../marks/FillRateChartDialog";
@@ -221,6 +222,7 @@ const FillRateGlobalManager = () => {
     <div className="page-shell-wide">
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
       </div>
 
       {isLoading ? (

@@ -14,6 +14,7 @@ import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import CloseButton from "../../sharedcomp/CloseButton";
 import {
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
   sanitizeFiliereOrSpecialityName,
@@ -393,6 +394,7 @@ const SubjectManager = () => {
             {t.importBtn}
           </button>
         </div>
+        <CloseButton />
       </div>
 
       {isLoading ? (

@@ -16,6 +16,7 @@ import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import CloseButton from "../../sharedcomp/CloseButton";
 import EffectifsCharts from "./EffectifsCharts";
 
 // Both sections are always fetched regardless of the admin's currently selected section (see
@@ -159,6 +160,7 @@ const EffectifsManager = () => {
           <h1 className="page-title">Effectifs par classe</h1>
           <p className="page-subtitle">Année Scolaire: {schoolYear}</p>
         </div>
+        <CloseButton />
       </div>
 
       <div className="surface-card p-4 md:p-6 mb-6 flex flex-wrap gap-3 items-center">

@@ -13,6 +13,7 @@ import type { Subject } from "../../../interfaces/Subject";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import { stripHtmlTags } from "../../../utils/apiErrors";
 import {
   exportRowsToPdf,
@@ -368,6 +369,7 @@ const SubjectClasseManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

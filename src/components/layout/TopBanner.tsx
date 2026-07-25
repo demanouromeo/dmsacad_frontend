@@ -111,11 +111,15 @@ const TopBanner = () => {
       <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-4">
         <div className="flex-1 flex items-center gap-3 min-w-0">
           {logoUrl && (
-            <img
-              src={logoUrl}
-              alt={t.logoAlt}
-              className="h-10 w-10 rounded-xl object-contain shrink-0 ring-1 ring-base-content/10"
-            />
+            <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
+              <Link to="/dashboard" className="shrink-0">
+                <img
+                  src={logoUrl}
+                  alt={t.logoAlt}
+                  className="h-10 w-10 rounded-xl object-contain ring-1 ring-base-content/10 hover:ring-primary/60 transition-all cursor-pointer"
+                />
+              </Link>
+            </div>
           )}
           <div className="flex items-center gap-1 shrink-0">
             {canGoBack && (

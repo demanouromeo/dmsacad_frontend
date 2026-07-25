@@ -29,6 +29,7 @@ import type { Student } from "../../../interfaces/Student";
 import type { Mark } from "../../../interfaces/Mark";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import { sanitizeMarkInput, isMarkInRange, formatMarkValue } from "../../../utils/textValidation";
 import {
@@ -865,6 +866,7 @@ const MarkEntryManager = () => {
       {(isSaving || isExportingAll || isExportingReport) && <LoadingOverlay />}
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (

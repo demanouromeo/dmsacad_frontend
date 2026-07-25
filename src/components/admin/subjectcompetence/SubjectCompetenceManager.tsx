@@ -14,6 +14,7 @@ import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
+import CloseButton from "../../sharedcomp/CloseButton";
 import { sanitizeSubjectTitle } from "../../../utils/subjectImport";
 import { MAX_COMPETENCE_TEXT_LENGTH } from "../../../utils/textValidation";
 
@@ -372,6 +373,7 @@ const SubjectCompetenceManager = () => {
             <h1 className="page-title">{t.title}</h1>
             <p className="page-subtitle">{t.sectionHint(section)}</p>
           </div>
+          <CloseButton />
         </div>
 
         {isLoadingClasses ? (

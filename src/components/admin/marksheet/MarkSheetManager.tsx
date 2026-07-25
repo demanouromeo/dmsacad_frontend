@@ -9,6 +9,7 @@ import { StudentReader } from "../../../dbmanger/StudentReader";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { exportMarkSheetsToPdf, type MarkSheetClasse } from "../../../utils/exportMarkSheets";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 // "Fiches de report de notes" - a one-button screen, not a CRUD/list manager like the rest of
 // /admin/*. There's nothing to review or edit on screen: the output is a blank paper form per
@@ -75,7 +76,10 @@ const MarkSheetManager = () => {
   return (
     <div className="page-shell">
       {isGenerating && <LoadingOverlay />}
-      <h1 className="page-title mb-4">{t.title}</h1>
+      <div className="page-header">
+        <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
+      </div>
       <div className="surface-card p-6 md:p-8 max-w-2xl">
         <p className="text-base-content/70 mb-6">{t.description}</p>
         <button

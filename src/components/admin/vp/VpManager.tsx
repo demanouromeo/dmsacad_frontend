@@ -12,6 +12,7 @@ import type { Classe } from "../../../interfaces/Classe";
 import type { VpClasse } from "../../../interfaces/VpClasse";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import {
   buildTimestampedFilename,
@@ -442,6 +443,7 @@ const VpManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section, schoolYear)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoading ? (

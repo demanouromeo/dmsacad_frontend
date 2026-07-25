@@ -8,6 +8,7 @@ import { classifiedParamManagerTranslations } from "../../../i18n/translations";
 import { ClassifiedParamReader } from "../../../dbmanger/ClassifiedParamReader";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 const DEFAULT_NB_MATIERES_RATE = 40;
 const MIN_RATE = 1;
@@ -73,7 +74,10 @@ const ClassifiedParamManager = () => {
   return (
     <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <h1 className="page-title mb-6 text-center">{t.title}</h1>
+      <div className="page-header w-full max-w-2xl">
+        <h1 className="page-title">{t.title}</h1>
+        <CloseButton />
+      </div>
 
       {isLoading ? (
         <div className="surface-card w-full max-w-2xl flex justify-center py-16">
@@ -143,7 +147,7 @@ const ClassifiedParamManager = () => {
               type="button"
               className="btn btn-ghost gap-2"
               disabled={isSaving}
-              onClick={() => navigate("/admin/settings")}
+              onClick={() => navigate(-1)}
             >
               <X className="w-4 h-4" />
               {t.closeBtn}

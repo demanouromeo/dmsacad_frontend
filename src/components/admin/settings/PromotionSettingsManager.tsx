@@ -9,6 +9,7 @@ import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import type { Classe } from "../../../interfaces/Classe";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import CloseButton from "../../sharedcomp/CloseButton";
 
 const DEFAULT_TOTAL_ABS_TH = 40;
 const DEFAULT_TOTAL_EXCLUSION_TH = 8;
@@ -115,11 +116,12 @@ const PromotionSettingsManager = () => {
   return (
     <div className="page-shell flex flex-col items-center">
       {isSaving && <LoadingOverlay />}
-      <div className="page-header">
+      <div className="page-header w-full max-w-3xl">
         <div>
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
+        <CloseButton />
       </div>
 
       {isLoadingClasses ? (
@@ -238,7 +240,7 @@ const PromotionSettingsManager = () => {
                   type="button"
                   className="btn btn-ghost gap-2"
                   disabled={isSaving}
-                  onClick={() => navigate("/admin/settings")}
+                  onClick={() => navigate(-1)}
                 >
                   <X className="w-4 h-4" />
                   {t.closeBtn}

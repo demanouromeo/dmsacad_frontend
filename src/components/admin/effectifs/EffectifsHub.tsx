@@ -1,16 +1,12 @@
 import AdminMenuCard from "../../dashboard/AdminMenuCard";
-import iconEffectifs from "../../../assets/menu/Bilan.svg";
-import iconPv from "../../../assets/menu/Imprimer les bulletins.svg";
-import iconStatGroupees from "../../../assets/menu/Taux_de_remplissage.svg";
-import iconSyntheseGlobale from "../../../assets/menu/Livret Scolaires.svg";
-// Same fallback precedent as iconClassement below - no dedicated icon for this module either.
-import iconSyntheseResultats from "../../../assets/menu/Bilan.svg";
-import iconStatMatiere from "../../../assets/menu/Matières.svg";
-// No dedicated ranking/trophy icon exists under src/assets/menu - falls back to Bilan.svg (reused
-// a second time), same precedent already established for this hub's own landing tile.
-import iconClassement from "../../../assets/menu/Bilan.svg";
-// Same fallback precedent as iconClassement above - no dedicated "class list" icon exists either.
-import iconStatParClasse from "../../../assets/menu/Bilan.svg";
+import iconEffectifs from "../../../assets/compo/stat/effectifs.svg";
+import iconPv from "../../../assets/compo/stat/pv.svg";
+import iconStatGroupees from "../../../assets/compo/stat/stat_groupees.svg";
+import iconSyntheseGlobale from "../../../assets/compo/stat/synthese_globale.svg";
+import iconSyntheseResultats from "../../../assets/compo/stat/synthese_resultats.svg";
+import iconStatMatiere from "../../../assets/compo/stat/stat_par_matiere.svg";
+import iconClassement from "../../../assets/compo/stat/champion.svg";
+import iconStatParClasse from "../../../assets/compo/stat/stat_par_classe.svg";
 
 // Landing page for the "Bilan" dashboard card - its 8 sub-modules: "Effectifs par classe" (the
 // existing whole-school headcount report, EffectifsManager), "Procès Verbaux" (PvManager),
@@ -19,7 +15,7 @@ import iconStatParClasse from "../../../assets/menu/Bilan.svg";
 // (StatMatiereManager), "Classement" (ClassementManager) and "Statistiques par classe"
 // (StatParClasseManager). Same FillRateHub/SettingsHub pattern. Hardcoded French, matching
 // EffectifsManager's own "French only" precedent for this module - no per-file translation
-// dictionary here either.
+// dictionary here either. Each tile's own dedicated icon lives under src/assets/compo/stat/.
 const EffectifsHub = () => {
   const items = [
     {

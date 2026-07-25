@@ -15,6 +15,7 @@ import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
+import CloseButton from "../../sharedcomp/CloseButton";
 import {
   MAX_SPECIALITY_DESCRIPTION_LENGTH,
   MIN_FILIERE_OR_SPECIALITY_NAME_LENGTH,
@@ -304,13 +305,16 @@ const SpecialityManager = () => {
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.sectionHint(section)}</p>
         </div>
-        <ExportButtons
-          onExportExcel={handleExportExcel}
-          onExportPdf={handleExportPdf}
-          excelLabel={et.excelBtn}
-          pdfLabel={et.pdfBtn}
-          disabled={isLoading || specialities.length === 0}
-        />
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            onExportExcel={handleExportExcel}
+            onExportPdf={handleExportPdf}
+            excelLabel={et.excelBtn}
+            pdfLabel={et.pdfBtn}
+            disabled={isLoading || specialities.length === 0}
+          />
+          <CloseButton />
+        </div>
       </div>
 
       {isLoading ? (
