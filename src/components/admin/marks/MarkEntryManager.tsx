@@ -21,6 +21,7 @@ import { markEntryManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import { StudentReader } from "../../../dbmanger/StudentReader";
+import { StaffReader } from "../../../dbmanger/StaffReader";
 import { MarkReader, type MarkInput } from "../../../dbmanger/MarkReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
@@ -79,7 +80,7 @@ interface MarkEntry {
 // (keyed only by (sy_id, seq), no classe/subject column) - see the `effectiveLockSeq` comment below
 // for how APC and non-APC classes share that same `seq` axis.
 const MarkEntryManager = () => {
-  const { connection, schoolYear, section, accessToken } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
   const showToast = useToast();
   const confirm = useConfirm();
   const [language] = useLanguage();
@@ -117,6 +118,19 @@ const MarkEntryManager = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  // SG/TEACHER only ever see the classes/subjects they've actually been assigned via Course
+  // assignment (StaffController::AllAttributionsOfSection, filtered client-side to this staff
+  // member's own staff_id - the JWT's user_id for a staff-type account, see
+  // AccountController::connect). ADMIN and CENSEUR keep full, unfiltered access - CENSEUR is only
+  // restricted from locking/unlocking a sequence (see canLockSequence below), not from which
+  // classes/subjects it can see.
+  const isRestrictedToAssignments =
+    authPayload?.role === "SG" || authPayload?.role === "TEACHER";
+  const canLockSequence = authPayload?.role === "ADMIN";
+  const [assignedSubjectIdsByClasse, setAssignedSubjectIdsByClasse] = useState<
+    Map<number, Set<number>>
+  >(new Map());
+
   // Keyed by stud_id so Up/Down can jump straight to the neighboring row's mark input without a
   // mouse click - the only way to move between marks before this. Entries are added/removed by the
   // input's own ref callback as filteredRoster (search) changes which rows are actually mounted.
@@ -149,24 +163,42 @@ const MarkEntryManager = () => {
   // table that has nothing to save against.
   const apcHasNoCompetence = isApc && !isLoadingCompetences && competences.length === 0;
 
-  // Classes + APC levels + locks - reloaded whenever connection/schoolYear/section changes.
+  // Classes + APC levels + locks - reloaded whenever connection/schoolYear/section changes. For
+  // SG/TEACHER, also fetches every attribution of the section and keeps only this staff member's
+  // own rows, to (a) narrow the classe list to classes they're actually assigned a course in and
+  // (b) build the per-classe assigned-subject-ids map the next effect filters `subjects` with.
   useEffect(() => {
     const load = async () => {
       setIsLoadingClasses(true);
-      const [classeList, apcLevelList, lockList] = await Promise.all([
+      const [classeList, apcLevelList, lockList, attributions] = await Promise.all([
         ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
         ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),
         MarkReader.fetchLocksOfYear(accessToken, connection, schoolYear),
+        isRestrictedToAssignments
+          ? StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section)
+          : Promise.resolve([]),
       ]);
+      const ownAttributions = attributions.filter((a) => a.staff_id === authPayload?.user_id);
+      const subjectIdsByClasse = new Map<number, Set<number>>();
+      ownAttributions.forEach((a) => {
+        if (!subjectIdsByClasse.has(a.classe_id)) {
+          subjectIdsByClasse.set(a.classe_id, new Set());
+        }
+        subjectIdsByClasse.get(a.classe_id)?.add(a.subject_id);
+      });
+      const visibleClasses = isRestrictedToAssignments
+        ? classeList.filter((c) => subjectIdsByClasse.has(c.classe_id))
+        : classeList;
       const levelMap = new Map(apcLevelList.map((entry) => [entry.level, entry.activated]));
-      setClasses(classeList);
+      setClasses(visibleClasses);
+      setAssignedSubjectIdsByClasse(subjectIdsByClasse);
       setApcLevels(levelMap);
       setLocks(new Map(lockList.map((l) => [l.seq, l.is_blocked === 1])));
       setSelectedClasseId((prev) => {
-        if (prev !== null && classeList.some((c) => c.classe_id === prev)) {
+        if (prev !== null && visibleClasses.some((c) => c.classe_id === prev)) {
           return prev;
         }
-        return classeList.length > 0 ? classeList[0].classe_id : null;
+        return visibleClasses.length > 0 ? visibleClasses[0].classe_id : null;
       });
       setIsLoadingClasses(false);
     };
@@ -175,7 +207,8 @@ const MarkEntryManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
-  // Subjects + roster of the selected classe.
+  // Subjects + roster of the selected classe. For SG/TEACHER, subjects are further narrowed to the
+  // ones assigned to them for this specific classe (assignedSubjectIdsByClasse, built above).
   useEffect(() => {
     const load = async () => {
       if (selectedClasseId === null) {
@@ -196,13 +229,18 @@ const MarkEntryManager = () => {
         ),
         StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, selectedClasseId),
       ]);
-      setSubjects(subjectList);
+      const visibleSubjects = isRestrictedToAssignments
+        ? subjectList.filter((s) =>
+            assignedSubjectIdsByClasse.get(selectedClasseId)?.has(s.subject_id),
+          )
+        : subjectList;
+      setSubjects(visibleSubjects);
       setRoster(rosterList);
       setSelectedSubjectId((prev) => {
-        if (prev !== null && subjectList.some((s) => s.subject_id === prev)) {
+        if (prev !== null && visibleSubjects.some((s) => s.subject_id === prev)) {
           return prev;
         }
-        return subjectList.length > 0 ? subjectList[0].subject_id : null;
+        return visibleSubjects.length > 0 ? visibleSubjects[0].subject_id : null;
       });
       setIsLoadingSubjects(false);
       setIsLoadingRoster(false);
@@ -910,14 +948,16 @@ const MarkEntryManager = () => {
                 </select>
               </div>
 
-              <button
-                type="button"
-                className={`btn btn-sm gap-2 ${isLocked ? "btn-error" : "btn-neutral"}`}
-                onClick={handleToggleLock}
-              >
-                {isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                {isLocked ? t.unlockBtn : t.lockBtn}
-              </button>
+              {canLockSequence && (
+                <button
+                  type="button"
+                  className={`btn btn-sm gap-2 ${isLocked ? "btn-error" : "btn-neutral"}`}
+                  onClick={handleToggleLock}
+                >
+                  {isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                  {isLocked ? t.unlockBtn : t.lockBtn}
+                </button>
+              )}
 
               <div className="flex items-center gap-2">
                 <label className="font-medium">{t.termLabel}</label>

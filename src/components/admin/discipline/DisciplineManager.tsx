@@ -76,7 +76,7 @@ const displayCount = (value: number | undefined | null): string => (value ? Stri
 // (StudentController::allStudentsOfClasseForAbs/getDisciplineOfClasse/saveOrUpdateABS) - no backend
 // changes were needed.
 const DisciplineManager = () => {
-  const { connection, schoolYear, section, accessToken } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
   const showToast = useToast();
   const [language] = useLanguage();
   const t = disciplineManagerTranslations[language];
@@ -151,12 +151,19 @@ const DisciplineManager = () => {
     const load = async () => {
       setIsLoadingClasses(true);
       const classeList = await ClasseReader.fetchClasses(accessToken, connection, schoolYear, section);
-      setClasses(classeList);
+      // SG can only manage discipline for the classes they're assigned to as SG (Classe.sg_id,
+      // matched against the JWT's user_id - see backend AccountController::connect, which sets
+      // user_id to the staff table's id for staff-type accounts). ADMIN sees every classe.
+      const visibleClasses =
+        authPayload?.role === "SG"
+          ? classeList.filter((c) => c.sg_id === authPayload.user_id)
+          : classeList;
+      setClasses(visibleClasses);
       setSelectedClasseId((prev) => {
-        if (prev !== null && classeList.some((c) => c.classe_id === prev)) {
+        if (prev !== null && visibleClasses.some((c) => c.classe_id === prev)) {
           return prev;
         }
-        return classeList.length > 0 ? classeList[0].classe_id : null;
+        return visibleClasses.length > 0 ? visibleClasses[0].classe_id : null;
       });
       setIsLoadingClasses(false);
     };

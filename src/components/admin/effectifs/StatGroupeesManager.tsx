@@ -27,6 +27,7 @@ import {
   exportRowsToCsv,
   type ExportColumn,
 } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
@@ -92,64 +93,67 @@ const StatGroupeesManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
+  // Bounded concurrency (see src/utils/concurrency.ts) - each classe's fetch is independent and
+  // rows are only assembled into the final PDF/CSV after every classe resolves, so overlapping
+  // DEFAULT_REPORT_CONCURRENCY fetches is a pure wall-clock win over the previous one-at-a-time loop.
   const buildTermRows = async (): Promise<StatGroupeesRow[]> => {
-    const rows: StatGroupeesRow[] = [];
     const total = classes.length;
-    for (let i = 0; i < classes.length; i++) {
-      const classe = classes[i];
-      setPrintProgress({
-        current: i,
-        total,
-        label: "Chargement des données",
-        overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
-      });
-      const isApc = apcLevels.get(classe.level) === true;
-      const data = await loadReportCardDataForClasse({
-        accessToken,
-        connection,
-        schoolYear,
-        section,
-        language: "fr",
-        classeId: classe.classe_id,
-        term: selectedTerm,
-        isApc,
-      });
-      rows.push(
-        buildStatGroupeesRow(
+    return mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => {
+        const isApc = apcLevels.get(classe.level) === true;
+        const data = await loadReportCardDataForClasse({
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          language: "fr",
+          classeId: classe.classe_id,
+          term: selectedTerm,
+          isApc,
+        });
+        return buildStatGroupeesRow(
           classe.classe_name,
           data.students.map((s) => ({ sexe: s.sexe, moy: s.moyenneTrim })),
           data.classeStats,
-        ),
-      );
-    }
-    return rows;
+        );
+      },
+      (classe, _index, completed) =>
+        setPrintProgress({
+          current: completed,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${completed}/${total}: ${classe.classe_name}`,
+        }),
+    );
   };
 
   const buildAnnualRows = async (): Promise<StatGroupeesRow[]> => {
-    const rows: StatGroupeesRow[] = [];
     const total = classes.length;
-    for (let i = 0; i < classes.length; i++) {
-      const classe = classes[i];
-      setPrintProgress({
-        current: i,
-        total,
-        label: "Chargement des données",
-        overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
-      });
-      const isApc = apcLevels.get(classe.level) === true;
-      const params = { accessToken, connection, schoolYear, section, classes, schoolHeader, language: "fr" as const, classeId: classe.classe_id };
-      const data = isApc
-        ? await loadAnnualApcReportCardDataForClasse(params)
-        : await loadAnnualReportCardDataForClasse(params);
-      rows.push(
-        buildStatGroupeesRow(
+    return mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => {
+        const isApc = apcLevels.get(classe.level) === true;
+        const params = { accessToken, connection, schoolYear, section, classes, schoolHeader, language: "fr" as const, classeId: classe.classe_id };
+        const data = isApc
+          ? await loadAnnualApcReportCardDataForClasse(params)
+          : await loadAnnualReportCardDataForClasse(params);
+        return buildStatGroupeesRow(
           classe.classe_name,
           data.students.map((s) => ({ sexe: s.sexe, moy: s.avgAnnual })),
           data.classeStats,
-        ),
-      );
-    }
-    return rows;
+        );
+      },
+      (classe, _index, completed) =>
+        setPrintProgress({
+          current: completed,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${completed}/${total}: ${classe.classe_name}`,
+        }),
+    );
   };
 
   const handlePrintTerm = async () => {

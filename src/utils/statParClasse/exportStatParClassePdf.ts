@@ -173,6 +173,7 @@ const renderStatParClasse = async (
       ],
       styles: { fontSize: 6.5, halign: "center" },
       headStyles: { fillColor: [30, 64, 175], fontSize: 6.5 },
+      bodyStyles: { textColor: [0, 0, 0] },
       columnStyles: { 1: { halign: "left" } },
     });
 

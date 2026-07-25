@@ -63,6 +63,7 @@ const renderStatGroupeesSection = (
     body: [...rows.map(buildBodyRow), buildBilanBodyRow(bilanRow)],
     styles: { fontSize: 6.5, halign: "center" },
     headStyles: { fillColor: [30, 64, 175], fontSize: 6.5 },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 0: { halign: "left" }, [APPRECIATION_COLUMN]: { halign: "left" } },
   });
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
@@ -79,6 +80,7 @@ const renderHonorRollSection = (doc: JsPdfDoc, autoTable: AutoTableFn, rows: Hon
     body: rows.map(buildHonorBodyRow),
     styles: { fontSize: 7, halign: "center" },
     headStyles: { fillColor: [30, 64, 175], fontSize: 7 },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 0: { halign: "left" } },
   });
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;

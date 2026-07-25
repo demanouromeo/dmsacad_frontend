@@ -2,14 +2,34 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useLanguage } from "../../i18n/useLanguage";
-import { dashboardTranslations } from "../../i18n/translations";
+import { adminMenuTranslations, dashboardTranslations } from "../../i18n/translations";
 import AdminMenuGrid from "./AdminMenuGrid";
+import AdminMenuCard from "./AdminMenuCard";
+import iconDiscipline from "../../assets/menu/Discipline.svg";
+import iconMarksEntry from "../../assets/menu/Saisie des notes.svg";
+
+// SG/CENSEUR/TEACHER have no AdminMenuGrid (ADMIN-only, see below) - this is their only navigable
+// entry point into the one or two modules RequireRole now lets them reach (see App.tsx: /admin/
+// discipline allows ADMIN+SG, /admin/mark-entry allows ADMIN+SG+CENSEUR+TEACHER). Each screen does
+// its own further filtering (DisciplineManager by Classe.sg_id, MarkEntryManager by course
+// assignment) - this grid only decides which cards a role sees at all, reusing AdminMenuGrid's own
+// labels/icons rather than duplicating a translation dictionary for two entries.
+const NON_ADMIN_MENU_ITEMS: Record<string, { key: "discipline" | "marksEntry"; icon: string; to: string }[]> = {
+  SG: [
+    { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
+    { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
+  ],
+  TEACHER: [{ key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" }],
+  CENSEUR: [{ key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" }],
+};
 
 const Dashboard = () => {
   const { authPayload, logout } = useAuth();
   const [language] = useLanguage();
   const t = dashboardTranslations[language];
+  const menuT = adminMenuTranslations[language];
   const navigate = useNavigate();
+  const nonAdminMenuItems = authPayload ? (NON_ADMIN_MENU_ITEMS[authPayload.role] ?? []) : [];
 
   // PARENT has its own dedicated dashboard (children list) rather than this admin-oriented one -
   // bounce there immediately, before the history-guard effect below runs, to avoid a stray extra
@@ -62,6 +82,13 @@ const Dashboard = () => {
         </button>
       </div>
       {authPayload?.role === "ADMIN" && <AdminMenuGrid />}
+      {nonAdminMenuItems.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+          {nonAdminMenuItems.map((item) => (
+            <AdminMenuCard key={item.key} label={menuT[item.key]} icon={item.icon} to={item.to} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

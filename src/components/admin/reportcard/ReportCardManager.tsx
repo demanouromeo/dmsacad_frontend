@@ -27,6 +27,7 @@ import { exportAnnualReportCardsApcToPdf } from "../../../utils/reportCard/expor
 import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportThPdf";
 import { exportAnnualThPdf, type AnnualThPageData } from "../../../utils/reportCard/exportThAnnualPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, {
   type LoadingOverlayProgress,
@@ -379,37 +380,50 @@ const ReportCardManager = () => {
         setPrintProgress(null);
         return;
       }
-      const apcPages: ThPageData[] = [];
-      const nonApcPages: ThPageData[] = [];
       const total = classes.length;
-      for (let i = 0; i < classes.length; i++) {
-        const classe = classes[i];
-        setPrintProgress({
-          current: i,
-          total,
-          label: t.progressLoadingData,
-          overall: t.progressClasse(i + 1, total, classe.classe_name),
-        });
-        const isApc = apcLevels.get(classe.level) === true;
-        const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, isApc);
-        data.students.forEach((student) => {
-          const eligibility = computeThEligibility(
-            thParam,
-            student.discipline.absNonJust,
-            student.moyenneTrim,
-            student.isClassified,
-          );
-          if (eligibility.deserves) {
-            (isApc ? apcPages : nonApcPages).push({
-              student,
-              classeName: classe.classe_name,
-              effectif: data.classeStats.effectif,
-              encouragement: eligibility.encouragement,
-              felicitation: eligibility.felicitation,
-            });
-          }
-        });
-      }
+      // Bounded concurrency (see src/utils/concurrency.ts) - each classe's fetch is independent;
+      // both PDFs are only built once every classe has resolved, so overlapping
+      // DEFAULT_REPORT_CONCURRENCY fetches is a pure wall-clock win over the previous
+      // one-at-a-time loop. Each worker returns its own classe's apc/nonApc pages, which are then
+      // flattened in classes' own order (mapWithConcurrency preserves result order regardless of
+      // completion order) - equivalent to the old sequential push, just not built one classe at a time.
+      const perClasse = await mapWithConcurrency(
+        classes,
+        DEFAULT_REPORT_CONCURRENCY,
+        async (classe) => {
+          const isApc = apcLevels.get(classe.level) === true;
+          const data = await loadReportCardDataForClasse(classe.classe_id, selectedTerm, isApc);
+          const apcPagesForClasse: ThPageData[] = [];
+          const nonApcPagesForClasse: ThPageData[] = [];
+          data.students.forEach((student) => {
+            const eligibility = computeThEligibility(
+              thParam,
+              student.discipline.absNonJust,
+              student.moyenneTrim,
+              student.isClassified,
+            );
+            if (eligibility.deserves) {
+              (isApc ? apcPagesForClasse : nonApcPagesForClasse).push({
+                student,
+                classeName: classe.classe_name,
+                effectif: data.classeStats.effectif,
+                encouragement: eligibility.encouragement,
+                felicitation: eligibility.felicitation,
+              });
+            }
+          });
+          return { apcPages: apcPagesForClasse, nonApcPages: nonApcPagesForClasse };
+        },
+        (classe, _index, completed) =>
+          setPrintProgress({
+            current: completed,
+            total,
+            label: t.progressLoadingData,
+            overall: t.progressClasse(completed, total, classe.classe_name),
+          }),
+      );
+      const apcPages: ThPageData[] = perClasse.flatMap((p) => p.apcPages);
+      const nonApcPages: ThPageData[] = perClasse.flatMap((p) => p.nonApcPages);
       if (apcPages.length === 0 && nonApcPages.length === 0) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);
@@ -466,74 +480,85 @@ const ReportCardManager = () => {
         setPrintProgress(null);
         return;
       }
-      const apcPages: AnnualThPageData[] = [];
-      const nonApcPages: AnnualThPageData[] = [];
       const total = classes.length;
-      for (let i = 0; i < classes.length; i++) {
-        const classe = classes[i];
-        setPrintProgress({
-          current: i,
-          total,
-          label: t.progressLoadingData,
-          overall: t.progressClasse(i + 1, total, classe.classe_name),
-        });
-        const isApc = apcLevels.get(classe.level) === true;
-        if (isApc) {
-          const data = await loadAnnualApcReportCardDataForClasse(classe.classe_id);
-          data.students.forEach((student) => {
-            if (student.decision.kind === "exclu") {
-              return;
-            }
-            const eligibility = computeThEligibility(
-              thParam,
-              student.disciplineAnnual.absNonJust,
-              student.avgAnnual,
-              student.isClassifiedAnnual,
-            );
-            if (eligibility.deserves) {
-              apcPages.push({
-                name: student.name,
-                surname: student.surname,
-                sexe: student.sexe,
-                classeName: classe.classe_name,
-                effectif: data.classeStats.effectif,
-                avgAnnual: student.avgAnnual,
-                rangAnnuel: null,
-                cote: student.cote,
-                encouragement: eligibility.encouragement,
-                felicitation: eligibility.felicitation,
-              });
-            }
-          });
-        } else {
-          const data = await loadAnnualReportCardDataForClasse(classe.classe_id);
-          data.students.forEach((student) => {
-            if (student.decision.kind === "exclu") {
-              return;
-            }
-            const eligibility = computeThEligibility(
-              thParam,
-              student.disciplineAnnual.absNonJust,
-              student.avgAnnual,
-              student.isClassifiedAnnual,
-            );
-            if (eligibility.deserves) {
-              nonApcPages.push({
-                name: student.name,
-                surname: student.surname,
-                sexe: student.sexe,
-                classeName: classe.classe_name,
-                effectif: data.classeStats.effectif,
-                avgAnnual: student.avgAnnual,
-                rangAnnuel: student.rangAnnuel,
-                cote: "",
-                encouragement: eligibility.encouragement,
-                felicitation: eligibility.felicitation,
-              });
-            }
-          });
-        }
-      }
+      // Bounded concurrency (see src/utils/concurrency.ts and handlePrintTh's own version of this
+      // same change above) - each classe's fetch is independent; both PDFs are only built once
+      // every classe has resolved, so overlapping DEFAULT_REPORT_CONCURRENCY fetches is a pure
+      // wall-clock win over the previous one-at-a-time loop.
+      const perClasse = await mapWithConcurrency(
+        classes,
+        DEFAULT_REPORT_CONCURRENCY,
+        async (classe) => {
+          const isApc = apcLevels.get(classe.level) === true;
+          const apcPagesForClasse: AnnualThPageData[] = [];
+          const nonApcPagesForClasse: AnnualThPageData[] = [];
+          if (isApc) {
+            const data = await loadAnnualApcReportCardDataForClasse(classe.classe_id);
+            data.students.forEach((student) => {
+              if (student.decision.kind === "exclu") {
+                return;
+              }
+              const eligibility = computeThEligibility(
+                thParam,
+                student.disciplineAnnual.absNonJust,
+                student.avgAnnual,
+                student.isClassifiedAnnual,
+              );
+              if (eligibility.deserves) {
+                apcPagesForClasse.push({
+                  name: student.name,
+                  surname: student.surname,
+                  sexe: student.sexe,
+                  classeName: classe.classe_name,
+                  effectif: data.classeStats.effectif,
+                  avgAnnual: student.avgAnnual,
+                  rangAnnuel: null,
+                  cote: student.cote,
+                  encouragement: eligibility.encouragement,
+                  felicitation: eligibility.felicitation,
+                });
+              }
+            });
+          } else {
+            const data = await loadAnnualReportCardDataForClasse(classe.classe_id);
+            data.students.forEach((student) => {
+              if (student.decision.kind === "exclu") {
+                return;
+              }
+              const eligibility = computeThEligibility(
+                thParam,
+                student.disciplineAnnual.absNonJust,
+                student.avgAnnual,
+                student.isClassifiedAnnual,
+              );
+              if (eligibility.deserves) {
+                nonApcPagesForClasse.push({
+                  name: student.name,
+                  surname: student.surname,
+                  sexe: student.sexe,
+                  classeName: classe.classe_name,
+                  effectif: data.classeStats.effectif,
+                  avgAnnual: student.avgAnnual,
+                  rangAnnuel: student.rangAnnuel,
+                  cote: "",
+                  encouragement: eligibility.encouragement,
+                  felicitation: eligibility.felicitation,
+                });
+              }
+            });
+          }
+          return { apcPages: apcPagesForClasse, nonApcPages: nonApcPagesForClasse };
+        },
+        (classe, _index, completed) =>
+          setPrintProgress({
+            current: completed,
+            total,
+            label: t.progressLoadingData,
+            overall: t.progressClasse(completed, total, classe.classe_name),
+          }),
+      );
+      const apcPages: AnnualThPageData[] = perClasse.flatMap((p) => p.apcPages);
+      const nonApcPages: AnnualThPageData[] = perClasse.flatMap((p) => p.nonApcPages);
       if (apcPages.length === 0 && nonApcPages.length === 0) {
         showToast(t.printThEmpty, { type: "warning" });
         setIsSaving(false);

@@ -28,6 +28,7 @@ import {
   exportRowsToCsv,
   type ExportColumn,
 } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
@@ -127,66 +128,71 @@ const StatParClasseManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
+  // Bounded concurrency - each classe's fetch is independent and the PDF/CSV is only built after
+  // every classe has resolved, so running DEFAULT_REPORT_CONCURRENCY classes in flight at once is a
+  // pure wall-clock win over the previous one-at-a-time loop (see src/utils/concurrency.ts).
   const buildClasseBlocks = async (isAnnual: boolean): Promise<StatParClasseBlock[]> => {
-    const blocks: StatParClasseBlock[] = [];
     const total = classes.length;
-    for (let i = 0; i < classes.length; i++) {
-      const classe = classes[i];
-      setPrintProgress({
-        current: i,
-        total,
-        label: "Chargement des données",
-        overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
-      });
-      const isApc = apcLevels.get(classe.level) === true;
-      const data = isAnnual
-        ? isApc
-          ? adaptAnnualApcData(
-              await loadAnnualApcReportCardDataForClasse({
+    return mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe): Promise<StatParClasseBlock> => {
+        const isApc = apcLevels.get(classe.level) === true;
+        const data = isAnnual
+          ? isApc
+            ? adaptAnnualApcData(
+                await loadAnnualApcReportCardDataForClasse({
+                  accessToken,
+                  connection,
+                  schoolYear,
+                  section,
+                  classes,
+                  schoolHeader,
+                  language: "fr",
+                  classeId: classe.classe_id,
+                }),
+              )
+            : adaptAnnualData(
+                await loadAnnualReportCardDataForClasse({
+                  accessToken,
+                  connection,
+                  schoolYear,
+                  section,
+                  classes,
+                  schoolHeader,
+                  language: "fr",
+                  classeId: classe.classe_id,
+                }),
+              )
+          : adaptTermData(
+              await loadReportCardDataForClasse({
                 accessToken,
                 connection,
                 schoolYear,
                 section,
-                classes,
-                schoolHeader,
                 language: "fr",
                 classeId: classe.classe_id,
+                term: selectedTerm,
+                isApc,
               }),
-            )
-          : adaptAnnualData(
-              await loadAnnualReportCardDataForClasse({
-                accessToken,
-                connection,
-                schoolYear,
-                section,
-                classes,
-                schoolHeader,
-                language: "fr",
-                classeId: classe.classe_id,
-              }),
-            )
-        : adaptTermData(
-            await loadReportCardDataForClasse({
-              accessToken,
-              connection,
-              schoolYear,
-              section,
-              language: "fr",
-              classeId: classe.classe_id,
-              term: selectedTerm,
               isApc,
-            }),
-            isApc,
-          );
-      blocks.push({
-        ...data,
-        classeName: classe.classe_name,
-        profPrincipal: classe.classe_master_name ?? "",
-        isApc,
-        demographics: computeStatParClasseDemographics(data.rows, data.subjects),
-      });
-    }
-    return blocks;
+            );
+        return {
+          ...data,
+          classeName: classe.classe_name,
+          profPrincipal: classe.classe_master_name ?? "",
+          isApc,
+          demographics: computeStatParClasseDemographics(data.rows, data.subjects),
+        };
+      },
+      (classe, _index, completed) =>
+        setPrintProgress({
+          current: completed,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${completed}/${total}: ${classe.classe_name}`,
+        }),
+    );
   };
 
   const runPrint = async (isAnnual: boolean) => {

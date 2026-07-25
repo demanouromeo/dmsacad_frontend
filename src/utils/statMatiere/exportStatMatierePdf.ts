@@ -106,6 +106,7 @@ const renderSubjectBlock = (
     body,
     styles: { fontSize: 6.5, halign: "center" },
     headStyles: { fillColor: [30, 64, 175], fontSize: 6.5 },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 0: { halign: "left" }, [APPRECIATION_COLUMN]: { halign: "left" } },
   });
   return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;

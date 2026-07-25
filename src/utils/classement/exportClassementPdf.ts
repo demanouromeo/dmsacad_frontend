@@ -58,6 +58,7 @@ export const exportPremiersListToPdf = async (
     body: rows.map((r) => [r.no, fullName(r), r.sexe, r.classeName, formatRcNumber(r.moy), r.rangText]),
     styles: { fontSize: 9 },
     headStyles: { fillColor: [30, 64, 175] },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 1: { halign: "left" }, 3: { halign: "left" } },
   });
   finish(doc, schoolHeader, filename);
@@ -89,6 +90,7 @@ export const exportClassementGeneralToPdf = async (
     body: rows.map((r) => [r.no, fullName(r), r.sexe, r.classeName, formatRcNumber(r.moy), r.rangText]),
     styles: { fontSize: 8 },
     headStyles: { fillColor: [30, 64, 175] },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 1: { halign: "left" }, 3: { halign: "left" } },
   });
   finish(doc, schoolHeader, filename);
@@ -138,6 +140,7 @@ export const exportTroisPremiersToPdf = async (
     body,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [30, 64, 175] },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 1: { halign: "left" }, 2: { halign: "left" } },
   });
   finish(doc, schoolHeader, filename);

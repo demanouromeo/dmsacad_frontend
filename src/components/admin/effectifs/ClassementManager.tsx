@@ -32,6 +32,7 @@ import {
   exportRowsToCsv,
   type ExportColumn,
 } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
@@ -128,72 +129,79 @@ const ClassementManager = () => {
   // Fetches every classe's report card data once (term or annual) and flattens it into this
   // module's own minimal ClassementRow shape - shared by all 3 tabs, which each just aggregate/
   // filter/re-rank this same underlying data differently (see classementCompute.ts).
+  // Every classe's data is independent, so classes are fetched with bounded concurrency
+  // (DEFAULT_REPORT_CONCURRENCY in flight at once) rather than one at a time - the final PDF/CSV is
+  // only built once every classe has resolved, so this is a pure wall-clock win with no change in
+  // what's fetched. mapWithConcurrency preserves classes' own order in the result array regardless
+  // of which classe's fetch happens to finish first.
   const buildClasseRows = async (isAnnual: boolean): Promise<ClasseRows[]> => {
-    const result: ClasseRows[] = [];
     const total = classes.length;
-    for (let i = 0; i < classes.length; i++) {
-      const classe = classes[i];
-      setPrintProgress({
-        current: i,
-        total,
-        label: "Chargement des données",
-        overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
-      });
-      const isApc = apcLevels.get(classe.level) === true;
-      const students = isAnnual
-        ? (
-            await (isApc
-              ? loadAnnualApcReportCardDataForClasse({
-                  accessToken,
-                  connection,
-                  schoolYear,
-                  section,
-                  classes,
-                  schoolHeader,
-                  language: "fr",
-                  classeId: classe.classe_id,
-                })
-              : loadAnnualReportCardDataForClasse({
-                  accessToken,
-                  connection,
-                  schoolYear,
-                  section,
-                  classes,
-                  schoolHeader,
-                  language: "fr",
-                  classeId: classe.classe_id,
-                }))
-          ).students.map((s) => ({
-            studId: s.studId,
-            name: s.name,
-            surname: s.surname,
-            sexe: s.sexe,
-            moy: s.avgAnnual,
-            classeRang: s.rangAnnuel,
-          }))
-        : (
-            await loadReportCardDataForClasse({
-              accessToken,
-              connection,
-              schoolYear,
-              section,
-              language: "fr",
-              classeId: classe.classe_id,
-              term: selectedTerm,
-              isApc,
-            })
-          ).students.map((s) => ({
-            studId: s.studId,
-            name: s.name,
-            surname: s.surname,
-            sexe: s.sexe,
-            moy: s.moyenneTrim,
-            classeRang: s.rang,
-          }));
-      const rows: ClassementRow[] = students.map((s) => ({ ...s, classeName: classe.classe_name }));
-      result.push({ classeName: classe.classe_name, rows });
-    }
-    return result;
+    return mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe): Promise<ClasseRows> => {
+        const isApc = apcLevels.get(classe.level) === true;
+        const students = isAnnual
+          ? (
+              await (isApc
+                ? loadAnnualApcReportCardDataForClasse({
+                    accessToken,
+                    connection,
+                    schoolYear,
+                    section,
+                    classes,
+                    schoolHeader,
+                    language: "fr",
+                    classeId: classe.classe_id,
+                  })
+                : loadAnnualReportCardDataForClasse({
+                    accessToken,
+                    connection,
+                    schoolYear,
+                    section,
+                    classes,
+                    schoolHeader,
+                    language: "fr",
+                    classeId: classe.classe_id,
+                  }))
+            ).students.map((s) => ({
+              studId: s.studId,
+              name: s.name,
+              surname: s.surname,
+              sexe: s.sexe,
+              moy: s.avgAnnual,
+              classeRang: s.rangAnnuel,
+            }))
+          : (
+              await loadReportCardDataForClasse({
+                accessToken,
+                connection,
+                schoolYear,
+                section,
+                language: "fr",
+                classeId: classe.classe_id,
+                term: selectedTerm,
+                isApc,
+              })
+            ).students.map((s) => ({
+              studId: s.studId,
+              name: s.name,
+              surname: s.surname,
+              sexe: s.sexe,
+              moy: s.moyenneTrim,
+              classeRang: s.rang,
+            }));
+        const rows: ClassementRow[] = students.map((s) => ({ ...s, classeName: classe.classe_name }));
+        return { classeName: classe.classe_name, rows };
+      },
+      (classe, _index, completed) =>
+        setPrintProgress({
+          current: completed,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${completed}/${total}: ${classe.classe_name}`,
+        }),
+    );
   };
 
   const termTitle = (base: string): string =>

@@ -134,10 +134,6 @@ function App() {
                   element={<StatParClasseManager />}
                 />
                 <Route
-                  path="/admin/mark-entry"
-                  element={<MarkEntryManager />}
-                />
-                <Route
                   path="/admin/mark-sheet"
                   element={<MarkSheetManager />}
                 />
@@ -149,10 +145,6 @@ function App() {
                 <Route
                   path="/admin/fill-rate/class"
                   element={<FillRateClassManager />}
-                />
-                <Route
-                  path="/admin/discipline"
-                  element={<DisciplineManager />}
                 />
                 <Route path="/admin/manage-accounts" element={<AccountHub />} />
                 <Route
@@ -194,6 +186,23 @@ function App() {
                   element={<ScholarshipManager />}
                 />
                 <Route path="/admin/parents" element={<ParentManager />} />
+              </Route>
+              {/* Discipline: ADMIN plus SG, who can only manage discipline for classes assigned to
+                  them as SG (Classe.sg_id) - filtered client-side in DisciplineManager itself. */}
+              <Route element={<RequireRole allow={["ADMIN", "SG"]} />}>
+                <Route
+                  path="/admin/discipline"
+                  element={<DisciplineManager />}
+                />
+              </Route>
+              {/* Mark entry: ADMIN (full access), SG/TEACHER (restricted to their own course
+                  assignments - see MarkEntryManager's isRestrictedToAssignments), and CENSEUR (full
+                  read/write access like ADMIN but never allowed to lock/unlock a sequence). */}
+              <Route element={<RequireRole allow={["ADMIN", "SG", "CENSEUR", "TEACHER"]} />}>
+                <Route
+                  path="/admin/mark-entry"
+                  element={<MarkEntryManager />}
+                />
               </Route>
               <Route element={<RequireRole allow={["PARENT"]} />}>
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />

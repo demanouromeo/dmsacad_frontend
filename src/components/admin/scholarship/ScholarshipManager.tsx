@@ -19,6 +19,7 @@ import {
   capitalizeSectionName,
   type ExportColumn,
 } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import type { Classe } from "../../../interfaces/Classe";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
@@ -80,46 +81,52 @@ const ScholarshipManager = () => {
       setClasses(classeList);
       const apcLevelMap = new Map(apcLevelList.map((entry) => [entry.level, entry.activated]));
 
-      const rows: ScholarshipRow[] = [];
       const total = classeList.length;
-      for (let i = 0; i < classeList.length; i++) {
-        const classe = classeList[i];
-        setLoadProgress({
-          current: i,
-          total,
-          label: t.loadingMessage,
-          overall: t.progressClasse(i + 1, total, classe.classe_name),
-        });
-        const isApc = apcLevelMap.get(classe.level) === true;
-        const params = {
-          accessToken,
-          connection,
-          schoolYear,
-          section,
-          classes: classeList,
-          schoolHeader,
-          language,
-          classeId: classe.classe_id,
-        };
-        const annualData = isApc
-          ? await loadAnnualApcReportCardDataForClasse(params)
-          : await loadAnnualReportCardDataForClasse(params);
-        if (cancelled) return;
-        annualData.students.forEach((s) => {
-          if (s.decision.kind === "exclu") {
-            return;
-          }
-          rows.push({
-            studId: s.studId,
-            matricule: s.matricule,
-            name: s.name,
-            surname: s.surname,
-            sexe: s.sexe,
-            classeName: classe.classe_name,
-            avgAnnual: s.avgAnnual,
-          });
-        });
-      }
+      // Bounded concurrency (see src/utils/concurrency.ts) - each classe's fetch is independent
+      // and rows are only committed to state once every classe has resolved, so overlapping
+      // DEFAULT_REPORT_CONCURRENCY fetches is a pure wall-clock win over the previous
+      // one-at-a-time loop. Unlike the old loop, `cancelled` is only checked once at the end
+      // (fetches already in flight can't be aborted mid-flight either way) rather than after each
+      // classe - a stale response is simply discarded instead of stopping early.
+      const perClasse = await mapWithConcurrency(
+        classeList,
+        DEFAULT_REPORT_CONCURRENCY,
+        async (classe): Promise<ScholarshipRow[]> => {
+          const isApc = apcLevelMap.get(classe.level) === true;
+          const params = {
+            accessToken,
+            connection,
+            schoolYear,
+            section,
+            classes: classeList,
+            schoolHeader,
+            language,
+            classeId: classe.classe_id,
+          };
+          const annualData = isApc
+            ? await loadAnnualApcReportCardDataForClasse(params)
+            : await loadAnnualReportCardDataForClasse(params);
+          return annualData.students
+            .filter((s) => s.decision.kind !== "exclu")
+            .map((s) => ({
+              studId: s.studId,
+              matricule: s.matricule,
+              name: s.name,
+              surname: s.surname,
+              sexe: s.sexe,
+              classeName: classe.classe_name,
+              avgAnnual: s.avgAnnual,
+            }));
+        },
+        (classe, _index, completed) =>
+          setLoadProgress({
+            current: completed,
+            total,
+            label: t.loadingMessage,
+            overall: t.progressClasse(completed, total, classe.classe_name),
+          }),
+      );
+      const rows: ScholarshipRow[] = perClasse.flat();
       if (!cancelled) {
         setAllRows(rows);
         setIsLoadingData(false);

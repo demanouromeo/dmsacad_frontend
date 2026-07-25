@@ -119,6 +119,7 @@ export const exportPvTermToPdf = async (
     body,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [30, 64, 175] },
+    bodyStyles: { textColor: [0, 0, 0] },
   });
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
@@ -192,6 +193,7 @@ export const exportPvAnnualToPdf = async (
     body,
     styles: { fontSize: 7.5 },
     headStyles: { fillColor: [30, 64, 175] },
+    bodyStyles: { textColor: [0, 0, 0] },
   });
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 

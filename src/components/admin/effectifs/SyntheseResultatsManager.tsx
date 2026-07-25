@@ -29,6 +29,7 @@ import {
 } from "../../../utils/syntheseResultats/exportSyntheseResultatsPdf";
 import { exportSyntheseResultatsToXlsx } from "../../../utils/syntheseResultats/exportSyntheseResultatsWorkbook";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
@@ -75,37 +76,35 @@ const SyntheseResultatsManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
+  // Bounded concurrency (see src/utils/concurrency.ts) - each classe's fetch is independent and
+  // both leveled/honor rows are only rolled up into sections after every classe resolves, so
+  // overlapping DEFAULT_REPORT_CONCURRENCY fetches is a pure wall-clock win over the previous
+  // one-at-a-time loop. Each worker returns its classe's leveled+honor row pair together, then the
+  // two are unzipped afterward, preserving the same classes-order pairing the old push-in-lockstep
+  // loop relied on.
   const buildTermRows = async (thParam: ThParam | null): Promise<BuiltRows> => {
-    const leveled: LeveledClasseRow[] = [];
-    const honor: HonorRollRow[] = [];
     const total = classes.length;
-    for (let i = 0; i < classes.length; i++) {
-      const classe = classes[i];
-      setPrintProgress({
-        current: i,
-        total,
-        label: "Chargement des données",
-        overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
-      });
-      const isApc = apcLevels.get(classe.level) === true;
-      const data = await loadReportCardDataForClasse({
-        accessToken,
-        connection,
-        schoolYear,
-        section,
-        language: "fr",
-        classeId: classe.classe_id,
-        term: selectedTerm,
-        isApc,
-      });
-      const row = buildStatGroupeesRow(
-        classe.classe_name,
-        data.students.map((s) => ({ sexe: s.sexe, moy: s.moyenneTrim })),
-        data.classeStats,
-      );
-      leveled.push({ level: classe.level, row });
-      honor.push(
-        buildHonorRollRow(
+    const perClasse = await mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => {
+        const isApc = apcLevels.get(classe.level) === true;
+        const data = await loadReportCardDataForClasse({
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          language: "fr",
+          classeId: classe.classe_id,
+          term: selectedTerm,
+          isApc,
+        });
+        const row = buildStatGroupeesRow(
+          classe.classe_name,
+          data.students.map((s) => ({ sexe: s.sexe, moy: s.moyenneTrim })),
+          data.classeStats,
+        );
+        const honorRow = buildHonorRollRow(
           classe.classe_name,
           data.students.map((s) => ({
             sexe: s.sexe,
@@ -114,46 +113,49 @@ const SyntheseResultatsManager = () => {
             absNonJust: s.discipline.absNonJust,
           })),
           thParam,
-        ),
-      );
-    }
-    return { leveled, honor };
+        );
+        return { leveled: { level: classe.level, row }, honor: honorRow };
+      },
+      (classe, _index, completed) =>
+        setPrintProgress({
+          current: completed,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${completed}/${total}: ${classe.classe_name}`,
+        }),
+    );
+    return {
+      leveled: perClasse.map((p) => p.leveled),
+      honor: perClasse.map((p) => p.honor),
+    };
   };
 
   const buildAnnualRows = async (thParam: ThParam | null): Promise<BuiltRows> => {
-    const leveled: LeveledClasseRow[] = [];
-    const honor: HonorRollRow[] = [];
     const total = classes.length;
-    for (let i = 0; i < classes.length; i++) {
-      const classe = classes[i];
-      setPrintProgress({
-        current: i,
-        total,
-        label: "Chargement des données",
-        overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
-      });
-      const isApc = apcLevels.get(classe.level) === true;
-      const params = {
-        accessToken,
-        connection,
-        schoolYear,
-        section,
-        classes,
-        schoolHeader,
-        language: "fr" as const,
-        classeId: classe.classe_id,
-      };
-      const data = isApc
-        ? await loadAnnualApcReportCardDataForClasse(params)
-        : await loadAnnualReportCardDataForClasse(params);
-      const row = buildStatGroupeesRow(
-        classe.classe_name,
-        data.students.map((s) => ({ sexe: s.sexe, moy: s.avgAnnual })),
-        data.classeStats,
-      );
-      leveled.push({ level: classe.level, row });
-      honor.push(
-        buildHonorRollRow(
+    const perClasse = await mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => {
+        const isApc = apcLevels.get(classe.level) === true;
+        const params = {
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          classes,
+          schoolHeader,
+          language: "fr" as const,
+          classeId: classe.classe_id,
+        };
+        const data = isApc
+          ? await loadAnnualApcReportCardDataForClasse(params)
+          : await loadAnnualReportCardDataForClasse(params);
+        const row = buildStatGroupeesRow(
+          classe.classe_name,
+          data.students.map((s) => ({ sexe: s.sexe, moy: s.avgAnnual })),
+          data.classeStats,
+        );
+        const honorRow = buildHonorRollRow(
           classe.classe_name,
           data.students.map((s) => ({
             sexe: s.sexe,
@@ -162,10 +164,21 @@ const SyntheseResultatsManager = () => {
             absNonJust: s.disciplineAnnual.absNonJust,
           })),
           thParam,
-        ),
-      );
-    }
-    return { leveled, honor };
+        );
+        return { leveled: { level: classe.level, row }, honor: honorRow };
+      },
+      (classe, _index, completed) =>
+        setPrintProgress({
+          current: completed,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${completed}/${total}: ${classe.classe_name}`,
+        }),
+    );
+    return {
+      leveled: perClasse.map((p) => p.leveled),
+      honor: perClasse.map((p) => p.honor),
+    };
   };
 
   const buildSections = (leveled: LeveledClasseRow[]) => {

@@ -116,6 +116,7 @@ const renderSyntheseGlobaleTable = async (
     body: rows.map((row, index) => buildBodyRow(index, row)),
     styles: { fontSize: 6.5, halign: "center" },
     headStyles: { fillColor: [30, 64, 175], fontSize: 6 },
+    bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: {
       [CLASSE_COLUMN]: { halign: "left" },
       [NOM_PREMIER_COLUMN]: { halign: "left" },
