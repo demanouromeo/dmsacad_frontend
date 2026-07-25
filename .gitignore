@@ -24,6 +24,6 @@ dist-ssr
 *.sw?
 
 # SAMPLE DOCUMENTS
-STAT/
+/STAT/
 SAMPLE_RC/
 SAMPLE_PV/
