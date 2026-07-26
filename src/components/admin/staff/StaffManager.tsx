@@ -217,7 +217,7 @@ const StaffManager = () => {
     setEditingId(staff.staff_id);
     setEditingName(staff.name);
     setEditingSurname(staff.surname ?? "");
-    setEditingPhone(staff.phone1 ?? "");
+    setEditingPhone(String(staff.phone1 ?? ""));
     setEditingSexe(staff.sexe);
     setEditingCivility(staff.civility ?? "");
     setEditingFunction(String(staff.function));
@@ -449,11 +449,11 @@ const StaffManager = () => {
   const filteredStaffList = staffList.filter((s) => {
     const q = searchQuery.trim().toLowerCase();
     return (
-      s.name.toLowerCase().includes(q) ||
-      (s.surname ?? "").toLowerCase().includes(q) ||
-      (s.phone1 ?? "").toLowerCase().includes(q) ||
-      (s.civility ?? "").toLowerCase().includes(q) ||
-      s.login.toLowerCase().includes(q) ||
+      String(s.name ?? "").toLowerCase().includes(q) ||
+      String(s.surname ?? "").toLowerCase().includes(q) ||
+      String(s.phone1 ?? "").toLowerCase().includes(q) ||
+      String(s.civility ?? "").toLowerCase().includes(q) ||
+      String(s.login ?? "").toLowerCase().includes(q) ||
       functionLabel(s.function).toLowerCase().includes(q)
     );
   });

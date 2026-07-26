@@ -2,7 +2,7 @@ export interface Staff {
   staff_id: number;
   name: string;
   surname: string | null;
-  phone1: string | null;
+  phone1: number | string | null;
   function: number;
   sexe: string;
   civility: string | null;
