@@ -34,7 +34,7 @@ const MAX_COEF = 10;
 // deleteASubjectOfAClasseYearAndSection/calquerSubjects). No import here - only Print, per product
 // decision (Import needs its own file-format spec, deferred).
 const SubjectClasseManager = () => {
-  const { connection, schoolYear, section, accessToken } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
   const showToast = useToast();
   const confirm = useConfirm();
   const [language] = useLanguage();
@@ -75,13 +75,20 @@ const SubjectClasseManager = () => {
         ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
         GroupeReader.fetchGroupes(accessToken, connection, schoolYear, section),
       ]);
-      setClasses(classeList);
+      // CENSEUR can only manage subjects of the classes they're assigned to as VP (Classe.vp_id,
+      // matched against the JWT's user_id) - same precedent as DisciplineManager's SG scoping.
+      // ADMIN sees every classe.
+      const visibleClasses =
+        authPayload?.role === "CENSEUR"
+          ? classeList.filter((c) => c.vp_id === authPayload.user_id)
+          : classeList;
+      setClasses(visibleClasses);
       setGroups(groupeList);
       setSelectedClasseId((prev) => {
-        if (prev !== null && classeList.some((c) => c.classe_id === prev)) {
+        if (prev !== null && visibleClasses.some((c) => c.classe_id === prev)) {
           return prev;
         }
-        return classeList.length > 0 ? classeList[0].classe_id : null;
+        return visibleClasses.length > 0 ? visibleClasses[0].classe_id : null;
       });
       setIsLoadingClasses(false);
     };

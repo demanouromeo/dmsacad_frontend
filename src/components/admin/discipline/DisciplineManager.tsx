@@ -151,13 +151,16 @@ const DisciplineManager = () => {
     const load = async () => {
       setIsLoadingClasses(true);
       const classeList = await ClasseReader.fetchClasses(accessToken, connection, schoolYear, section);
-      // SG can only manage discipline for the classes they're assigned to as SG (Classe.sg_id,
-      // matched against the JWT's user_id - see backend AccountController::connect, which sets
-      // user_id to the staff table's id for staff-type accounts). ADMIN sees every classe.
+      // SG/CENSEUR can only manage discipline for the classes they're assigned to as SG
+      // (Classe.sg_id) / VP (Classe.vp_id), matched against the JWT's user_id - see backend
+      // AccountController::connect, which sets user_id to the staff table's id for staff-type
+      // accounts. ADMIN sees every classe.
       const visibleClasses =
         authPayload?.role === "SG"
           ? classeList.filter((c) => c.sg_id === authPayload.user_id)
-          : classeList;
+          : authPayload?.role === "CENSEUR"
+            ? classeList.filter((c) => c.vp_id === authPayload.user_id)
+            : classeList;
       setClasses(visibleClasses);
       setSelectedClasseId((prev) => {
         if (prev !== null && visibleClasses.some((c) => c.classe_id === prev)) {

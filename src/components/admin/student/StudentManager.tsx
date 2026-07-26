@@ -52,7 +52,7 @@ interface EditableFields {
 // linkage is deliberately out of scope - there's no backend parent module yet (no StudParentController/
 // routes), so unlike the reference mockup this screen has no Phone filter/column.
 const StudentManager = () => {
-  const { connection, schoolYear, section, accessToken } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
   const showToast = useToast();
   const confirm = useConfirm();
   const [language] = useLanguage();
@@ -100,12 +100,19 @@ const StudentManager = () => {
     const load = async () => {
       setIsLoadingClasses(true);
       const list = await ClasseReader.fetchClasses(accessToken, connection, schoolYear, section);
-      setClasses(list);
+      // CENSEUR can only manage students of the classes they're assigned to as VP (Classe.vp_id,
+      // matched against the JWT's user_id) - same precedent as DisciplineManager's SG scoping.
+      // ADMIN sees every classe.
+      const visibleClasses =
+        authPayload?.role === "CENSEUR"
+          ? list.filter((c) => c.vp_id === authPayload.user_id)
+          : list;
+      setClasses(visibleClasses);
       setSelectedClasseId((prev) => {
-        if (prev !== null && list.some((c) => c.classe_id === prev)) {
+        if (prev !== null && visibleClasses.some((c) => c.classe_id === prev)) {
           return prev;
         }
-        return list.length > 0 ? list[0].classe_id : null;
+        return visibleClasses.length > 0 ? visibleClasses[0].classe_id : null;
       });
       setIsLoadingClasses(false);
     };

@@ -74,7 +74,6 @@ function App() {
                   path="/admin/specialities"
                   element={<SpecialityManager />}
                 />
-                <Route path="/admin/classes" element={<ClasseManager />} />
                 <Route path="/admin/subjects" element={<SubjectsHub />} />
                 <Route
                   path="/admin/subjects/matieres"
@@ -85,15 +84,10 @@ function App() {
                   element={<GroupeManager />}
                 />
                 <Route
-                  path="/admin/subjects/matieres-classes"
-                  element={<SubjectClasseManager />}
-                />
-                <Route
                   path="/admin/subjects/matieres-competences"
                   element={<SubjectCompetenceManager />}
                 />
                 <Route path="/admin/staffs" element={<StaffManager />} />
-                <Route path="/admin/students" element={<StudentManager />} />
                 <Route
                   path="/admin/course-assignment"
                   element={<CourseAssignmentManager />}
@@ -187,13 +181,28 @@ function App() {
                 />
                 <Route path="/admin/parents" element={<ParentManager />} />
               </Route>
-              {/* Discipline: ADMIN plus SG, who can only manage discipline for classes assigned to
-                  them as SG (Classe.sg_id) - filtered client-side in DisciplineManager itself. */}
-              <Route element={<RequireRole allow={["ADMIN", "SG"]} />}>
+              {/* Discipline: ADMIN plus SG and CENSEUR, who can only manage discipline for classes
+                  assigned to them as SG (Classe.sg_id) / CENSEUR (Classe.vp_id) - filtered
+                  client-side in DisciplineManager itself. */}
+              <Route element={<RequireRole allow={["ADMIN", "SG", "CENSEUR"]} />}>
                 <Route
                   path="/admin/discipline"
                   element={<DisciplineManager />}
                 />
+              </Route>
+              {/* Classes / Subject-of-classe / Students: ADMIN plus CENSEUR, who can only manage the
+                  classes assigned to them as VP (Classe.vp_id) - filtered client-side in each of
+                  these three managers. CENSEUR keeps full add/delete/modify on students and on
+                  subject-of-classe assignments, but only row-level rename on classes themselves -
+                  see ClasseManager's own isAdmin-gated sections for the structural actions (add,
+                  import, bulk delete, APC toggle) that stay ADMIN-only. */}
+              <Route element={<RequireRole allow={["ADMIN", "CENSEUR"]} />}>
+                <Route path="/admin/classes" element={<ClasseManager />} />
+                <Route
+                  path="/admin/subjects/matieres-classes"
+                  element={<SubjectClasseManager />}
+                />
+                <Route path="/admin/students" element={<StudentManager />} />
               </Route>
               {/* Mark entry: ADMIN (full access), SG/TEACHER (restricted to their own course
                   assignments - see MarkEntryManager's isRestrictedToAssignments), and CENSEUR (full

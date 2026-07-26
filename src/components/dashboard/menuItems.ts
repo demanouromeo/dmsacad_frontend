@@ -74,18 +74,30 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
 ];
 
 // SG/CENSEUR/TEACHER have no AdminMenuGrid (ADMIN-only) - this is their only navigable entry
-// point into the one or two modules RequireRole lets them reach (see App.tsx: /admin/discipline
-// allows ADMIN+SG, /admin/mark-entry allows ADMIN+SG+CENSEUR+TEACHER). Each screen does its own
-// further filtering (DisciplineManager by Classe.sg_id, MarkEntryManager by course assignment) -
-// this list only decides which cards a role sees at all.
+// point into the modules RequireRole lets them reach (see App.tsx: /admin/discipline allows
+// ADMIN+SG+CENSEUR, /admin/classes+/admin/subjects/matieres-classes+/admin/students allow
+// ADMIN+CENSEUR, /admin/mark-entry allows ADMIN+SG+CENSEUR+TEACHER). Each screen does its own
+// further filtering (DisciplineManager/ClasseManager/SubjectClasseManager/StudentManager by
+// Classe.sg_id or Classe.vp_id, MarkEntryManager by course assignment) - this list only decides
+// which cards a role sees at all.
 export const NON_ADMIN_MENU_ITEMS: Record<
   string,
-  { key: "discipline" | "marksEntry"; icon: string; to: string }[]
+  {
+    key: "discipline" | "marksEntry" | "classes" | "subjectsOfClasse" | "students";
+    icon: string;
+    to: string;
+  }[]
 > = {
   SG: [
     { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
     { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
   ],
   TEACHER: [{ key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" }],
-  CENSEUR: [{ key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" }],
+  CENSEUR: [
+    { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
+    { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
+    { key: "classes", icon: iconClasses, to: "/admin/classes" },
+    { key: "subjectsOfClasse", icon: iconSubjects, to: "/admin/subjects/matieres-classes" },
+    { key: "students", icon: iconStudents, to: "/admin/students" },
+  ],
 };

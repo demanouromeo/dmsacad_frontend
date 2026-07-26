@@ -191,12 +191,35 @@ holds its strings.
 
 `src/components/routing/RequireRole.tsx` is a second route guard (nested *inside* `RequireAuth`, not
 replacing it): it reads `authPayload.role` from `useAuth()` and renders `<Outlet />` only if `role` is in the
-`allow` prop's list, otherwise redirects to `/dashboard`. `App.tsx` wraps every `/admin/*` route in one
-`<Route element={<RequireRole allow={["ADMIN"]} />}>` group. `AdminMenuGrid`'s `ADMIN_MENU_ITEMS` array pairs
-each dashboard card with an icon and an optional `to` — a card only navigates if `to` is set; the rest render
-as inert placeholders for modules that don't exist yet. When a new admin screen ships, add its route inside
-that `RequireRole` group in `App.tsx` **and** set `to` on its `AdminMenuGrid` entry in the same change — a
-screen with a route but no `to` is unreachable from the UI, and a card with `to` but no route 404s.
+`allow` prop's list, otherwise redirects to `/dashboard`. Most `/admin/*` routes sit in one
+`<Route element={<RequireRole allow={["ADMIN"]} />}>` group in `App.tsx`, but a handful of screens instead
+get their own smaller `RequireRole` group scoped to a wider `allow` list — Discipline
+(`ADMIN`/`SG`/`CENSEUR`), Mark entry (`ADMIN`/`SG`/`CENSEUR`/`TEACHER`), and Classes/Subject-of-classe/
+Students (`/admin/classes`, `/admin/subjects/matieres-classes`, `/admin/students` — `ADMIN`/`CENSEUR`) —
+because those roles only get a *filtered* view of the same screen ADMIN sees in full, not because they need
+a different component. `AdminMenuGrid`'s `ADMIN_MENU_ITEMS` array (ADMIN only) and `menuItems.ts`'s
+`NON_ADMIN_MENU_ITEMS` (keyed by role, `Dashboard.tsx`'s only entry point for non-ADMIN roles) pair each
+dashboard card with an icon and an optional `to` — a card only navigates if `to` is set; the rest render as
+inert placeholders for modules that don't exist yet. When a new admin screen ships, add its route inside the
+right `RequireRole` group in `App.tsx` **and** set `to` on its menu entry (`ADMIN_MENU_ITEMS` and/or
+`NON_ADMIN_MENU_ITEMS`) in the same change — a screen with a route but no `to` is unreachable from the UI,
+and a card with `to` but no route 404s.
+
+**SG and CENSEUR (Vice Principal) are both scoped to "classes assigned to them," filtered client-side, not
+by the backend.** SG via `Classe.sg_id`, CENSEUR via `Classe.vp_id` (assigned from `/admin/vp-management`,
+`VpManager.tsx` — ADMIN only) — both matched against `authPayload.user_id` (the JWT's `user_id`, which
+`AccountController::connect` sets to the staff table's id for staff-type accounts). Four screens apply this
+filter to the `Classe[]` list they fetch, immediately after the fetch, before anything else runs against it:
+`DisciplineManager.tsx` (SG *or* CENSEUR), and `ClasseManager.tsx`/`SubjectClasseManager.tsx`/
+`StudentManager.tsx` (CENSEUR only — SG has no access to these three). The backend does not re-verify that a
+given `classe_id` in a request actually belongs to the caller — the corresponding write routes are gated by
+`role:ADMIN,CENSEUR` (or `role:ADMIN,SG,CENSEUR` for discipline) in the backend's `routes/api.php`, same as
+every other role check in this app, and the classe simply never appears in any dropdown fed by the filtered
+list client-side. `ClasseManager.tsx` additionally reduces what CENSEUR can do *within* their assigned
+classes via an `isAdmin` flag: row-level rename (`updateManyClasses`) stays available, but Add/Import/bulk
+delete and the per-level APC toggle (which affects every classe at that level school-wide, not just this
+VP's own) are hidden and stay ADMIN-only. CENSEUR keeps full read/write access to Mark entry regardless of
+`vp_id` (see Mark entry below) — the `vp_id` restriction is specific to these four screens.
 
 ### i18n
 
@@ -355,13 +378,16 @@ established pattern — when adding a new admin CRUD screen, follow this shape r
 ### Subjects hub and the APC / competence-based classe concept
 
 `/admin/subjects` (`SubjectsHub.tsx`) is a landing page for 4 sub-modules, not a CRUD screen itself —
-`AdminMenuCard` tiles, each with its own route nested in the same `RequireRole allow={["ADMIN"]}` group as
-every other `/admin/*` route: `matieres` (`/admin/subjects/matieres`, `SubjectManager` — the plain subject-name
-CRUD described above), `groupes` (`/admin/subjects/groupes`, `GroupeManager` — same CRUD shape, no import
-feature), `matieresClasses` (`/admin/subjects/matieres-classes`, `SubjectClasseManager` — dual-list
-assign/unassign of subjects to one classe, editing `coef`/`groupe_id`, with a "copy to other classes of the
-same level" dialog backed by `SubjectController::calquerSubjects`), and `matieresCompetences`
-(`/admin/subjects/matieres-competences`, `SubjectCompetenceManager` — see below).
+`AdminMenuCard` tiles, each with its own route: `matieres` (`/admin/subjects/matieres`, `SubjectManager` — the
+plain subject-name CRUD described above), `groupes` (`/admin/subjects/groupes`, `GroupeManager` — same CRUD
+shape, no import feature), `matieresClasses` (`/admin/subjects/matieres-classes`, `SubjectClasseManager` —
+dual-list assign/unassign of subjects to one classe, editing `coef`/`groupe_id`, with a "copy to other
+classes of the same level" dialog backed by `SubjectController::calquerSubjects`), and `matieresCompetences`
+(`/admin/subjects/matieres-competences`, `SubjectCompetenceManager` — see below). `matieres`, `groupes`, and
+`matieresCompetences` are ADMIN-only, nested in the same `RequireRole allow={["ADMIN"]}` group as every other
+`/admin/*` route — but `matieresClasses` sits in its own `RequireRole allow={["ADMIN", "CENSEUR"]}` group
+instead (see "Role-gated admin routing" above), since CENSEUR also reaches it directly from their own
+dashboard menu, bypassing this ADMIN-only hub entirely.
 
 **A classe is "APC" (competence-based) indirectly, never via its own column.** The backend's `apc_level`
 table is keyed by `(sy_id, section_id, level)`, not by `classe_id` — so being competence-based is a trait of

@@ -58,7 +58,12 @@ const mapImportErrorToMessage = (
 };
 
 const ClasseManager = () => {
-  const { connection, schoolYear, section, accessToken } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
+  // CENSEUR can only manage the classes they're assigned to as VP (Classe.vp_id, matched against
+  // the JWT's user_id) - same precedent as DisciplineManager's SG scoping - and, within those
+  // classes, only row-level rename: structural actions (add, import, bulk delete, the APC toggle
+  // which affects every classe at that level school-wide) stay ADMIN-only.
+  const isAdmin = authPayload?.role === "ADMIN";
   const confirm = useConfirm();
   const showToast = useToast();
   const [language] = useLanguage();
@@ -121,7 +126,8 @@ const ClasseManager = () => {
       schoolYear,
       section,
     );
-    setClasses(list);
+    const visibleClasses = isAdmin ? list : list.filter((c) => c.vp_id === authPayload?.user_id);
+    setClasses(visibleClasses);
     setSelectedIds(new Set());
     setIsLoading(false);
   };
@@ -622,22 +628,26 @@ const ClasseManager = () => {
             pdfLabel={et.pdfBtn}
             disabled={isLoading || classes.length === 0}
           />
-          <input
-            ref={importFileInputRef}
-            type="file"
-            accept=".csv,.xlsx"
-            className="hidden"
-            onChange={handleImportFileChange}
-          />
-          <button
-            type="button"
-            className="btn btn-outline btn-sm gap-2"
-            disabled={isLoading}
-            onClick={() => importFileInputRef.current?.click()}
-          >
-            <Upload className="w-4 h-4" />
-            {t.importBtn}
-          </button>
+          {isAdmin && (
+            <>
+              <input
+                ref={importFileInputRef}
+                type="file"
+                accept=".csv,.xlsx"
+                className="hidden"
+                onChange={handleImportFileChange}
+              />
+              <button
+                type="button"
+                className="btn btn-outline btn-sm gap-2"
+                disabled={isLoading}
+                onClick={() => importFileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4" />
+                {t.importBtn}
+              </button>
+            </>
+          )}
           <CloseButton />
         </div>
       </div>
@@ -655,30 +665,34 @@ const ClasseManager = () => {
               placeholder={t.searchPlaceholder}
               className="input-sm w-full max-w-xs"
             />
-            <button
-              type="button"
-              className="btn btn-error btn-sm"
-              disabled={selectedIds.size === 0}
-              onClick={handleDeleteSelected}
-            >
-              {t.deleteSelectionBtn(selectedIds.size)}
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                className="btn btn-error btn-sm"
+                disabled={selectedIds.size === 0}
+                onClick={handleDeleteSelected}
+              >
+                {t.deleteSelectionBtn(selectedIds.size)}
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="table table-zebra data-table">
               <thead>
                 <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={
-                        filteredClasses.length > 0 &&
-                        filteredClasses.every((c) => selectedIds.has(c.classe_id))
-                      }
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
+                  {isAdmin && (
+                    <th>
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={
+                          filteredClasses.length > 0 &&
+                          filteredClasses.every((c) => selectedIds.has(c.classe_id))
+                        }
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
+                  )}
                   <th>#</th>
                   <th>{t.tableHeaderName}</th>
                   <th>{t.tableHeaderLevel}</th>
@@ -692,14 +706,16 @@ const ClasseManager = () => {
               <tbody>
                 {filteredClasses.map((classe, index) => (
                   <tr key={classe.classe_id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        className="checkbox"
-                        checked={selectedIds.has(classe.classe_id)}
-                        onChange={() => toggleSelect(classe.classe_id)}
-                      />
-                    </td>
+                    {isAdmin && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="checkbox"
+                          checked={selectedIds.has(classe.classe_id)}
+                          onChange={() => toggleSelect(classe.classe_id)}
+                        />
+                      </td>
+                    )}
                     <td>{index + 1}</td>
                     <td>
                       {editingId === classe.classe_id ? (
@@ -804,16 +820,22 @@ const ClasseManager = () => {
                       )}
                     </td>
                     <td>
-                      <select
-                        className="select select-sm w-full"
-                        value={isLevelApc(classe.level) ? "1" : "0"}
-                        onChange={(e) =>
-                          handleApcChange(classe.level, e.target.value === "1")
-                        }
-                      >
-                        <option value="0">{t.apcNo}</option>
-                        <option value="1">{t.apcYes}</option>
-                      </select>
+                      {isAdmin ? (
+                        <select
+                          className="select select-sm w-full"
+                          value={isLevelApc(classe.level) ? "1" : "0"}
+                          onChange={(e) =>
+                            handleApcChange(classe.level, e.target.value === "1")
+                          }
+                        >
+                          <option value="0">{t.apcNo}</option>
+                          <option value="1">{t.apcYes}</option>
+                        </select>
+                      ) : isLevelApc(classe.level) ? (
+                        t.apcYes
+                      ) : (
+                        t.apcNo
+                      )}
                     </td>
                     <td className="text-right">
                       {editingId === classe.classe_id ? (
@@ -847,14 +869,14 @@ const ClasseManager = () => {
                 ))}
                 {classes.length === 0 && (
                   <tr>
-                    <td colSpan={9}>
+                    <td colSpan={isAdmin ? 9 : 8}>
                       <p className="empty-state">{t.emptySection}</p>
                     </td>
                   </tr>
                 )}
                 {classes.length > 0 && filteredClasses.length === 0 && (
                   <tr>
-                    <td colSpan={9}>
+                    <td colSpan={isAdmin ? 9 : 8}>
                       <p className="empty-state">{t.noSearchResults}</p>
                     </td>
                   </tr>
@@ -865,6 +887,7 @@ const ClasseManager = () => {
         </div>
       )}
 
+      {isAdmin && (
       <div className="surface-card p-4 md:p-5">
         <form
           onSubmit={handleAdd}
@@ -943,6 +966,7 @@ const ClasseManager = () => {
           </button>
         </form>
       </div>
+      )}
     </div>
   );
 };
