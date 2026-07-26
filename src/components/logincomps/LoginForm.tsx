@@ -249,8 +249,12 @@ const LoginForm = () => {
             />
           </div>
 
-          <form onSubmit={handleSubmit} autoComplete="off">
-            <div className="flex items-center md:h-120 bg-base-100/95 backdrop-blur border border-base-content/10 shadow-2xl rounded-2xl md:rounded-l-none w-sm md:w-95 p-6">
+          <form
+            onSubmit={handleSubmit}
+            autoComplete="off"
+            className="w-full max-w-sm md:w-auto md:max-w-none"
+          >
+            <div className="flex items-center md:h-120 bg-base-100/95 backdrop-blur border border-base-content/10 shadow-2xl rounded-2xl md:rounded-l-none w-full md:w-95 p-6">
               <div className="w-full">
                 <label className="label" htmlFor="login">
                   {t.loginLabel}
