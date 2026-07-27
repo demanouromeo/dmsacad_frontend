@@ -108,8 +108,8 @@ const TopBanner = () => {
 
   return (
     <>
-      <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-4">
-        <div className="flex-1 flex items-center gap-3 min-w-0">
+      <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-2 sm:px-4 gap-1">
+        <div className="flex-1 flex items-center gap-1 sm:gap-3 min-w-0">
           {logoUrl && (
             <div
               className="hidden sm:block tooltip tooltip-bottom"
@@ -124,7 +124,7 @@ const TopBanner = () => {
               </Link>
             </div>
           )}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             {canGoBack && (
               <div
                 className="hidden sm:block tooltip tooltip-bottom"
@@ -142,16 +142,16 @@ const TopBanner = () => {
             <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
               <Link
                 to="/dashboard"
-                className="btn btn-ghost btn-circle hover:text-primary"
+                className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
               >
                 <Home className="w-5 h-5" />
               </Link>
             </div>
-            <div className="w-px h-6 bg-base-content/10 mx-1" />
+            <div className="hidden sm:block w-px h-6 bg-base-content/10 mx-1" />
             <div className="tooltip tooltip-bottom" data-tip={t.schoolYearHint}>
               <button
                 type="button"
-                className="btn btn-ghost btn-circle hover:text-primary"
+                className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
                 onClick={openSchoolYearDialog}
               >
                 <CalendarDays className="w-5 h-5" />
@@ -160,7 +160,7 @@ const TopBanner = () => {
             <div className="tooltip tooltip-bottom" data-tip={t.sectionHint}>
               <button
                 type="button"
-                className="btn btn-ghost btn-circle hover:text-primary"
+                className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
                 onClick={openSectionDialog}
               >
                 <GraduationCap className="w-5 h-5" />
@@ -175,7 +175,7 @@ const TopBanner = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
           <div className="dropdown dropdown-end">
             <div
               className="tooltip tooltip-bottom"
@@ -184,7 +184,7 @@ const TopBanner = () => {
               <div
                 tabIndex={0}
                 role="button"
-                className="btn btn-ghost btn-circle"
+                className="btn btn-sm sm:btn-md btn-ghost btn-circle"
               >
                 {language === "fr" ? (
                   <FlagFR className="w-6 h-4 rounded-xs" />
@@ -216,8 +216,8 @@ const TopBanner = () => {
                 role="button"
                 className="avatar avatar-placeholder"
               >
-                <div className="bg-primary text-primary-content w-10 rounded-full ring-2 ring-primary/30 ring-offset-2 ring-offset-base-100 hover:ring-primary/60 transition-all">
-                  <UserRound className="w-5 h-5" />
+                <div className="bg-primary text-primary-content w-8 sm:w-10 rounded-full ring-2 ring-primary/30 ring-offset-2 ring-offset-base-100 hover:ring-primary/60 transition-all">
+                  <UserRound className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
             </div>
