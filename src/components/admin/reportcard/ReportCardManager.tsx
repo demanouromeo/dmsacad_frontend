@@ -818,78 +818,104 @@ const ReportCardManager = () => {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="btn btn-primary gap-2"
-                disabled={isLoadingData || !reportCardData || students.length === 0}
-                onClick={handlePrintAll}
+              <div className="tooltip tooltip-bottom" data-tip={t.printBtn}>
+                <button
+                  type="button"
+                  className="btn btn-primary gap-2"
+                  disabled={isLoadingData || !reportCardData || students.length === 0}
+                  onClick={handlePrintAll}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.printBtn}</span>
+                </button>
+              </div>
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={t.printSelectionBtn(selectedIds.size)}
               >
-                <Printer className="w-4 h-4" />
-                {t.printBtn}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline gap-2"
-                disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
-                onClick={handlePrintSelection}
+                <button
+                  type="button"
+                  className="btn btn-outline gap-2"
+                  disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
+                  onClick={handlePrintSelection}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {t.printSelectionBtn(selectedIds.size)}
+                  </span>
+                </button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip={t.printAllClassesBtn}>
+                <button
+                  type="button"
+                  className="btn btn-secondary gap-2"
+                  disabled={isLoadingClasses || classes.length === 0}
+                  onClick={handlePrintAllClasses}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.printAllClassesBtn}</span>
+                </button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip={t.printThBtn}>
+                <button
+                  type="button"
+                  className="btn btn-accent gap-2"
+                  disabled={classes.length === 0}
+                  onClick={handlePrintTh}
+                >
+                  <Award className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.printThBtn}</span>
+                </button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip={t.printAnnualThBtn}>
+                <button
+                  type="button"
+                  className="btn btn-accent gap-2"
+                  disabled={classes.length === 0}
+                  onClick={handlePrintAnnualTh}
+                >
+                  <Award className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.printAnnualThBtn}</span>
+                </button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip={t.printAnnualBtn}>
+                <button
+                  type="button"
+                  className="btn btn-outline gap-2"
+                  disabled={isLoadingData || !reportCardData || students.length === 0}
+                  onClick={handlePrintAllAnnual}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.printAnnualBtn}</span>
+                </button>
+              </div>
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={t.printSelectionAnnualBtn(selectedIds.size)}
               >
-                <Printer className="w-4 h-4" />
-                {t.printSelectionBtn(selectedIds.size)}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary gap-2"
-                disabled={isLoadingClasses || classes.length === 0}
-                onClick={handlePrintAllClasses}
-              >
-                <Printer className="w-4 h-4" />
-                {t.printAllClassesBtn}
-              </button>
-              <button
-                type="button"
-                className="btn btn-accent gap-2"
-                disabled={classes.length === 0}
-                onClick={handlePrintTh}
-              >
-                <Award className="w-4 h-4" />
-                {t.printThBtn}
-              </button>
-              <button
-                type="button"
-                className="btn btn-accent gap-2"
-                disabled={classes.length === 0}
-                onClick={handlePrintAnnualTh}
-              >
-                <Award className="w-4 h-4" />
-                {t.printAnnualThBtn}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline gap-2"
-                disabled={isLoadingData || !reportCardData || students.length === 0}
-                onClick={handlePrintAllAnnual}
-              >
-                <Printer className="w-4 h-4" />
-                {t.printAnnualBtn}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline gap-2"
-                disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
-                onClick={handlePrintSelectionAnnual}
-              >
-                <Printer className="w-4 h-4" />
-                {t.printSelectionAnnualBtn(selectedIds.size)}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary gap-2"
-                disabled={isLoadingClasses || classes.length === 0}
-                onClick={handlePrintAllClassesAnnual}
-              >
-                <Printer className="w-4 h-4" />
-                {t.printAllClassesAnnualBtn}
-              </button>
+                <button
+                  type="button"
+                  className="btn btn-outline gap-2"
+                  disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
+                  onClick={handlePrintSelectionAnnual}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {t.printSelectionAnnualBtn(selectedIds.size)}
+                  </span>
+                </button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip={t.printAllClassesAnnualBtn}>
+                <button
+                  type="button"
+                  className="btn btn-secondary gap-2"
+                  disabled={isLoadingClasses || classes.length === 0}
+                  onClick={handlePrintAllClassesAnnual}
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.printAllClassesAnnualBtn}</span>
+                </button>
+              </div>
             </div>
           </div>
 

@@ -975,10 +975,10 @@ const MarkEntryManager = () => {
               </div>
 
               {isApc ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-start gap-1">
                   <label className="font-medium">{t.competenceLabel}</label>
                   <select
-                    className="select w-64"
+                    className="select w-full sm:w-64"
                     disabled={isLoadingCompetences || competences.length === 0}
                     value={selectedCompetenceId ?? ""}
                     onChange={(e) => setSelectedCompetenceId(Number(e.target.value))}

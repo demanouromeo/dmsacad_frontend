@@ -1,4 +1,5 @@
 import AdminMenuCard from "../../dashboard/AdminMenuCard";
+import CloseButton from "../../sharedcomp/CloseButton";
 import iconEffectifs from "../../../assets/compo/stat/effectifs.svg";
 import iconPv from "../../../assets/compo/stat/pv.svg";
 import iconStatGroupees from "../../../assets/compo/stat/stat_groupees.svg";
@@ -70,7 +71,10 @@ const EffectifsHub = () => {
 
   return (
     <div className="page-shell">
-      <h1 className="page-title mb-6">Bilan</h1>
+      <div className="page-header">
+        <h1 className="page-title">Bilan</h1>
+        <CloseButton />
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
         {items.map((item) => (
           <AdminMenuCard key={item.key} label={item.label} icon={item.icon} to={item.to} />
