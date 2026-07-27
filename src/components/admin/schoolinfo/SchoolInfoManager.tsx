@@ -260,7 +260,7 @@ const SchoolInfoManager = () => {
           className="surface-card p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
         <div>
-          <label className="label" htmlFor="schoolName">
+          <label className="label whitespace-normal h-auto" htmlFor="schoolName">
             {t.schoolNameLabel} <span className="text-error">*</span>
           </label>
           <input
@@ -276,7 +276,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="schoolNameEN">
+          <label className="label whitespace-normal h-auto" htmlFor="schoolNameEN">
             {t.schoolNameENLabel} <span className="text-error">*</span>
           </label>
           <input
@@ -295,7 +295,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="delRegionFR">
+          <label className="label whitespace-normal h-auto" htmlFor="delRegionFR">
             {t.regionLabel}
           </label>
           <input
@@ -313,7 +313,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="delRegionEN">
+          <label className="label whitespace-normal h-auto" htmlFor="delRegionEN">
             {t.regionENLabel}
           </label>
           <input
@@ -331,7 +331,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="delDeptFR">
+          <label className="label whitespace-normal h-auto" htmlFor="delDeptFR">
             {t.deptLabel}
           </label>
           <input
@@ -346,7 +346,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="delDeptEN">
+          <label className="label whitespace-normal h-auto" htmlFor="delDeptEN">
             {t.deptENLabel}
           </label>
           <input
@@ -361,7 +361,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="phone">
+          <label className="label whitespace-normal h-auto" htmlFor="phone">
             {t.phoneLabel} <span className="text-error">*</span>
           </label>
           <input
@@ -375,7 +375,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="email">
+          <label className="label whitespace-normal h-auto" htmlFor="email">
             {t.emailLabel}
           </label>
           <input
@@ -388,7 +388,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="pobox">
+          <label className="label whitespace-normal h-auto" htmlFor="pobox">
             {t.poboxLabel}
           </label>
           <input
@@ -403,7 +403,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="type">
+          <label className="label whitespace-normal h-auto" htmlFor="type">
             {t.typeLabel}
           </label>
           <select
@@ -424,7 +424,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="signDate">
+          <label className="label whitespace-normal h-auto" htmlFor="signDate">
             {t.signDateLabel} <span className="text-error">*</span>
           </label>
           <input
@@ -438,7 +438,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="immt">
+          <label className="label whitespace-normal h-auto" htmlFor="immt">
             {t.immtLabel}
           </label>
           <input
@@ -453,7 +453,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="str1">
+          <label className="label whitespace-normal h-auto" htmlFor="str1">
             {t.str1Label}
           </label>
           <input
@@ -468,7 +468,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="str2">
+          <label className="label whitespace-normal h-auto" htmlFor="str2">
             {t.str2Label}
           </label>
           <input
@@ -483,7 +483,7 @@ const SchoolInfoManager = () => {
         </div>
 
         <div>
-          <label className="label" htmlFor="signPlace">
+          <label className="label whitespace-normal h-auto" htmlFor="signPlace">
             {t.signPlaceLabel} <span className="text-error">*</span>
           </label>
           <input
@@ -498,7 +498,7 @@ const SchoolInfoManager = () => {
           />
         </div>
 
-        <div className="md:col-span-2 flex items-center gap-4">
+        <div className="md:col-span-2 flex flex-col items-center gap-4 md:flex-row md:items-center">
           <input
             ref={fileInputRef}
             type="file"
@@ -506,15 +506,7 @@ const SchoolInfoManager = () => {
             className="hidden"
             onChange={handleLogoChange}
           />
-          <button
-            type="button"
-            className="btn btn-neutral gap-2"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="w-4 h-4" />
-            {t.selectFileBtn}
-          </button>
-          <div className="w-30 h-30 shrink-0 rounded border flex items-center justify-center overflow-hidden bg-base-200">
+          <div className="order-1 w-30 h-30 shrink-0 rounded border flex items-center justify-center overflow-hidden bg-base-200 md:order-2">
             {logoPreviewUrl || existingLogoUrl ? (
               <img
                 src={logoPreviewUrl ?? existingLogoUrl ?? undefined}
@@ -525,8 +517,16 @@ const SchoolInfoManager = () => {
               <ImageIcon className="w-8 h-8 opacity-40" />
             )}
           </div>
+          <button
+            type="button"
+            className="order-2 btn btn-neutral gap-2 md:order-1"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-4 h-4" />
+            {t.selectFileBtn}
+          </button>
           {!logoPreviewUrl && existingLogoUrl && (
-            <p className="text-sm opacity-70">{t.logoReselectHint}</p>
+            <p className="order-3 text-sm opacity-70 text-center">{t.logoReselectHint}</p>
           )}
         </div>
 
