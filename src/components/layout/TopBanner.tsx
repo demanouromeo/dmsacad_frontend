@@ -111,7 +111,10 @@ const TopBanner = () => {
       <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-4">
         <div className="flex-1 flex items-center gap-3 min-w-0">
           {logoUrl && (
-            <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
+            <div
+              className="hidden sm:block tooltip tooltip-bottom"
+              data-tip={t.homeHint}
+            >
               <Link to="/dashboard" className="shrink-0">
                 <img
                   src={logoUrl}
@@ -123,7 +126,10 @@ const TopBanner = () => {
           )}
           <div className="flex items-center gap-1 shrink-0">
             {canGoBack && (
-              <div className="tooltip tooltip-bottom" data-tip={t.backHint}>
+              <div
+                className="hidden sm:block tooltip tooltip-bottom"
+                data-tip={t.backHint}
+              >
                 <button
                   type="button"
                   className="btn btn-ghost btn-circle hover:text-primary"

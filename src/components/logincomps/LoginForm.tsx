@@ -173,7 +173,7 @@ const LoginForm = () => {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-base-300 p-6 md:p-10 flex flex-col"
+      className="relative min-h-screen overflow-hidden bg-base-300 px-6 max-sm:px-15 py-6 md:p-10 flex flex-col"
       id="About"
     >
       <div
@@ -240,7 +240,7 @@ const LoginForm = () => {
 
       <div className="relative z-10 flex-1 flex flex-col justify-center">
         <Title title={t.title} />
-        <div className="flex justify-center items-center">
+        <div className="flex flex-wrap justify-center items-center">
           <div className="hidden md:block md:h-120 w-96">
             <img
               src={img}
