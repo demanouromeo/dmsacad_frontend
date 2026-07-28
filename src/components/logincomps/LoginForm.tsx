@@ -15,22 +15,26 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { useAuth } from "../../auth/useAuth";
 import { useToast } from "../../toast/useToast";
 
-// Packaged Android/iOS builds only ever talk to the remote backend - the "Local" target
-// (http://localhost/dmsacad_backend_dev/) points at the developer's own XAMPP machine, which
-// is unreachable from a real device. Hide the Remote/Local toggle entirely in that case rather
-// than showing a choice that can never actually work locally.
+// Packaged Android/iOS builds, and a browser window narrowed to phone width, only ever talk to
+// the remote backend - the "Local" target (http://localhost/dmsacad_backend_dev/) points at the
+// developer's own XAMPP machine, unreachable from a real device or from a phone's browser either.
+// Hide the Remote/Local toggle in both cases rather than showing a choice that can't work.
+// Matches this app's existing sm: (640px) breakpoint convention (see e.g. MagicAssistant.tsx).
+const MOBILE_WIDTH_QUERY = "(max-width: 639px)";
 const isNativeApp = Capacitor.isNativePlatform();
+const shouldForceRemoteOnly = () =>
+  isNativeApp || window.matchMedia(MOBILE_WIDTH_QUERY).matches;
 
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
   const [passwordVal, setPasswordVal] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<string>(() =>
-    !isNativeApp && MyConstants.getBackendTarget() === "local"
+    !shouldForceRemoteOnly() && MyConstants.getBackendTarget() === "local"
       ? MyConstants.gLocalSchoolCode
       : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
   );
   const [remoteSchool, setRemoteSchool] = useState<string>(() =>
-    !isNativeApp && MyConstants.getBackendTarget() === "local"
+    !shouldForceRemoteOnly() && MyConstants.getBackendTarget() === "local"
       ? ""
       : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
   );
@@ -47,8 +51,12 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useLanguage();
   const [backendTarget, setBackendTargetState] = useState<BackendTarget>(() =>
-    isNativeApp ? "remote" : MyConstants.getBackendTarget(),
+    shouldForceRemoteOnly() ? "remote" : MyConstants.getBackendTarget(),
   );
+  const [isMobileWidth, setIsMobileWidth] = useState<boolean>(() =>
+    window.matchMedia(MOBILE_WIDTH_QUERY).matches,
+  );
+  const hideBackendToggle = isNativeApp || isMobileWidth;
   const [, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
   const t = loginTranslations[language];
@@ -161,10 +169,6 @@ const LoginForm = () => {
   };
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect --
-       Mount-only data load (school/school-year lists); the setState calls inside
-       loadSchools()/loadSchoolYears() happen after an await, not synchronously,
-       but the rule can't see across that boundary. */
     if (backendTarget === "local") {
       loadSchoolYears(MyConstants.gLocalSchoolCode);
       return;
@@ -175,8 +179,23 @@ const LoginForm = () => {
     if (selectedSchool) {
       loadSchoolYears(selectedSchool);
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_WIDTH_QUERY);
+    const handleChange = (e: MediaQueryListEvent) => setIsMobileWidth(e.matches);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (hideBackendToggle && backendTarget === "local") {
+      handleBackendTargetChange("remote");
+    }
+    // Only needs to react to hideBackendToggle turning on; backendTarget/handleBackendTargetChange
+    // are read fresh via closure and don't need to retrigger this effect on their own.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideBackendToggle]);
 
   return (
     <div
@@ -375,7 +394,7 @@ const LoginForm = () => {
 
           <h3 className="font-bold text-lg mb-4">{t.settingsTitle}</h3>
 
-          {!isNativeApp && (
+          {!hideBackendToggle && (
             <div className="flex gap-2 mb-4">
               <button
                 type="button"
