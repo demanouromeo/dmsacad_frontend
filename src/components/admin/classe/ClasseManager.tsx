@@ -722,6 +722,7 @@ const ClasseManager = () => {
                         <input
                           type="text"
                           className="input input-sm w-full"
+                          title={t.nameTooltip}
                           value={editingName}
                           autoFocus
                           onChange={(e) =>
@@ -745,6 +746,7 @@ const ClasseManager = () => {
                           min={1}
                           max={maxLevel}
                           className="input input-sm w-20"
+                          title={t.levelTooltip}
                           value={editingLevel}
                           onChange={(e) => setEditingLevel(e.target.value)}
                           onKeyDown={(e) => {
@@ -760,6 +762,7 @@ const ClasseManager = () => {
                       {editingId === classe.classe_id ? (
                         <select
                           className="select select-sm w-full"
+                          title={t.specialityTooltip}
                           value={editingSpecialityId}
                           onChange={(e) =>
                             setEditingSpecialityId(e.target.value)
@@ -783,6 +786,7 @@ const ClasseManager = () => {
                       {editingId === classe.classe_id ? (
                         <select
                           className="select select-sm w-full"
+                          title={t.classeMasterTooltip}
                           value={editingClasseMasterId}
                           onChange={(e) =>
                             setEditingClasseMasterId(e.target.value)
@@ -805,6 +809,7 @@ const ClasseManager = () => {
                       {editingId === classe.classe_id ? (
                         <select
                           className="select select-sm w-full"
+                          title={t.sgTooltip}
                           value={editingSgId}
                           onChange={(e) => setEditingSgId(e.target.value)}
                         >
@@ -823,6 +828,7 @@ const ClasseManager = () => {
                       {isAdmin ? (
                         <select
                           className="select select-sm w-full"
+                          title={t.apcTooltip}
                           value={isLevelApc(classe.level) ? "1" : "0"}
                           onChange={(e) =>
                             handleApcChange(classe.level, e.target.value === "1")
@@ -897,6 +903,7 @@ const ClasseManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholder}
+            title={t.nameTooltip}
             value={newClasseName}
             onChange={(e) =>
               setNewClasseName(sanitizeFiliereOrSpecialityName(e.target.value))
@@ -908,11 +915,13 @@ const ClasseManager = () => {
             max={maxLevel}
             className="input w-24"
             placeholder={t.levelPlaceholder}
+            title={t.levelTooltip}
             value={newLevel}
             onChange={(e) => setNewLevel(e.target.value)}
           />
           <select
             className="select"
+            title={t.specialityTooltip}
             value={newSpecialityId}
             onChange={(e) => setNewSpecialityId(e.target.value)}
           >
@@ -928,6 +937,7 @@ const ClasseManager = () => {
           </select>
           <select
             className="select"
+            title={t.classeMasterTooltip}
             value={newClasseMasterId}
             onChange={(e) => setNewClasseMasterId(e.target.value)}
           >
@@ -940,6 +950,7 @@ const ClasseManager = () => {
           </select>
           <select
             className="select"
+            title={t.sgTooltip}
             value={newSgId}
             onChange={(e) => setNewSgId(e.target.value)}
           >
@@ -950,10 +961,11 @@ const ClasseManager = () => {
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 shrink-0 whitespace-nowrap">
             {t.apcLabel}
             <select
               className="select"
+              title={t.apcTooltip}
               value={newApc ? "1" : "0"}
               onChange={(e) => setNewApc(e.target.value === "1")}
             >

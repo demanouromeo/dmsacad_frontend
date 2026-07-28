@@ -574,6 +574,7 @@ const VpManager = () => {
                   <label className="font-medium">{t.vpLabel}</label>
                   <select
                     className="select w-64"
+                    title={t.vpSelectTooltip}
                     value={selectedVpId ?? ""}
                     onChange={(e) => setSelectedVpId(Number(e.target.value))}
                     disabled={sortedVpStaff.length === 0}

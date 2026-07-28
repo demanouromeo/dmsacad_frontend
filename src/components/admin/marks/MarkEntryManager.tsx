@@ -921,6 +921,7 @@ const MarkEntryManager = () => {
                 <label className="font-medium">{t.classeLabel}</label>
                 <select
                   className="select w-48"
+                  title={t.classeSelectTooltip}
                   value={selectedClasseId ?? ""}
                   onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
@@ -936,6 +937,7 @@ const MarkEntryManager = () => {
                 <label className="font-medium">{t.subjectLabel}</label>
                 <select
                   className="select w-48"
+                  title={t.subjectSelectTooltip}
                   disabled={isLoadingSubjects || subjects.length === 0}
                   value={selectedSubjectId ?? ""}
                   onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
@@ -963,6 +965,7 @@ const MarkEntryManager = () => {
                 <label className="font-medium">{t.termLabel}</label>
                 <select
                   className="select w-36"
+                  title={t.termSelectTooltip}
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(Number(e.target.value))}
                 >
@@ -979,6 +982,7 @@ const MarkEntryManager = () => {
                   <label className="font-medium">{t.competenceLabel}</label>
                   <select
                     className="select w-full sm:w-64"
+                    title={t.competenceSelectTooltip}
                     disabled={isLoadingCompetences || competences.length === 0}
                     value={selectedCompetenceId ?? ""}
                     onChange={(e) => setSelectedCompetenceId(Number(e.target.value))}
@@ -997,6 +1001,7 @@ const MarkEntryManager = () => {
                   <label className="font-medium">{t.sequenceLabel}</label>
                   <select
                     className="select w-36"
+                    title={t.sequenceSelectTooltip}
                     value={selectedSequence}
                     onChange={(e) => setSelectedSequence(Number(e.target.value))}
                   >
@@ -1013,6 +1018,7 @@ const MarkEntryManager = () => {
                 value={searchQuery}
                 onChange={setSearchQuery}
                 placeholder={t.filterPlaceholder}
+                title={t.searchTooltip}
                 className="w-56"
               />
             </div>
@@ -1023,6 +1029,7 @@ const MarkEntryManager = () => {
                 type="file"
                 accept=".csv,.xlsx"
                 className="hidden"
+                title={t.importMarksTooltip}
                 onChange={handleImportMarksFileChange}
               />
               <div className="tooltip" data-tip={t.exportMarksTooltip}>

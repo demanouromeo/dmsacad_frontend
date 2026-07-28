@@ -339,6 +339,7 @@ const PvManager = () => {
               <label className="font-medium">Classe</label>
               <select
                 className="select w-56"
+                title="Classe dont on génère le PV"
                 value={selectedClasseId ?? ""}
                 onChange={(e) => setSelectedClasseId(Number(e.target.value))}
               >
@@ -354,6 +355,7 @@ const PvManager = () => {
               <label className="font-medium">Trimestre</label>
               <select
                 className="select w-40"
+                title="Trimestres (1, 2, 3)"
                 value={selectedTerm}
                 onChange={(e) => setSelectedTerm(Number(e.target.value))}
               >

@@ -458,6 +458,7 @@ const SubjectManager = () => {
                         <input
                           type="text"
                           className="input input-sm w-full"
+                          title={t.nameTooltip}
                           value={editingValue}
                           autoFocus
                           onChange={(e) =>
@@ -530,6 +531,7 @@ const SubjectManager = () => {
             type="text"
             className="input w-full"
             placeholder={t.addPlaceholder}
+            title={t.nameTooltip}
             value={newSubjectTitle}
             onChange={(e) =>
               setNewSubjectTitle(sanitizeFiliereOrSpecialityName(e.target.value))

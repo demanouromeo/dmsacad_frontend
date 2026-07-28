@@ -106,6 +106,7 @@ const ClassifiedParamManager = () => {
                     min={MIN_RATE}
                     max={MAX_RATE}
                     step={1}
+                    title={t.rateSliderTooltip}
                     value={nbMatieresRate}
                     onChange={(e) => setNbMatieresRate(Number(e.target.value))}
                     className="range range-primary w-full"

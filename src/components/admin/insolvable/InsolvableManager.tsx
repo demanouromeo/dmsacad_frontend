@@ -232,6 +232,7 @@ const InsolvableManager = () => {
                 <label className="font-medium">{t.classeLabel}</label>
                 <select
                   className="select w-48"
+                  title={t.classeSelectTooltip}
                   value={selectedClasseId ?? ""}
                   onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
@@ -330,6 +331,7 @@ const InsolvableManager = () => {
                         <td>
                           <select
                             className="select select-sm w-24"
+                            title={t.insolvableSelectTooltip}
                             value={student.solvable1 === 0 ? "1" : "0"}
                             onChange={(e) => handleRowChange(student.stud_id, e.target.value === "1")}
                           >

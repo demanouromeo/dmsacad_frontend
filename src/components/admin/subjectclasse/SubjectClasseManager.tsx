@@ -391,6 +391,7 @@ const SubjectClasseManager = () => {
             <label className="font-medium">{t.classeLabel}</label>
             <select
               className="select w-64"
+              title={t.classeSelectTooltip}
               value={selectedClasseId ?? ""}
               onChange={(e) => setSelectedClasseId(Number(e.target.value))}
             >
@@ -542,6 +543,7 @@ const SubjectClasseManager = () => {
                                 min={MIN_COEF}
                                 max={MAX_COEF}
                                 step="0.1"
+                                title={t.coefTooltip}
                                 value={row.coef}
                                 onChange={(e) =>
                                   updateAssignedField(
@@ -555,6 +557,7 @@ const SubjectClasseManager = () => {
                             <td>
                               <select
                                 className="select select-sm"
+                                title={t.groupeTooltip}
                                 value={row.groupe_id}
                                 onChange={(e) =>
                                   updateAssignedField(

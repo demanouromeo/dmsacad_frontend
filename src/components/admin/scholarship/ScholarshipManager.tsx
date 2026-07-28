@@ -253,6 +253,7 @@ const ScholarshipManager = () => {
                 max={20}
                 step={0.5}
                 className="input input-sm input-bordered w-24 text-center"
+                title={t.minAvgTooltip}
                 value={minAvgInput}
                 onChange={(e) => setMinAvgInput(e.target.value)}
                 onBlur={commitMinAvg}

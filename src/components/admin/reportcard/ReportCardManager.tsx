@@ -790,6 +790,7 @@ const ReportCardManager = () => {
                 <label className="font-medium">{t.classeLabel}</label>
                 <select
                   className="select w-56"
+                  title={t.classeSelectTooltip}
                   value={selectedClasseId ?? ""}
                   onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
@@ -805,6 +806,7 @@ const ReportCardManager = () => {
                 <label className="font-medium">{t.termLabel}</label>
                 <select
                   className="select w-40"
+                  title={t.termSelectTooltip}
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(Number(e.target.value))}
                 >

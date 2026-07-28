@@ -151,6 +151,7 @@ const FillRateClassManager = () => {
             <label className="font-medium">{t.classeLabel}</label>
             <select
               className="select w-48"
+              title={t.classeSelectTooltip}
               value={selectedClasseId ?? ""}
               onChange={(e) => setSelectedClasseId(Number(e.target.value))}
             >
@@ -164,6 +165,7 @@ const FillRateClassManager = () => {
             <label className="font-medium ml-2">{t.termLabel}</label>
             <select
               className="select w-36"
+              title={t.termSelectTooltip}
               value={selectedTerm}
               onChange={(e) => setSelectedTerm(Number(e.target.value))}
             >
@@ -179,6 +181,7 @@ const FillRateClassManager = () => {
                 <label className="font-medium ml-2">{t.sequenceLabel}</label>
                 <select
                   className="select w-36"
+                  title={t.sequenceSelectTooltip}
                   value={selectedSequence}
                   onChange={(e) => setSelectedSequence(Number(e.target.value))}
                 >

@@ -375,6 +375,7 @@ const DisciplineManager = () => {
                 <label className="font-medium">{t.classeLabel}</label>
                 <select
                   className="select w-48"
+                  title={t.classeSelectTooltip}
                   value={selectedClasseId ?? ""}
                   onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
@@ -390,6 +391,7 @@ const DisciplineManager = () => {
                 <label className="font-medium">{t.termLabel}</label>
                 <select
                   className="select w-36"
+                  title={t.termSelectTooltip}
                   value={selectedTerm}
                   onChange={(e) => setSelectedTerm(Number(e.target.value))}
                 >
@@ -490,6 +492,7 @@ const DisciplineManager = () => {
                             type="text"
                             inputMode="numeric"
                             className="input input-sm w-16"
+                            title={t.absencesTooltip}
                             value={entry.absences}
                             ref={registerCellRef("absences", student.stud_id)}
                             onChange={(e) =>
@@ -503,6 +506,7 @@ const DisciplineManager = () => {
                             type="text"
                             inputMode="numeric"
                             className="input input-sm w-16"
+                            title={t.exclusionTooltip}
                             value={entry.exclusion}
                             ref={registerCellRef("exclusion", student.stud_id)}
                             onChange={(e) =>
@@ -516,6 +520,7 @@ const DisciplineManager = () => {
                             type="text"
                             inputMode="numeric"
                             className="input input-sm w-16"
+                            title={t.latenessTooltip}
                             value={entry.lateness}
                             ref={registerCellRef("lateness", student.stud_id)}
                             onChange={(e) =>
@@ -529,6 +534,7 @@ const DisciplineManager = () => {
                             type="text"
                             inputMode="numeric"
                             className="input input-sm w-16"
+                            title={t.consigneTooltip}
                             value={entry.consigne}
                             ref={registerCellRef("consigne", student.stud_id)}
                             onChange={(e) =>
@@ -542,6 +548,7 @@ const DisciplineManager = () => {
                             type="text"
                             inputMode="numeric"
                             className="input input-sm w-16"
+                            title={t.warningTooltip}
                             value={entry.warning}
                             ref={registerCellRef("warning", student.stud_id)}
                             onChange={(e) =>
@@ -553,6 +560,7 @@ const DisciplineManager = () => {
                         <td>
                           <select
                             className="select select-sm w-24"
+                            title={t.dismissedTooltip}
                             value={entry.dismissed ? "1" : "0"}
                             ref={registerCellRef("dismissed", student.stud_id)}
                             onChange={(e) =>
@@ -568,6 +576,7 @@ const DisciplineManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-56"
+                            title={t.commentTooltip}
                             value={entry.comment}
                             ref={registerCellRef("comment", student.stud_id)}
                             onChange={(e) => handleCommentChange(student.stud_id, e.target.value)}

@@ -579,6 +579,7 @@ const StudentManager = () => {
               <label className="font-medium">{t.classeLabel}</label>
               <select
                 className="select w-56"
+                title={t.classeSelectTooltip}
                 value={selectedClasseId ?? ""}
                 onChange={(e) => setSelectedClasseId(Number(e.target.value))}
               >
@@ -726,6 +727,7 @@ const StudentManager = () => {
                               <input
                                 type="text"
                                 className="input input-sm w-full"
+                                title={t.matriculeTooltip}
                                 value={editingMatricule}
                                 onChange={(e) => setEditingMatricule(e.target.value)}
                               />
@@ -738,6 +740,7 @@ const StudentManager = () => {
                               <input
                                 type="text"
                                 className="input input-sm w-full"
+                                title={t.nameHint}
                                 value={editingFields.name}
                                 autoFocus
                                 onChange={(e) =>
@@ -756,6 +759,7 @@ const StudentManager = () => {
                               <input
                                 type="text"
                                 className="input input-sm w-full"
+                                title={t.surnameHint}
                                 value={editingFields.surname}
                                 onChange={(e) =>
                                   setEditingFields({
@@ -773,6 +777,7 @@ const StudentManager = () => {
                               <input
                                 type="date"
                                 className="input input-sm w-full"
+                                title={t.bdayHint}
                                 value={editingFields.bday}
                                 onChange={(e) =>
                                   setEditingFields({ ...editingFields, bday: e.target.value })
@@ -787,6 +792,7 @@ const StudentManager = () => {
                               <input
                                 type="text"
                                 className="input input-sm w-full"
+                                title={t.bplaceHint}
                                 value={editingFields.bplace}
                                 onChange={(e) =>
                                   setEditingFields({
@@ -803,6 +809,7 @@ const StudentManager = () => {
                             {isEditing && editingFields ? (
                               <select
                                 className="select select-sm"
+                                title={t.sexeHint}
                                 value={editingFields.sexe}
                                 onChange={(e) =>
                                   setEditingFields({
@@ -822,6 +829,7 @@ const StudentManager = () => {
                             {isEditing && editingFields ? (
                               <select
                                 className="select select-sm"
+                                title={t.repeatingHint}
                                 value={editingFields.repeating ? "1" : "0"}
                                 onChange={(e) =>
                                   setEditingFields({
@@ -844,6 +852,7 @@ const StudentManager = () => {
                               <input
                                 type="checkbox"
                                 className="checkbox"
+                                title={t.handicapeHint}
                                 checked={editingFields.handicape}
                                 onChange={(e) =>
                                   setEditingFields({

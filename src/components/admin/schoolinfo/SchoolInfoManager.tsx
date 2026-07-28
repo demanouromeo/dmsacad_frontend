@@ -268,6 +268,7 @@ const SchoolInfoManager = () => {
             type="text"
             className="input w-full"
             required
+            title={t.schoolNameTooltip}
             value={fields.schoolName}
             onChange={(e) =>
               updateField("schoolName", sanitizeSchoolInfoText(e.target.value))
@@ -284,6 +285,7 @@ const SchoolInfoManager = () => {
             type="text"
             className="input w-full"
             required
+            title={t.schoolNameENTooltip}
             value={fields.schoolNameEN}
             onChange={(e) =>
               updateField(
@@ -302,6 +304,7 @@ const SchoolInfoManager = () => {
             id="delRegionFR"
             type="text"
             className="input w-full"
+            title={t.regionTooltip}
             value={fields.delRegionFR}
             onChange={(e) =>
               updateField(
@@ -320,6 +323,7 @@ const SchoolInfoManager = () => {
             id="delRegionEN"
             type="text"
             className="input w-full"
+            title={t.regionENTooltip}
             value={fields.delRegionEN}
             onChange={(e) =>
               updateField(
@@ -338,6 +342,7 @@ const SchoolInfoManager = () => {
             id="delDeptFR"
             type="text"
             className="input w-full"
+            title={t.deptTooltip}
             value={fields.delDeptFR}
             onChange={(e) =>
               updateField("delDeptFR", sanitizeSchoolInfoText(e.target.value))
@@ -353,6 +358,7 @@ const SchoolInfoManager = () => {
             id="delDeptEN"
             type="text"
             className="input w-full"
+            title={t.deptENTooltip}
             value={fields.delDeptEN}
             onChange={(e) =>
               updateField("delDeptEN", sanitizeSchoolInfoText(e.target.value))
@@ -369,6 +375,7 @@ const SchoolInfoManager = () => {
             type="tel"
             className="input w-full"
             required
+            title={t.phoneTooltip}
             value={fields.phone}
             onChange={(e) => updateField("phone", e.target.value)}
           />
@@ -382,6 +389,7 @@ const SchoolInfoManager = () => {
             id="email"
             type="email"
             className="input w-full"
+            title={t.emailTooltip}
             value={fields.email}
             onChange={(e) => updateField("email", e.target.value)}
           />
@@ -395,6 +403,7 @@ const SchoolInfoManager = () => {
             id="pobox"
             type="text"
             className="input w-full"
+            title={t.poboxTooltip}
             value={fields.pobox}
             onChange={(e) =>
               updateField("pobox", sanitizeSchoolInfoText(e.target.value))
@@ -409,6 +418,7 @@ const SchoolInfoManager = () => {
           <select
             id="type"
             className="select w-full"
+            title={t.typeTooltip}
             value={fields.type}
             onChange={handleTypeChange}
           >
@@ -432,6 +442,7 @@ const SchoolInfoManager = () => {
             type="date"
             className="input w-full"
             required
+            title={t.signDateTooltip}
             value={fields.signDate}
             onChange={(e) => updateField("signDate", e.target.value)}
           />
@@ -445,6 +456,7 @@ const SchoolInfoManager = () => {
             id="immt"
             type="text"
             className="input w-full"
+            title={t.immtTooltip}
             value={fields.immt}
             onChange={(e) =>
               updateField("immt", sanitizeSchoolInfoText(e.target.value))
@@ -460,6 +472,7 @@ const SchoolInfoManager = () => {
             id="str1"
             type="text"
             className="input w-full"
+            title={t.str1Tooltip}
             value={fields.str1}
             onChange={(e) =>
               updateField("str1", sanitizeSchoolInfoText(e.target.value))
@@ -475,6 +488,7 @@ const SchoolInfoManager = () => {
             id="str2"
             type="text"
             className="input w-full"
+            title={t.str2Tooltip}
             value={fields.str2}
             onChange={(e) =>
               updateField("str2", sanitizeSchoolInfoText(e.target.value))
@@ -491,6 +505,7 @@ const SchoolInfoManager = () => {
             type="text"
             className="input w-full"
             required
+            title={t.signPlaceTooltip}
             value={fields.signPlace}
             onChange={(e) =>
               updateField("signPlace", sanitizeSchoolInfoText(e.target.value))

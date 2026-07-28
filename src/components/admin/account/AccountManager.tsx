@@ -219,6 +219,7 @@ const AccountManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.loginTooltip}
                             value={editingLogin}
                             autoFocus
                             onChange={(e) => setEditingLogin(e.target.value)}
@@ -258,6 +259,7 @@ const AccountManager = () => {
                         {isEditing ? (
                           <select
                             className="select select-sm"
+                            title={t.roleTooltip}
                             value={editingType}
                             onChange={(e) => setEditingType(e.target.value)}
                           >
@@ -277,6 +279,7 @@ const AccountManager = () => {
                             type="password"
                             className="input input-sm w-full"
                             placeholder={t.newPasswordPlaceholder}
+                            title={t.newPasswordTooltip}
                             value={editingNewPassword}
                             onChange={(e) =>
                               setEditingNewPassword(e.target.value)

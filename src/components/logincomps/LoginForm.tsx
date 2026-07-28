@@ -285,10 +285,9 @@ const LoginForm = () => {
                 <label className="label" htmlFor="login">
                   {t.loginLabel}
                 </label>
-                <div className="relative">
+                <label className="input w-full">
                   <input
                     type="text"
-                    className="input w-full pr-10"
                     placeholder={t.loginPlaceholder}
                     required
                     id="login"
@@ -296,16 +295,15 @@ const LoginForm = () => {
                     value={loginVal}
                     onChange={(e) => setLoginVal(e.target.value)}
                   />
-                  <UsersRound className="absolute w-5 h-5 top-2.5 right-2.5 text-base-content/40" />
-                </div>
+                  <UsersRound className="w-5 h-5 text-base-content/40" />
+                </label>
 
                 <label className="label mt-5" htmlFor="password">
                   {t.passwordLabel}
                 </label>
-                <div className="relative">
+                <label className="input w-full">
                   <input
                     type={showPassword ? "text" : "password"}
-                    className="input w-full pr-10"
                     placeholder={t.passwordPlaceholder}
                     required
                     id="password"
@@ -320,7 +318,7 @@ const LoginForm = () => {
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
-                    className="absolute top-2.5 right-2.5 text-base-content/40 hover:text-base-content cursor-pointer transition-colors"
+                    className="text-base-content/40 hover:text-base-content cursor-pointer transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -328,7 +326,7 @@ const LoginForm = () => {
                       <Eye className="w-5 h-5" />
                     )}
                   </button>
-                </div>
+                </label>
 
                 <label className="label mt-5">{t.sectionLabel}</label>
                 <div className="flex gap-4">

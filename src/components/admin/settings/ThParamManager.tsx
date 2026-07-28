@@ -112,6 +112,7 @@ const ThParamManager = () => {
                 min={MIN_AVG}
                 max={MAX_AVG}
                 step={0.25}
+                title={t.lbTooltip}
                 value={lb}
                 onChange={(e) => setLb(Number(e.target.value))}
               />
@@ -126,6 +127,7 @@ const ThParamManager = () => {
                 min={MIN_AVG}
                 max={MAX_AVG}
                 step={0.25}
+                title={t.ubTooltip}
                 value={ub}
                 onChange={(e) => setUb(Number(e.target.value))}
               />
@@ -141,6 +143,7 @@ const ThParamManager = () => {
               min={0}
               max={MAX_SEUIL_ABS}
               step={1}
+              title={t.seuilAbsTooltip}
               value={seuilAbs}
               onChange={(e) => {
                 const raw = Number(e.target.value);

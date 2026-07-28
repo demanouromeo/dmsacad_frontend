@@ -237,6 +237,7 @@ const FillRateGlobalManager = () => {
             <label className="font-medium">{t.axisLabel}</label>
             <select
               className="select w-44"
+              title={t.axisSelectTooltip}
               value={axis}
               onChange={(e) => setAxis(e.target.value as Axis)}
             >
@@ -250,6 +251,7 @@ const FillRateGlobalManager = () => {
             <label className="font-medium ml-2">{t.sectionFilterLabel}</label>
             <select
               className="select w-40"
+              title={t.sectionFilterTooltip}
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value as SectionFilter)}
             >
@@ -261,6 +263,7 @@ const FillRateGlobalManager = () => {
             <label className="font-medium ml-2">{t.termFilterLabel}</label>
             <select
               className="select w-36"
+              title={t.termFilterTooltip}
               disabled={axisIgnoresTermFilter}
               value={termFilter}
               onChange={(e) =>
@@ -299,6 +302,7 @@ const FillRateGlobalManager = () => {
                 value={searchQuery}
                 onChange={setSearchQuery}
                 placeholder={t.filterPlaceholder}
+                title={t.searchTooltip}
                 className="w-56 ml-2"
               />
             )}

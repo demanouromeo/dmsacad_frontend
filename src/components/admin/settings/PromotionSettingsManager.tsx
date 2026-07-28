@@ -136,6 +136,7 @@ const PromotionSettingsManager = () => {
             <label className="font-medium">{t.classeLabel}</label>
             <select
               className="select w-56"
+              title={t.classeSelectTooltip}
               value={selectedClasseId ?? ""}
               onChange={(e) => setSelectedClasseId(Number(e.target.value))}
             >
@@ -159,6 +160,7 @@ const PromotionSettingsManager = () => {
                   min={1}
                   max={MAX_ABS_EXCLUSION_TH}
                   step={1}
+                  title={t.totalAbsThHint}
                   value={totalAbsTh}
                   onChange={(e) => setTotalAbsTh(Number(e.target.value))}
                 />
@@ -173,6 +175,7 @@ const PromotionSettingsManager = () => {
                   min={0}
                   max={MAX_ABS_EXCLUSION_TH}
                   step={1}
+                  title={t.totalExclusionThHint}
                   value={totalExclusionTh}
                   onChange={(e) => setTotalExclusionTh(Number(e.target.value))}
                 />
@@ -189,6 +192,7 @@ const PromotionSettingsManager = () => {
                   min={MIN_AVG}
                   max={MAX_AVG}
                   step={0.25}
+                  title={t.avgDismissalThHint}
                   value={avgDismissalTh}
                   onChange={(e) => setAvgDismissalTh(Number(e.target.value))}
                 />
@@ -214,6 +218,7 @@ const PromotionSettingsManager = () => {
                   min={MIN_AVG}
                   max={MAX_AVG}
                   step={0.25}
+                  title={t.repeatUbTooltip}
                   value={repeatUb}
                   onChange={(e) => setRepeatUb(Number(e.target.value))}
                 />

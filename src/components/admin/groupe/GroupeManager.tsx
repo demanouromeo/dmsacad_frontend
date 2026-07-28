@@ -317,6 +317,7 @@ const GroupeManager = () => {
                         <input
                           type="text"
                           className="input input-sm w-full"
+                          title={t.nameTooltip}
                           value={editingValue}
                           autoFocus
                           onChange={(e) =>
@@ -387,6 +388,7 @@ const GroupeManager = () => {
             type="text"
             className="input w-full"
             placeholder={t.addPlaceholder}
+            title={t.nameTooltip}
             value={newGroupeName}
             onChange={(e) => setNewGroupeName(sanitizeSubjectTitle(e.target.value))}
           />

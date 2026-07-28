@@ -613,6 +613,7 @@ const StaffManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.nameTooltip}
                             value={editingName}
                             autoFocus
                             onChange={(e) => setEditingName(e.target.value)}
@@ -626,6 +627,7 @@ const StaffManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.surnameTooltip}
                             value={editingSurname}
                             onChange={(e) =>
                               setEditingSurname(e.target.value)
@@ -640,6 +642,7 @@ const StaffManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.phoneTooltip}
                             value={editingPhone}
                             onChange={(e) => setEditingPhone(e.target.value)}
                           />
@@ -651,6 +654,7 @@ const StaffManager = () => {
                         {isEditing ? (
                           <select
                             className="select select-sm"
+                            title={t.sexeTooltip}
                             value={editingSexe}
                             onChange={(e) => setEditingSexe(e.target.value)}
                           >
@@ -666,6 +670,7 @@ const StaffManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.civilityTooltip}
                             value={editingCivility}
                             onChange={(e) =>
                               setEditingCivility(e.target.value)
@@ -679,6 +684,7 @@ const StaffManager = () => {
                         {isEditing ? (
                           <select
                             className="select select-sm"
+                            title={t.functionTooltip}
                             value={editingFunction}
                             onChange={(e) =>
                               setEditingFunction(e.target.value)
@@ -699,6 +705,7 @@ const StaffManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.loginTooltip}
                             value={editingLogin}
                             onChange={(e) => setEditingLogin(e.target.value)}
                           />
@@ -739,6 +746,7 @@ const StaffManager = () => {
                             type="password"
                             className="input input-sm w-full"
                             placeholder={t.newPasswordPlaceholder}
+                            title={t.newPasswordTooltip}
                             value={editingNewPassword}
                             onChange={(e) =>
                               setEditingNewPassword(e.target.value)
@@ -810,6 +818,7 @@ const StaffManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderName}
+            title={t.nameTooltip}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
@@ -817,6 +826,7 @@ const StaffManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderSurname}
+            title={t.surnameTooltip}
             value={newSurname}
             onChange={(e) => setNewSurname(e.target.value)}
           />
@@ -824,11 +834,13 @@ const StaffManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderPhone}
+            title={t.phoneTooltip}
             value={newPhone}
             onChange={(e) => setNewPhone(e.target.value)}
           />
           <select
             className="select"
+            title={t.sexeTooltip}
             value={newSexe}
             onChange={(e) => setNewSexe(e.target.value)}
           >
@@ -839,11 +851,13 @@ const StaffManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderCivility}
+            title={t.civilityTooltip}
             value={newCivility}
             onChange={(e) => setNewCivility(e.target.value)}
           />
           <select
             className="select"
+            title={t.functionTooltip}
             value={newFunction}
             onChange={(e) => setNewFunction(e.target.value)}
           >
@@ -857,20 +871,21 @@ const StaffManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderLogin}
+            title={t.loginTooltip}
             value={newLogin}
             onChange={(e) => setNewLogin(e.target.value)}
           />
-          <div className="relative">
+          <label className="input">
             <input
               type={showNewPassword ? "text" : "password"}
-              className="input pr-10"
               placeholder={t.addPlaceholderPassword}
+              title={t.passwordTooltip}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
+              className="opacity-60 hover:opacity-100"
               tabIndex={-1}
               aria-label={
                 showNewPassword ? t.hidePasswordHint : t.showPasswordHint
@@ -883,10 +898,11 @@ const StaffManager = () => {
                 <Eye className="w-4 h-4" />
               )}
             </button>
-          </div>
+          </label>
           <button
             type="button"
             className="btn btn-outline gap-2"
+            title={t.generateCredentialsTooltip}
             onClick={generateLoginAndPassword}
           >
             <Wand2 className="w-4 h-4" />

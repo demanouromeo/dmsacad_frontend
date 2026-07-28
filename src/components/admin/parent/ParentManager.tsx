@@ -420,6 +420,7 @@ const ParentManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.nameTooltip}
                             value={editingName}
                             autoFocus
                             onChange={(e) => setEditingName(e.target.value)}
@@ -433,6 +434,7 @@ const ParentManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.surnameTooltip}
                             value={editingSurname}
                             onChange={(e) => setEditingSurname(e.target.value)}
                           />
@@ -445,6 +447,7 @@ const ParentManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.phoneTooltip}
                             value={editingPhone}
                             onChange={(e) => setEditingPhone(sanitizePhoneNumber(e.target.value))}
                           />
@@ -457,6 +460,7 @@ const ParentManager = () => {
                           <input
                             type="text"
                             className="input input-sm w-full"
+                            title={t.loginTooltip}
                             value={editingLogin}
                             onChange={(e) => setEditingLogin(e.target.value)}
                           />
@@ -469,6 +473,7 @@ const ParentManager = () => {
                           <input
                             type="email"
                             className="input input-sm w-full"
+                            title={t.emailTooltip}
                             value={editingEmail}
                             onChange={(e) => setEditingEmail(e.target.value)}
                           />
@@ -482,6 +487,7 @@ const ParentManager = () => {
                             type="password"
                             className="input input-sm w-full"
                             placeholder={t.newPasswordPlaceholder}
+                            title={t.newPasswordTooltip}
                             value={editingNewPassword}
                             onChange={(e) => setEditingNewPassword(e.target.value)}
                             onKeyDown={(e) => {
@@ -555,6 +561,7 @@ const ParentManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderName}
+            title={t.nameTooltip}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
           />
@@ -562,6 +569,7 @@ const ParentManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderSurname}
+            title={t.surnameTooltip}
             value={newSurname}
             onChange={(e) => setNewSurname(e.target.value)}
           />
@@ -569,6 +577,7 @@ const ParentManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderPhone}
+            title={t.phoneTooltip}
             value={newPhone}
             onChange={(e) => setNewPhone(sanitizePhoneNumber(e.target.value))}
           />
@@ -576,6 +585,7 @@ const ParentManager = () => {
             type="email"
             className="input"
             placeholder={t.addPlaceholderEmail}
+            title={t.emailTooltip}
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
           />
@@ -583,28 +593,33 @@ const ParentManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholderLogin}
+            title={t.loginTooltip}
             value={newLogin}
             onChange={(e) => setNewLogin(e.target.value)}
           />
-          <div className="relative">
+          <label className="input">
             <input
               type={showNewPassword ? "text" : "password"}
-              className="input pr-10"
               placeholder={t.addPlaceholderPassword}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
+              className="opacity-60 hover:opacity-100"
               tabIndex={-1}
               aria-label={showNewPassword ? t.hidePasswordHint : t.showPasswordHint}
               onClick={() => setShowNewPassword((prev) => !prev)}
             >
               {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
-          </div>
-          <button type="button" className="btn btn-outline gap-2" onClick={generateLoginAndPassword}>
+          </label>
+          <button
+            type="button"
+            className="btn btn-outline gap-2"
+            title={t.generateCredentialsTooltip}
+            onClick={generateLoginAndPassword}
+          >
             <Wand2 className="w-4 h-4" />
             {t.generateCredentialsBtn}
           </button>

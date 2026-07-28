@@ -389,6 +389,7 @@ const SubjectCompetenceManager = () => {
                 <label className="font-medium">{t.classeLabel}</label>
                 <select
                   className="select w-56"
+                  title={t.classeSelectTooltip}
                   value={selectedClasseId ?? ""}
                   onChange={(e) => setSelectedClasseId(Number(e.target.value))}
                 >
@@ -415,6 +416,7 @@ const SubjectCompetenceManager = () => {
                 <label className="font-medium">{t.subjectLabel}</label>
                 <select
                   className="select w-56"
+                  title={t.subjectSelectTooltip}
                   disabled={isLoadingSubjects || subjects.length === 0}
                   value={selectedSubjectId ?? ""}
                   onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
@@ -440,6 +442,7 @@ const SubjectCompetenceManager = () => {
                     rows={2}
                     maxLength={MAX_COMPETENCE_TEXT_LENGTH}
                     placeholder={t.addPlaceholder}
+                    title={t.competenceTextTooltip}
                     value={newCompetenceText}
                     onChange={(e) =>
                       setNewCompetenceText(
@@ -454,6 +457,7 @@ const SubjectCompetenceManager = () => {
                     <label className="font-medium">{t.termLabel}</label>
                     <select
                       className="select w-40"
+                      title={t.termSelectTooltip}
                       value={selectedTerm}
                       onChange={(e) => setSelectedTerm(Number(e.target.value))}
                     >
@@ -553,6 +557,7 @@ const SubjectCompetenceManager = () => {
                                   rows={2}
                                   maxLength={MAX_COMPETENCE_TEXT_LENGTH}
                                   autoFocus
+                                  title={t.competenceTextTooltip}
                                   value={editingText}
                                   onChange={(e) =>
                                     setEditingText(

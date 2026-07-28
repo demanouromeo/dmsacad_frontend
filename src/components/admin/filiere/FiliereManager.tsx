@@ -317,6 +317,7 @@ const FiliereManager = () => {
                         <input
                           type="text"
                           className="input input-sm w-full"
+                          title={t.nameTooltip}
                           value={editingValue}
                           autoFocus
                           onChange={(e) =>
@@ -389,6 +390,7 @@ const FiliereManager = () => {
             type="text"
             className="input w-full"
             placeholder={t.addPlaceholder}
+            title={t.nameTooltip}
             value={newFiliereName}
             onChange={(e) =>
               setNewFiliereName(sanitizeFiliereOrSpecialityName(e.target.value))

@@ -380,6 +380,7 @@ const SpecialityManager = () => {
                         <input
                           type="text"
                           className="input input-sm w-full"
+                          title={t.nameTooltip}
                           value={editingName}
                           autoFocus
                           onChange={(e) =>
@@ -400,6 +401,7 @@ const SpecialityManager = () => {
                       {editingId === speciality.speciality_id ? (
                         <select
                           className="select select-sm w-full"
+                          title={t.filiereTooltip}
                           value={editingFiliere}
                           onChange={(e) => setEditingFiliere(e.target.value)}
                         >
@@ -421,6 +423,7 @@ const SpecialityManager = () => {
                         <input
                           type="text"
                           className="input input-sm w-full"
+                          title={t.descriptionTooltip}
                           value={editingDescription}
                           maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
                           onChange={(e) =>
@@ -496,6 +499,7 @@ const SpecialityManager = () => {
         >
           <select
             className="select"
+            title={t.filiereTooltip}
             value={selectedFiliere}
             onChange={(e) => setSelectedFiliere(e.target.value)}
             disabled={filieres.length === 0}
@@ -513,6 +517,7 @@ const SpecialityManager = () => {
             type="text"
             className="input"
             placeholder={t.addPlaceholder}
+            title={t.nameTooltip}
             value={newSpecialityName}
             onChange={(e) =>
               setNewSpecialityName(sanitizeFiliereOrSpecialityName(e.target.value))
@@ -522,6 +527,7 @@ const SpecialityManager = () => {
             type="text"
             className="input"
             placeholder={t.descriptionPlaceholder}
+            title={t.descriptionTooltip}
             value={newDescription}
             maxLength={MAX_SPECIALITY_DESCRIPTION_LENGTH}
             onChange={(e) =>

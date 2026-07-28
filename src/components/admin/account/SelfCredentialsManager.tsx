@@ -129,10 +129,9 @@ const SelfCredentialsManager = () => {
         <div className="surface-card p-6 flex flex-col gap-4 w-full max-w-sm">
           <div>
             <label className="font-medium block mb-1">{t.oldPasswordLabel}</label>
-            <div className="relative">
+            <label className={`input w-full ${oldPasswordValid === false ? "input-error" : ""}`}>
               <input
                 type={showOldPassword ? "text" : "password"}
-                className={`input w-full ${oldPasswordValid === false ? "input-error" : ""}`}
                 value={oldPassword}
                 onChange={(e) => handleOldPasswordChange(e.target.value)}
                 onBlur={handleOldPasswordBlur}
@@ -142,11 +141,11 @@ const SelfCredentialsManager = () => {
                 onClick={() => setShowOldPassword((prev) => !prev)}
                 tabIndex={-1}
                 aria-label={showOldPassword ? t.hidePasswordHint : t.showPasswordHint}
-                className="absolute top-2.5 right-2.5 text-slate-600 cursor-pointer"
+                className="text-slate-600 cursor-pointer"
               >
                 {showOldPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
-            </div>
+            </label>
             {oldPasswordValid === false && (
               <p className="text-error text-sm mt-1">{t.oldPasswordWrong}</p>
             )}
@@ -164,10 +163,9 @@ const SelfCredentialsManager = () => {
 
           <div>
             <label className="font-medium block mb-1">{t.newPasswordLabel}</label>
-            <div className="relative">
+            <label className="input w-full">
               <input
                 type={showNewPassword ? "text" : "password"}
-                className="input w-full"
                 placeholder={t.newPasswordPlaceholder}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -177,11 +175,11 @@ const SelfCredentialsManager = () => {
                 onClick={() => setShowNewPassword((prev) => !prev)}
                 tabIndex={-1}
                 aria-label={showNewPassword ? t.hidePasswordHint : t.showPasswordHint}
-                className="absolute top-2.5 right-2.5 text-slate-600 cursor-pointer"
+                className="text-slate-600 cursor-pointer"
               >
                 {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
-            </div>
+            </label>
           </div>
 
           <button

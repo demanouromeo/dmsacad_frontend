@@ -378,6 +378,7 @@ const PromotionManager = () => {
               <label className="font-medium">{t.classeLabel}</label>
               <select
                 className="select w-56"
+                title={t.classeSelectTooltip}
                 value={selectedClasseId ?? ""}
                 onChange={(e) => setSelectedClasseId(Number(e.target.value))}
               >
@@ -395,6 +396,7 @@ const PromotionManager = () => {
               </span>
               <select
                 className="select select-sm w-40"
+                title={t.promoteTargetTooltip}
                 value={promoteTargetClasseId ?? ""}
                 disabled={nextLevelClasses.length === 0}
                 onChange={(e) => setPromoteTargetClasseId(Number(e.target.value))}
@@ -437,6 +439,7 @@ const PromotionManager = () => {
                   onChange={setSearchQuery}
                   placeholder={t.searchPlaceholder}
                   className="input-sm w-full max-w-xs"
+                  title={t.searchPlaceholder}
                 />
                 <div className="flex gap-2">
                   <button
@@ -496,6 +499,7 @@ const PromotionManager = () => {
                         <td>
                           <select
                             className="select select-sm"
+                            title={t.exclureTooltip}
                             value={row.isMannullalyDismissed}
                             onChange={(e) => handleExclureChange(row, Number(e.target.value))}
                           >
@@ -507,6 +511,7 @@ const PromotionManager = () => {
                         <td>
                           <select
                             className="select select-sm"
+                            title={t.redoubleTooltip}
                             value={row.mustRepeat}
                             onChange={(e) =>
                               updateRow(row.studId, { mustRepeat: Number(e.target.value) })
@@ -520,6 +525,7 @@ const PromotionManager = () => {
                         <td>
                           <select
                             className="select select-sm"
+                            title={t.promuEnTooltip}
                             value={row.promuEn ?? ""}
                             onChange={(e) =>
                               updateRow(row.studId, {
@@ -538,6 +544,7 @@ const PromotionManager = () => {
                         <td>
                           <select
                             className="select select-sm"
+                            title={t.classifiedTooltip}
                             value={row.isMannullalyClassified}
                             onChange={(e) =>
                               updateRow(row.studId, { isMannullalyClassified: Number(e.target.value) })
@@ -551,6 +558,7 @@ const PromotionManager = () => {
                         <td>
                           <select
                             className="select select-sm"
+                            title={t.excluPourTooltip}
                             value={row.codeExclusion}
                             onChange={(e) =>
                               updateRow(row.studId, { codeExclusion: Number(e.target.value) })

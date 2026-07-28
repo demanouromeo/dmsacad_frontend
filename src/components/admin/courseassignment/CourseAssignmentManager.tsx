@@ -511,6 +511,7 @@ const CourseAssignmentManager = () => {
               <label className="font-medium">{t.staffLabel}</label>
               <select
                 className="select w-64"
+                title={t.staffSelectTooltip}
                 value={selectedStaffId ?? ""}
                 onChange={(e) => setSelectedStaffId(Number(e.target.value))}
                 disabled={sortedStaff.length === 0}
@@ -529,6 +530,7 @@ const CourseAssignmentManager = () => {
               <label className="font-medium">{t.subjectLabel}</label>
               <select
                 className="select w-64"
+                title={t.subjectSelectTooltip}
                 value={selectedSubjectId ?? ""}
                 onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
                 disabled={sortedSubjects.length === 0}

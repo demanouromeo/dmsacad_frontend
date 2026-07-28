@@ -727,6 +727,7 @@ const BasculementManager = () => {
                   <label className="font-medium">{t.leftClasseLabel}</label>
                   <select
                     className="select select-sm w-44"
+                    title={t.leftClasseSelectTooltip}
                     value={selectedLeftClasseId ?? ""}
                     onChange={(e) => setSelectedLeftClasseId(Number(e.target.value))}
                   >
@@ -814,6 +815,7 @@ const BasculementManager = () => {
                           <td>
                             <select
                               className={`select select-sm ${row.isDismissed ? "text-error" : ""}`}
+                              title={t.exclureSelectTooltip}
                               value={row.isDismissed ? 1 : 0}
                               onChange={(e) => handleExclureChange(row, Number(e.target.value) as 0 | 1)}
                             >
@@ -874,6 +876,7 @@ const BasculementManager = () => {
                   </span>
                   <select
                     className="select select-sm w-44"
+                    title={t.rightClasseSelectTooltip}
                     value={selectedRightClasseId ?? ""}
                     disabled={rightTargetClasses.length === 0}
                     onChange={(e) => setSelectedRightClasseId(Number(e.target.value))}
@@ -944,6 +947,7 @@ const BasculementManager = () => {
                           <td>
                             <select
                               className="select select-sm"
+                              title={t.rowClasseSelectTooltip}
                               value={selectedRightClasseId ?? ""}
                               onChange={(e) => handleRightClasseChange(row, Number(e.target.value))}
                             >

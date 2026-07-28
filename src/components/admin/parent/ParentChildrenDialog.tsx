@@ -175,6 +175,7 @@ const ParentChildrenDialog = ({ parent, onClose }: ParentChildrenDialogProps) =>
               <select
                 id="parentChildrenClasse"
                 className="select select-sm w-full mb-2"
+                title={t.classeSelectTooltip}
                 value={selectedClasseId ?? ""}
                 onChange={(e) => handleClasseChange(Number(e.target.value))}
               >
