@@ -1,4 +1,5 @@
 import { Eye, EyeOff, UsersRound, Cloud, Server, Settings, X } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import img from "../../assets/medium/login_img1.png";
 import Title from "../Title";
 import React, { useEffect, useRef, useState } from "react";
@@ -14,16 +15,22 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { useAuth } from "../../auth/useAuth";
 import { useToast } from "../../toast/useToast";
 
+// Packaged Android/iOS builds only ever talk to the remote backend - the "Local" target
+// (http://localhost/dmsacad_backend_dev/) points at the developer's own XAMPP machine, which
+// is unreachable from a real device. Hide the Remote/Local toggle entirely in that case rather
+// than showing a choice that can never actually work locally.
+const isNativeApp = Capacitor.isNativePlatform();
+
 const LoginForm = () => {
   const [loginVal, setLoginVal] = useState("");
   const [passwordVal, setPasswordVal] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<string>(() =>
-    MyConstants.getBackendTarget() === "local"
+    !isNativeApp && MyConstants.getBackendTarget() === "local"
       ? MyConstants.gLocalSchoolCode
       : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
   );
   const [remoteSchool, setRemoteSchool] = useState<string>(() =>
-    MyConstants.getBackendTarget() === "local"
+    !isNativeApp && MyConstants.getBackendTarget() === "local"
       ? ""
       : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
   );
@@ -39,8 +46,8 @@ const LoginForm = () => {
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useLanguage();
-  const [backendTarget, setBackendTargetState] = useState<BackendTarget>(
-    MyConstants.getBackendTarget(),
+  const [backendTarget, setBackendTargetState] = useState<BackendTarget>(() =>
+    isNativeApp ? "remote" : MyConstants.getBackendTarget(),
   );
   const [, setCookie] = useCookies(["schoolName"]);
   const navigate = useNavigate();
@@ -368,32 +375,34 @@ const LoginForm = () => {
 
           <h3 className="font-bold text-lg mb-4">{t.settingsTitle}</h3>
 
-          <div className="flex gap-2 mb-4">
-            <button
-              type="button"
-              aria-label="Remote server"
-              title="Remote server"
-              onClick={() => handleBackendTargetChange("remote")}
-              className={`btn btn-sm gap-1 ${
-                backendTarget === "remote" ? "btn-primary" : "btn-ghost"
-              }`}
-            >
-              <Cloud className="w-4 h-4" />
-              {t.remoteBtn}
-            </button>
-            <button
-              type="button"
-              aria-label="Local server"
-              title="Local server"
-              onClick={() => handleBackendTargetChange("local")}
-              className={`btn btn-sm gap-1 ${
-                backendTarget === "local" ? "btn-primary" : "btn-ghost"
-              }`}
-            >
-              <Server className="w-4 h-4" />
-              {t.localBtn}
-            </button>
-          </div>
+          {!isNativeApp && (
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                aria-label="Remote server"
+                title="Remote server"
+                onClick={() => handleBackendTargetChange("remote")}
+                className={`btn btn-sm gap-1 ${
+                  backendTarget === "remote" ? "btn-primary" : "btn-ghost"
+                }`}
+              >
+                <Cloud className="w-4 h-4" />
+                {t.remoteBtn}
+              </button>
+              <button
+                type="button"
+                aria-label="Local server"
+                title="Local server"
+                onClick={() => handleBackendTargetChange("local")}
+                className={`btn btn-sm gap-1 ${
+                  backendTarget === "local" ? "btn-primary" : "btn-ghost"
+                }`}
+              >
+                <Server className="w-4 h-4" />
+                {t.localBtn}
+              </button>
+            </div>
+          )}
 
           {backendTarget !== "local" && (
             <>
