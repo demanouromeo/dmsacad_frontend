@@ -1,6 +1,30 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { markEntryManagerTranslations } from "../../../i18n/translations";
 import { useLanguage } from "../../../i18n/useLanguage";
+import {
+  CHART_AXIS_COLOR,
+  CHART_CATEGORICAL_CAP,
+  CHART_CATEGORICAL_COLORS,
+  CHART_COLOR_OTHERS,
+  CHART_GRID_COLOR,
+  CHART_STATUS_GOOD,
+  CHART_STATUS_WARNING,
+  CHART_TEXT_COLOR,
+  CHART_TOOLTIP_BG,
+  CHART_TOOLTIP_BORDER,
+} from "../../../utils/chartPalette";
 
 export interface FillRateChartEntry {
   id: number;
@@ -17,17 +41,32 @@ interface FillRateChartDialogProps {
 
 type ChartType = "bar" | "pie";
 
-// Deterministic, evenly-spaced hue per subject index (not tied to fill rate value) so a given
-// subject keeps the same color between the bar and pie views and across re-renders.
-const colorForIndex = (index: number, total: number): string =>
-  `hsl(${Math.round((index * 360) / Math.max(total, 1))}, 65%, 55%)`;
+interface BarRow {
+  id: number;
+  displayLabel: string;
+  rate: number;
+}
+
+interface PieSlice {
+  id: number;
+  label: string;
+  displayLabel: string;
+  rate: number;
+  color: string;
+}
+
+const tooltipStyle = {
+  backgroundColor: CHART_TOOLTIP_BG,
+  border: `1px solid ${CHART_TOOLTIP_BORDER}`,
+  borderRadius: "0.5rem",
+  color: CHART_TEXT_COLOR,
+};
 
 // Same native <dialog> + modal/modal-box/modal-backdrop pattern as TopBanner's year/section
 // dialogs and StudentPhotoDialog - a single shared instance owned by MarkEntryManager, opened via
-// the `isOpen` prop rather than the parent reaching into a ref. No charting library is pulled in
-// (bar = plain width-percentage divs, pie = a CSS conic-gradient) - matches this app's existing
-// "avoid a dependency for something this simple" precedent (CSV over xlsx, no PDF lib for anything
-// but the actual PDF export).
+// the `isOpen` prop rather than the parent reaching into a ref. Charts are rendered with Recharts,
+// following this app's established Recharts + chartPalette.ts convention (see EffectifsCharts.tsx)
+// rather than the hand-rolled CSS bars/conic-gradient this dialog used previously.
 const FillRateChartDialog = ({ isOpen, onClose, title, entries }: FillRateChartDialogProps) => {
   const [language] = useLanguage();
   const t = markEntryManagerTranslations[language];
@@ -42,25 +81,42 @@ const FillRateChartDialog = ({ isOpen, onClose, title, entries }: FillRateChartD
     }
   }, [isOpen]);
 
+  // Bar view is a completion/threshold status (fully filled vs still missing marks), not a
+  // per-subject identity - colored via the shared status pair rather than a categorical hue.
+  const barRows: BarRow[] = entries.map((e, index) => ({
+    id: e.id,
+    displayLabel: `${index + 1} - ${e.label}`,
+    rate: e.rate ?? 0,
+  }));
+
+  // Pie view is per-subject identity, an unbounded-cardinality series - cap direct colors at the
+  // palette size and fold any remainder into one grouped "Autres" slice instead of generating
+  // another hue past the cap (see chartPalette.ts).
   const usableEntries = entries.filter(
     (e): e is FillRateChartEntry & { rate: number } => e.rate !== null,
   );
-  const totalRate = usableEntries.reduce((sum, e) => sum + e.rate, 0);
+  const directCount = Math.min(usableEntries.length, CHART_CATEGORICAL_CAP - 1);
+  const pieSlices: PieSlice[] = usableEntries.slice(0, directCount).map((e, index) => ({
+    id: e.id,
+    label: e.label,
+    displayLabel: `${index + 1} - ${e.label}`,
+    rate: e.rate,
+    color: CHART_CATEGORICAL_COLORS[index],
+  }));
+  const remaining = usableEntries.slice(directCount);
+  if (remaining.length > 0) {
+    pieSlices.push({
+      id: -1,
+      label: t.fillRateChartOthers,
+      displayLabel: `${t.fillRateChartOthers} (${remaining.length})`,
+      rate: remaining.reduce((sum, e) => sum + e.rate, 0),
+      color: CHART_COLOR_OTHERS,
+    });
+  }
+  const pieTotal = pieSlices.reduce((sum, s) => sum + s.rate, 0);
+  const pieSharePct = (rate: number) => (pieTotal > 0 ? ((rate / pieTotal) * 100).toFixed(1) : "0.0");
 
-  const pieSegments = usableEntries.reduce<
-    Array<FillRateChartEntry & { rate: number; color: string; start: number; end: number }>
-  >((acc, e, index) => {
-    const share = totalRate > 0 ? (e.rate / totalRate) * 100 : 0;
-    const start = acc.length > 0 ? acc[acc.length - 1].end : 0;
-    acc.push({ ...e, color: colorForIndex(index, usableEntries.length), start, end: start + share });
-    return acc;
-  }, []);
-  const pieGradient =
-    pieSegments.length > 0
-      ? `conic-gradient(${pieSegments
-          .map((s) => `${s.color} ${s.start}% ${s.end}%`)
-          .join(", ")})`
-      : undefined;
+  const barChartHeight = Math.max(200, barRows.length * 32 + 40);
 
   return (
     <dialog ref={dialogRef} className="modal" onClose={onClose}>
@@ -87,47 +143,68 @@ const FillRateChartDialog = ({ isOpen, onClose, title, entries }: FillRateChartD
         {entries.length === 0 ? (
           <p className="opacity-60">{t.fillRateChartEmpty}</p>
         ) : chartType === "bar" ? (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {entries.map((e, index) => (
-              <div key={e.id} className="flex items-center gap-2">
-                <span className="w-48 shrink-0 truncate text-sm" title={e.label}>
-                  {index + 1} - {e.label}
-                </span>
-                <div className="flex-1 bg-base-200 rounded h-4 overflow-hidden">
-                  <div
-                    className="h-full rounded"
-                    style={{
-                      width: `${e.rate ?? 0}%`,
-                      backgroundColor:
-                        e.rate !== null && e.rate < 100
-                          ? "var(--color-error, #ef4444)"
-                          : colorForIndex(index, entries.length),
-                    }}
-                  />
-                </div>
-                <span className="w-14 shrink-0 text-sm text-right">
-                  {e.rate === null ? "…" : `${e.rate.toFixed(1)}%`}
-                </span>
-              </div>
-            ))}
+          <div className="max-h-96 overflow-y-auto">
+            <ResponsiveContainer width="100%" height={barChartHeight}>
+              <BarChart data={barRows} layout="vertical" margin={{ left: 8, right: 24 }}>
+                <CartesianGrid horizontal={false} stroke={CHART_GRID_COLOR} />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tickFormatter={(v: number) => `${v}%`}
+                  stroke={CHART_AXIS_COLOR}
+                  tick={{ fill: CHART_AXIS_COLOR, fontSize: 12 }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="displayLabel"
+                  width={160}
+                  stroke={CHART_AXIS_COLOR}
+                  tick={{ fill: CHART_AXIS_COLOR, fontSize: 12 }}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: CHART_TEXT_COLOR }}
+                  formatter={(value) => [`${Number(value).toFixed(1)}%`, t.fillRateChartRateLabel]}
+                  cursor={{ fill: "rgba(255,255,255,0.06)" }}
+                />
+                <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
+                  {barRows.map((row) => (
+                    <Cell
+                      key={row.id}
+                      fill={row.rate >= 100 ? CHART_STATUS_GOOD : CHART_STATUS_WARNING}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div
-              className="w-52 h-52 rounded-full shrink-0"
-              style={{ background: pieGradient ?? "var(--fallback-b2,oklch(var(--b2)))" }}
-            />
+            <ResponsiveContainer width={220} height={220} className="shrink-0">
+              <PieChart>
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: CHART_TEXT_COLOR }}
+                  formatter={(value) => [`${pieSharePct(Number(value))}%`, t.fillRateChartRateLabel]}
+                />
+                <Pie data={pieSlices} dataKey="rate" nameKey="displayLabel" outerRadius={100}>
+                  {pieSlices.map((slice) => (
+                    <Cell key={slice.id} fill={slice.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
             <ul className="space-y-1 max-h-96 overflow-y-auto">
-              {pieSegments.map((e, index) => (
-                <li key={e.id} className="flex items-center gap-2 text-sm">
+              {pieSlices.map((slice) => (
+                <li key={slice.id} className="flex items-center gap-2 text-sm">
                   <span
                     className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: e.color }}
+                    style={{ backgroundColor: slice.color }}
                   />
-                  <span className="truncate" title={e.label}>
-                    {index + 1} - {e.label}
+                  <span className="truncate" title={slice.label}>
+                    {slice.displayLabel}
                   </span>
-                  <strong className="ml-auto">{e.rate.toFixed(1)}%</strong>
+                  <strong className="ml-auto">{pieSharePct(slice.rate)}%</strong>
                 </li>
               ))}
             </ul>

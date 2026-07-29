@@ -1309,6 +1309,8 @@ export const markEntryManagerTranslations = {
     fillRateChartPieLabel: "Camembert",
     fillRateChartCloseBtn: "Fermer",
     fillRateChartEmpty: "Aucune donnée de remplissage disponible.",
+    fillRateChartOthers: "Autres",
+    fillRateChartRateLabel: "Taux",
     exportMarksTooltip:
       "Exporter les notes actuellement affichées en Excel (utile pour saisir hors-ligne et importer plus tard en cas de problème de connexion ou de serveur)",
     exportMarksColIndex: "#",
@@ -1404,6 +1406,8 @@ export const markEntryManagerTranslations = {
     fillRateChartPieLabel: "Pie",
     fillRateChartCloseBtn: "Close",
     fillRateChartEmpty: "No fill rate data available.",
+    fillRateChartOthers: "Others",
+    fillRateChartRateLabel: "Rate",
     exportMarksTooltip:
       "Export the currently displayed marks to Excel (useful to fill in offline and import later if the connection or server is unavailable)",
     exportMarksColIndex: "#",
