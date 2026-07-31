@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { RefreshCw, Upload, Wand2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -21,6 +22,7 @@ import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { sanitizeStudentName, parseStudentImportFile } from "../../../utils/studentImport";
+import { findClasseByName } from "../../../utils/classeMatch";
 import { generateUniqueMatricule } from "../../../utils/matricule";
 import { stripHtmlTags } from "../../../utils/apiErrors";
 import {
@@ -55,6 +57,8 @@ const StudentManager = () => {
   const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
   const showToast = useToast();
   const confirm = useConfirm();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [language] = useLanguage();
   const t = studentManagerTranslations[language];
   const et = exportTranslations[language];
@@ -108,12 +112,24 @@ const StudentManager = () => {
           ? list.filter((c) => c.vp_id === authPayload.user_id)
           : list;
       setClasses(visibleClasses);
+      // Lindsay (the app assistant) can navigate here with a target classe name in nav state
+      // (e.g. "Affiche les élèves de 5ème A") - honor it once, ahead of the usual
+      // prev-still-valid/first-classe fallback, then clear it so revisiting this screen later
+      // (sidebar, back button) doesn't keep re-forcing the same classe.
+      const navState = location.state as { initialClasseName?: string } | null;
+      const preselected = navState?.initialClasseName
+        ? findClasseByName(navState.initialClasseName, visibleClasses)
+        : null;
       setSelectedClasseId((prev) => {
+        if (preselected) return preselected.classe_id;
         if (prev !== null && visibleClasses.some((c) => c.classe_id === prev)) {
           return prev;
         }
         return visibleClasses.length > 0 ? visibleClasses[0].classe_id : null;
       });
+      if (navState?.initialClasseName) {
+        navigate(location.pathname, { replace: true, state: null });
+      }
       setIsLoadingClasses(false);
     };
     load();

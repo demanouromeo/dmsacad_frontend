@@ -25,7 +25,7 @@ function isKnownRole(role: string): role is Role {
 
 const DIACRITIC_MARKS_RE = new RegExp("[\\u0300-\\u036f]", "g");
 
-function normalize(text: string): string {
+export function normalize(text: string): string {
   return text
     .normalize("NFD")
     .replace(DIACRITIC_MARKS_RE, "")

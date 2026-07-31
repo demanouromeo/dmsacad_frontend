@@ -1,9 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Send, X } from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
 import { useLanguage } from "../../i18n/useLanguage";
+import { useConfirm } from "../../confirm/useConfirm";
+import { useSchoolHeader } from "../../hooks/useSchoolHeader";
 import { magicAssistantTranslations } from "../../i18n/translations";
 import { getAssistantAnswer, getSuggestedQuestions } from "../../assistant/assistantEngine";
+import {
+  matchCommand,
+  resolveClasseForCommand,
+  type AssistantCommandContext,
+} from "../../assistant/commandEngine";
+import type { Role } from "../../assistant/knowledgeBase";
+import type { Classe } from "../../interfaces/Classe";
 import magicIcon from "../../assets/magic.svg";
 
 interface ChatMessage {
@@ -11,19 +21,24 @@ interface ChatMessage {
   text: string;
 }
 
-// Global floating "app assistant" trigger, mounted once (see RequireAuth) so it floats over every
-// authenticated screen. Answers come from a local, offline knowledge base (assistantEngine.ts /
-// knowledgeBase.ts) rather than a real AI API - see that module's own comment for why - filtered
-// by the connected user's role so it only guides them toward features/resources they actually
-// have access to, and gives a role-restricted notice (not the real instructions) when the best
-// match is for a feature outside their role.
+// Global floating app assistant trigger ("Lindsay"), mounted once (see RequireAuth) so it floats
+// over every authenticated screen. First tries to match typed text against the command registry
+// (commandEngine.ts) so it can actually carry out the request (print/export, navigate, or a
+// confirm-gated delete); anything that doesn't match a command falls back to the existing local,
+// offline FAQ knowledge base (assistantEngine.ts / knowledgeBase.ts) - see that module's own
+// comment for why this isn't a real AI/LLM call - filtered by the connected user's role so it
+// only guides them toward features/resources they actually have access to.
 const MagicAssistant = () => {
-  const { authPayload } = useAuth();
+  const { authPayload, accessToken, connection, schoolYear, section } = useAuth();
   const role = authPayload?.role ?? "";
   const [language] = useLanguage();
   const t = magicAssistantTranslations[language];
+  const navigate = useNavigate();
+  const confirm = useConfirm();
+  const schoolHeader = useSchoolHeader();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [isRunning, setIsRunning] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", text: t.welcomeMessage },
   ]);
@@ -37,19 +52,60 @@ const MagicAssistant = () => {
 
   const suggestions = getSuggestedQuestions(role, 5);
 
-  const askAssistant = (question: string) => {
+  const appendMessage = (chatRole: ChatMessage["role"], text: string) => {
+    setMessages((prev) => [...prev, { role: chatRole, text }]);
+  };
+
+  const askAssistant = async (question: string) => {
     const trimmed = question.trim();
-    if (!trimmed) return;
-    const { text } = getAssistantAnswer(trimmed, role, language, t.fallbackReply);
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", text: trimmed },
-      { role: "assistant", text },
-    ]);
+    if (!trimmed || isRunning) return;
+    appendMessage("user", trimmed);
+    setIsRunning(true);
+    try {
+      const command = matchCommand(trimmed);
+      if (command) {
+        if (!command.roles.includes(role as Role)) {
+          appendMessage("assistant", t.roleRestricted);
+          return;
+        }
+        const ctx: AssistantCommandContext = {
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          role,
+          userId: authPayload?.user_id ?? null,
+          language,
+          schoolHeader,
+          navigate,
+          confirm,
+          t,
+        };
+        let classe: Classe | undefined;
+        if (command.needsClasse) {
+          classe = (await resolveClasseForCommand(ctx, trimmed)) ?? undefined;
+          if (!classe) {
+            appendMessage("assistant", t.classeNotFound(trimmed));
+            return;
+          }
+        }
+        const result = await command.run(ctx, classe);
+        appendMessage("assistant", result.text);
+        if (command.id === "show_students_of_classe") {
+          setIsOpen(false);
+        }
+        return;
+      }
+
+      const { text } = getAssistantAnswer(trimmed, role, language, t.fallbackReply);
+      appendMessage("assistant", text);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleSend = () => {
-    askAssistant(input);
+    void askAssistant(input);
     setInput("");
   };
 
@@ -107,7 +163,7 @@ const MagicAssistant = () => {
                         key={entry.id}
                         type="button"
                         className="btn btn-xs btn-outline rounded-full normal-case"
-                        onClick={() => askAssistant(entry.question[language])}
+                        onClick={() => void askAssistant(entry.question[language])}
                       >
                         {entry.question[language]}
                       </button>
@@ -125,6 +181,7 @@ const MagicAssistant = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                disabled={isRunning}
               />
               <button
                 type="button"
@@ -132,8 +189,13 @@ const MagicAssistant = () => {
                 onClick={handleSend}
                 aria-label={t.sendBtn}
                 title={t.sendBtn}
+                disabled={isRunning}
               >
-                <Send className="w-4 h-4" />
+                {isRunning ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>

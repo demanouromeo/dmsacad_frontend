@@ -3173,25 +3173,59 @@ export const parentPortalTranslations = {
 
 export const magicAssistantTranslations = {
   fr: {
-    buttonLabel: "Assistant",
-    panelTitle: "Assistant",
-    panelSubtitle: "Aide sur l'utilisation de l'application",
+    buttonLabel: "Lindsay",
+    panelTitle: "Lindsay",
+    panelSubtitle: "Votre assistante pour l'application",
     closeBtn: "Fermer",
-    welcomeMessage: "Bonjour ! Je peux vous aider à utiliser l'application, trouver une fonctionnalité ou résoudre un problème. Que souhaitez-vous savoir ?",
-    inputPlaceholder: "Posez votre question...",
+    welcomeMessage: "Bonjour, je suis Lindsay ! Je peux vous aider à utiliser l'application, trouver une fonctionnalité, ou exécuter une action à votre place (\"Imprime la liste du personnel\", \"Affiche les élèves de 5ème A\"...). Que souhaitez-vous faire ?",
+    inputPlaceholder: "Posez votre question ou donnez un ordre...",
     sendBtn: "Envoyer",
     suggestionsTitle: "Questions fréquentes :",
-    fallbackReply: "Je n'ai pas de réponse précise à cela - je peux seulement vous aider sur l'utilisation de cette application (navigation, fonctionnalités, accès selon votre rôle, résolution de problèmes courants). Essayez de reformuler, ou choisissez une des suggestions ci-dessous.",
+    fallbackReply: "Je n'ai pas de réponse précise à cela - je peux seulement vous aider sur l'utilisation de cette application (navigation, fonctionnalités, accès selon votre rôle, résolution de problèmes courants) ou exécuter certaines actions sur demande. Essayez de reformuler, ou choisissez une des suggestions ci-dessous.",
+    // Command-execution replies (commandEngine.ts) - Lindsay's replies when it actually carries
+    // out a request rather than answering an FAQ question.
+    roleRestricted: "Cette action n'est pas disponible avec votre rôle actuel.",
+    classeNotFound: (query: string) =>
+      `Je n'ai pas trouvé de classe correspondant à "${query}". Réessayez en précisant le nom exact, par exemple "6ème A".`,
+    notApcClasse: (classeName: string) =>
+      `La classe ${classeName} n'est pas en mode compétences (APC) - il n'y a pas de compétences à supprimer.`,
+    noCompetencesWithoutMarks: (classeName: string) =>
+      `Aucune compétence sans notes trouvée pour la classe ${classeName}.`,
+    confirmDeleteCompetences: (count: number, classeName: string) =>
+      `Supprimer définitivement ${count} compétence(s) sans notes de la classe ${classeName} ? Cette action est irréversible.`,
+    deleteCancelled: "Suppression annulée.",
+    deleteCompetencesSuccess: (count: number, classeName: string) =>
+      `${count} compétence(s) sans notes supprimée(s) pour la classe ${classeName}.`,
+    deleteCompetencesFailure: "Une erreur est survenue lors de la suppression. Réessayez.",
+    nothingToExport: "Aucun résultat trouvé pour cette demande.",
+    printSuccess: (title: string, count: number) => `"${title}" exportée en PDF (${count} ligne(s)).`,
+    navigateToStudents: (classeName: string) => `Voici les élèves de la classe ${classeName}.`,
   },
   en: {
-    buttonLabel: "Assistant",
-    panelTitle: "Assistant",
-    panelSubtitle: "Help using the app",
+    buttonLabel: "Lindsay",
+    panelTitle: "Lindsay",
+    panelSubtitle: "Your assistant for the app",
     closeBtn: "Close",
-    welcomeMessage: "Hi! I can help you use the app, find a feature, or solve a problem. What would you like to know?",
-    inputPlaceholder: "Ask your question...",
+    welcomeMessage: "Hi, I'm Lindsay! I can help you use the app, find a feature, or carry out an action for you (\"Print the staff list\", \"Show the students of 5th A\"...). What would you like to do?",
+    inputPlaceholder: "Ask your question or give an order...",
     sendBtn: "Send",
     suggestionsTitle: "Frequently asked:",
-    fallbackReply: "I don't have a precise answer for that - I can only help with using this app (navigation, features, role-based access, common troubleshooting). Try rephrasing, or pick one of the suggestions below.",
+    fallbackReply: "I don't have a precise answer for that - I can only help with using this app (navigation, features, role-based access, common troubleshooting) or carry out certain actions on request. Try rephrasing, or pick one of the suggestions below.",
+    roleRestricted: "This action isn't available with your current role.",
+    classeNotFound: (query: string) =>
+      `I couldn't find a class matching "${query}". Try again with the exact name, e.g. "6th A".`,
+    notApcClasse: (classeName: string) =>
+      `Class ${classeName} isn't in competency-based (APC) mode - there are no competencies to delete.`,
+    noCompetencesWithoutMarks: (classeName: string) =>
+      `No competency without marks was found for class ${classeName}.`,
+    confirmDeleteCompetences: (count: number, classeName: string) =>
+      `Permanently delete ${count} competenc${count === 1 ? "y" : "ies"} without marks from class ${classeName}? This action cannot be undone.`,
+    deleteCancelled: "Deletion cancelled.",
+    deleteCompetencesSuccess: (count: number, classeName: string) =>
+      `${count} competenc${count === 1 ? "y" : "ies"} without marks deleted for class ${classeName}.`,
+    deleteCompetencesFailure: "Something went wrong while deleting. Please try again.",
+    nothingToExport: "No results found for this request.",
+    printSuccess: (title: string, count: number) => `"${title}" exported to PDF (${count} row(s)).`,
+    navigateToStudents: (classeName: string) => `Here are the students of class ${classeName}.`,
   },
 };

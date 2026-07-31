@@ -1,178 +1,189 @@
-import type { ReactElement } from "react";
-import iconStudents from "../../assets/menu/Gestion des élèves.svg";
+import { useEffect, useState } from "react";
+import { MousePointer2, Check } from "lucide-react";
+import iconFilieres from "../../assets/menu/Filières.svg";
+import iconSpecialities from "../../assets/menu/Spécialités.svg";
+import iconClasses from "../../assets/menu/Gestion des classes.svg";
 import iconSubjects from "../../assets/menu/Matières.svg";
-import iconReportCards from "../../assets/menu/Imprimer les bulletins.svg";
+import iconStudents from "../../assets/menu/Gestion des élèves.svg";
 import iconStaff from "../../assets/menu/Gestion du personnel.svg";
+import iconMarks from "../../assets/menu/Saisie des notes.svg";
+import iconFillRate from "../../assets/menu/Taux_de_remplissage.svg";
+import iconReportCards from "../../assets/menu/Imprimer les bulletins.svg";
+import iconBilan from "../../assets/menu/Bilan.svg";
+import iconSettings from "../../assets/menu/Settings.svg";
+import iconAssistant from "../../assets/menu/Gestion des messages.svg";
 
-// Purely decorative stylized mockups (no real data/screenshots - see login CSS-carousel
-// discussion) cycling through the product's key functionalities, replacing the old static
-// login_img1.png. Each "screen" fades in/out via feature-cycle (src/index.css) with its
-// animation-delay staggered by SLIDE_SECONDS so they play in sequence, looping forever.
-const SLIDE_SECONDS = 4;
-
-const ACCENTS = {
-  primary: { badge: "bg-primary/15", bar: "bg-primary/60", pill: "bg-primary/20 text-primary" },
-  secondary: {
-    badge: "bg-secondary/15",
-    bar: "bg-secondary/60",
-    pill: "bg-secondary/20 text-secondary",
-  },
-  accent: { badge: "bg-accent/15", bar: "bg-accent/60", pill: "bg-accent/20 text-accent" },
-  info: { badge: "bg-info/15", bar: "bg-info/60", pill: "bg-info/20 text-info" },
-} as const;
-
-type AccentKey = keyof typeof ACCENTS;
-
-const SkeletonBar = ({ className = "", width }: { className?: string; width: string }) => (
-  <div className={`h-2 rounded-full bg-base-content/10 ${className}`} style={{ width }} />
+// Real product screenshots (src/assets/screnshots) cycling through the app's key modules,
+// replacing the old fully-synthetic CSS mockups. Each file is resolved via import.meta.glob
+// (lazy, not { eager: true }) so the actual image bytes are only fetched in the background
+// after mount (see the preload effect below) instead of being bundled/blocking the initial
+// paint of the login form.
+const screenshotModules = import.meta.glob<{ default: string }>(
+  "../../assets/screnshots/*.png",
 );
 
-const StudentMock = ({ accent }: { accent: AccentKey }) => (
-  <div className="flex flex-col gap-4">
-    <div className="flex items-center gap-3">
-      <div className={`w-9 h-9 rounded-full ${ACCENTS[accent].badge} shrink-0`} />
-      <div className="flex-1 flex flex-col gap-1.5">
-        <SkeletonBar width="55%" />
-        <SkeletonBar width="35%" className="opacity-60" />
-      </div>
-    </div>
-    <div className="flex items-end gap-2 h-14">
-      {[40, 70, 55, 90, 65, 30].map((h, i) => (
-        <div
-          key={i}
-          className={`flex-1 rounded-t-sm ${ACCENTS[accent].bar}`}
-          style={{ height: `${h}%` }}
-        />
-      ))}
-    </div>
-  </div>
-);
+type AccentKey = "primary" | "secondary" | "accent" | "info";
 
-const SubjectsMock = ({ accent }: { accent: AccentKey }) => (
-  <div className="flex flex-col gap-3">
-    {[70, 45, 60, 38].map((w, i) => (
-      <div key={i} className="flex items-center gap-2">
-        <div className={`w-3.5 h-3.5 rounded-sm ${ACCENTS[accent].badge} shrink-0`} />
-        <SkeletonBar width={`${w}%`} />
-        <span
-          className={`ml-auto text-[9px] leading-none px-1.5 py-1 rounded ${ACCENTS[accent].pill}`}
-        >
-          {2 + (i % 3)}h
-        </span>
-      </div>
-    ))}
-  </div>
-);
+const ACCENTS: Record<AccentKey, { badge: string; ring: string }> = {
+  primary: { badge: "bg-primary/15", ring: "ring-primary/40" },
+  secondary: { badge: "bg-secondary/15", ring: "ring-secondary/40" },
+  accent: { badge: "bg-accent/15", ring: "ring-accent/40" },
+  info: { badge: "bg-info/15", ring: "ring-info/40" },
+};
 
-const ReportCardMock = ({ accent }: { accent: AccentKey }) => (
-  <div className="flex flex-col gap-3">
-    <div className="flex items-center gap-2">
-      <SkeletonBar width="45%" />
-      <span
-        className={`ml-auto text-[9px] leading-none px-1.5 py-1 rounded ${ACCENTS[accent].pill}`}
-      >
-        16.5/20
-      </span>
-    </div>
-    <div className="flex items-center gap-2">
-      <SkeletonBar width="38%" />
-      <span
-        className={`ml-auto text-[9px] leading-none px-1.5 py-1 rounded ${ACCENTS[accent].pill}`}
-      >
-        14/20
-      </span>
-    </div>
-    <div className="flex items-end gap-1.5 h-12 mt-1">
-      {[30, 55, 45, 80, 60, 95, 50].map((h, i) => (
-        <div
-          key={i}
-          className={`flex-1 rounded-t-sm ${ACCENTS[accent].bar}`}
-          style={{ height: `${h}%` }}
-        />
-      ))}
-    </div>
-  </div>
-);
+// Rotated per slide so consecutive screens never reuse the same enter/exit motion.
+const EFFECTS = ["fade-up", "slide-right", "zoom-in", "slide-left", "fade-scale", "flip"] as const;
+type Effect = (typeof EFFECTS)[number];
 
-const StaffMock = ({ accent }: { accent: AccentKey }) => (
-  <div className="flex flex-col gap-3">
-    {[0, 1, 2].map((i) => (
-      <div key={i} className="flex items-center gap-2.5">
-        <div className={`w-7 h-7 rounded-full ${ACCENTS[accent].badge} shrink-0`} />
-        <div className="flex-1 flex flex-col gap-1">
-          <SkeletonBar width={`${60 - i * 8}%`} />
-          <SkeletonBar width="30%" className="opacity-60" />
-        </div>
-      </div>
-    ))}
-    <div className="grid grid-cols-7 gap-1 mt-1">
-      {Array.from({ length: 14 }).map((_, i) => (
-        <div
-          key={i}
-          className={`aspect-square rounded-sm ${
-            i % 5 === 0 ? ACCENTS[accent].bar : "bg-base-content/10"
-          }`}
-        />
-      ))}
-    </div>
-  </div>
-);
+// Alternates two lightweight decorative overlays per slide: a simulated pointer click, and a
+// simulated "typing into a field" fill animation - purely cosmetic, layered on top of the real
+// screenshot underneath.
+type Artifact = "cursor" | "formFill";
 
-const SCREENS: {
+interface Screen {
   key: string;
-  icon: string;
+  file: string;
   title: string;
   accent: AccentKey;
-  Mock: (props: { accent: AccentKey }) => ReactElement;
-}[] = [
-  { key: "students", icon: iconStudents, title: "Dossier Élève", accent: "primary", Mock: StudentMock },
-  {
-    key: "subjects",
-    icon: iconSubjects,
-    title: "Gestion des Matières",
-    accent: "secondary",
-    Mock: SubjectsMock,
-  },
-  {
-    key: "reportCards",
-    icon: iconReportCards,
-    title: "Bulletin de Notes",
-    accent: "accent",
-    Mock: ReportCardMock,
-  },
-  { key: "staff", icon: iconStaff, title: "Gestion du Personnel", accent: "info", Mock: StaffMock },
+  icon: string;
+  artifact: Artifact;
+}
+
+const SCREENS: Screen[] = [
+  { key: "filieres", file: "filieres.png", title: "Filières", accent: "primary", icon: iconFilieres, artifact: "cursor" },
+  { key: "specialities", file: "specialites.png", title: "Spécialités", accent: "secondary", icon: iconSpecialities, artifact: "formFill" },
+  { key: "classes", file: "Ajout-suppression-Modification des classes.png", title: "Gestion des Classes", accent: "accent", icon: iconClasses, artifact: "cursor" },
+  { key: "subjects", file: "Ajout-suppression-Modification des matieres.png", title: "Gestion des Matières", accent: "info", icon: iconSubjects, artifact: "formFill" },
+  { key: "students", file: "gestion des eleves.png", title: "Gestion des Élèves", accent: "primary", icon: iconStudents, artifact: "cursor" },
+  { key: "staff", file: "Ajout-suppression-Modification du personnel.png", title: "Gestion du Personnel", accent: "secondary", icon: iconStaff, artifact: "formFill" },
+  { key: "marks", file: "Saisie des notes.png", title: "Saisie des Notes", accent: "accent", icon: iconMarks, artifact: "formFill" },
+  { key: "fillRate", file: "Taux de remplissage.png", title: "Taux de Remplissage", accent: "info", icon: iconFillRate, artifact: "cursor" },
+  { key: "reportCards", file: "Bulletins de notes.png", title: "Bulletins de Notes", accent: "primary", icon: iconReportCards, artifact: "cursor" },
+  { key: "bilan", file: "Effectifs par classe.png", title: "Bilan / Effectifs", accent: "secondary", icon: iconBilan, artifact: "formFill" },
+  { key: "settings", file: "Configurations.png", title: "Configurations", accent: "accent", icon: iconSettings, artifact: "cursor" },
+  { key: "assistant", file: "Assitant AI - Lynday.png", title: "Lindsay - Assistante IA", accent: "info", icon: iconAssistant, artifact: "formFill" },
 ];
 
-const LoginFeatureShowcase = () => (
+const SLIDE_SECONDS = 5;
+
+const CursorArtifact = ({ dx, dy }: { dx: number; dy: number }) => (
   <div
-    aria-hidden="true"
-    className="relative h-full w-full overflow-hidden rounded-l-2xl shadow-2xl border border-base-content/10 bg-linear-to-br from-base-200 to-base-300"
+    className="cursor-artifact pointer-events-none absolute left-[15%] top-[20%] z-10"
+    style={{ "--cursor-dx": `${dx}px`, "--cursor-dy": `${dy}px` } as React.CSSProperties}
   >
-    {SCREENS.map(({ key, icon, title, accent, Mock }, index) => (
-      <div
-        key={key}
-        className="feature-slide absolute inset-0 flex flex-col p-6"
-        style={{ animationDelay: `${index * SLIDE_SECONDS}s` }}
-      >
-        <div className="flex items-center gap-3 mb-5">
-          <div
-            className={`w-10 h-10 rounded-xl ${ACCENTS[accent].badge} flex items-center justify-center p-2`}
-          >
-            <img src={icon} alt="" className="w-full h-full object-contain" />
-          </div>
-          <span className="text-base-content/80 font-semibold">{title}</span>
-        </div>
-        <div className="flex-1 rounded-xl bg-base-100/60 border border-base-content/10 p-4">
-          <div className="flex gap-1.5 mb-4">
-            <span className="w-2.5 h-2.5 rounded-full bg-error/50" />
-            <span className="w-2.5 h-2.5 rounded-full bg-warning/50" />
-            <span className="w-2.5 h-2.5 rounded-full bg-success/50" />
-          </div>
-          <Mock accent={accent} />
-        </div>
-      </div>
-    ))}
+    <span className="cursor-ripple absolute -inset-3 rounded-full bg-primary/50" />
+    <MousePointer2 className="relative h-5 w-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" fill="currentColor" />
   </div>
 );
+
+const FormFillArtifact = ({ accent }: { accent: AccentKey }) => (
+  <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-10 rounded-lg border border-white/10 bg-black/55 px-3 py-2 backdrop-blur-sm">
+    <div className="mb-1.5 flex items-center gap-1.5">
+      <span className="form-caret inline-block h-2.5 w-0.5 bg-white/80" />
+      <span className="text-[10px] leading-none text-white/70">Saisie en cours…</span>
+      <span className={`form-badge ml-auto flex h-4 w-4 items-center justify-center rounded-full ${ACCENTS[accent].badge}`}>
+        <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+      </span>
+    </div>
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+      <div className={`form-fill-bar h-full rounded-full ${ACCENTS[accent].badge.replace("/15", "/80")}`} />
+    </div>
+  </div>
+);
+
+const LoginFeatureShowcase = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [loadedSrcs, setLoadedSrcs] = useState<Record<string, string>>({});
+  const [reducedMotion] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  // Preload every screenshot in the background via the same fetch-as-Blob-then-Image()
+  // pattern the rest of the app uses for async images (StudentPhotoCell, SchoolInfoReader's
+  // logo probe) - each panel shows a shimmer skeleton until its own image resolves, so a slow
+  // or large screenshot never blocks the others or the login form itself.
+  useEffect(() => {
+    let cancelled = false;
+    SCREENS.forEach((screen) => {
+      const loader = screenshotModules[`../../assets/screnshots/${screen.file}`];
+      if (!loader) return;
+      loader()
+        .then((mod) => {
+          const img = new Image();
+          img.onload = () => {
+            if (!cancelled) setLoadedSrcs((prev) => ({ ...prev, [screen.key]: mod.default }));
+          };
+          img.src = mod.default;
+        })
+        .catch(() => {});
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion) return;
+    const id = setInterval(() => {
+      setActiveIndex((i) => (i + 1) % SCREENS.length);
+    }, SLIDE_SECONDS * 1000);
+    return () => clearInterval(id);
+  }, [reducedMotion]);
+
+  return (
+    <div
+      aria-hidden="true"
+      className="relative h-full w-full overflow-hidden rounded-l-2xl shadow-2xl border border-base-content/10 bg-linear-to-br from-base-200 to-base-300"
+      style={{ "--slide-seconds": SLIDE_SECONDS } as React.CSSProperties}
+    >
+      {SCREENS.map((screen, index) => {
+        const isActive = index === activeIndex;
+        const src = loadedSrcs[screen.key];
+        const effect: Effect = EFFECTS[index % EFFECTS.length];
+        // Small per-slide variation so the cursor artifact doesn't land on the exact same spot every time.
+        const cursorDx = 60 + ((index * 37) % 90);
+        const cursorDy = 40 + ((index * 53) % 70);
+
+        return (
+          <div
+            key={screen.key}
+            data-effect={effect}
+            className={`feature-slide absolute inset-0 flex flex-col p-6 ${isActive ? "is-active" : ""}`}
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <div className={`w-10 h-10 rounded-xl ${ACCENTS[screen.accent].badge} flex items-center justify-center p-2`}>
+                <img src={screen.icon} alt="" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-base-content/80 font-semibold">{screen.title}</span>
+            </div>
+
+            <div className="relative flex-1 flex items-center justify-center rounded-xl bg-base-100/60 border border-base-content/10 p-3 overflow-hidden">
+              {src ? (
+                <img
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  className={`max-h-full max-w-full object-contain rounded-lg shadow-xl ring-1 ${ACCENTS[screen.accent].ring}`}
+                />
+              ) : (
+                <div className="h-[85%] w-[80%] animate-pulse rounded-lg bg-base-content/10" />
+              )}
+
+              {src && isActive && !reducedMotion && (
+                <div key={activeIndex}>
+                  {screen.artifact === "cursor" ? (
+                    <CursorArtifact dx={cursorDx} dy={cursorDy} />
+                  ) : (
+                    <FormFillArtifact accent={screen.accent} />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export default LoginFeatureShowcase;

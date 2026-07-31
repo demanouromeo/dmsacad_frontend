@@ -117,45 +117,168 @@
   }
 }
 
-/* Login screen's feature showcase (LoginFeatureShowcase.tsx) - each stylized "screen" panel is
-   stacked absolute and fades in/out via this keyframe; per-panel animation-delay (staggered by
-   SLIDE_SECONDS in the component) makes them play in sequence rather than all at once, looping
-   forever. animation-fill-mode: backwards (in .feature-slide below) holds each panel at its 0%
-   (invisible) state during its initial delay, before its first turn. */
-@keyframes feature-cycle {
+/* Login screen's feature showcase (LoginFeatureShowcase.tsx) - screenshots are stacked absolute
+   and cross-faded/transformed in via a JS-driven `activeIndex` (setInterval in the component)
+   rather than a single shared CSS keyframe loop, so an arbitrary number of slides can be added
+   without re-tuning percentage breakpoints. `data-effect` picks which resting transform a panel
+   animates from/to; `.is-active` (added by the component to exactly one panel at a time) is what
+   actually triggers the transition to/from the identity transform below. */
+.feature-slide {
+  opacity: 0;
+  transition:
+    opacity 0.9s ease,
+    transform 0.9s ease;
+}
+
+.feature-slide[data-effect="fade-up"] {
+  transform: translateY(18px) scale(0.98);
+}
+
+.feature-slide[data-effect="slide-right"] {
+  transform: translateX(-32px);
+}
+
+.feature-slide[data-effect="slide-left"] {
+  transform: translateX(32px);
+}
+
+.feature-slide[data-effect="zoom-in"] {
+  transform: scale(0.86);
+}
+
+.feature-slide[data-effect="fade-scale"] {
+  transform: scale(1.1);
+}
+
+.feature-slide[data-effect="flip"] {
+  transform: perspective(900px) rotateY(20deg);
+}
+
+.feature-slide.is-active {
+  opacity: 1;
+  transform: none;
+  z-index: 1;
+}
+
+/* Decorative artifacts overlaid on the active screenshot (LoginFeatureShowcase.tsx) - a
+   simulated pointer click and a simulated "typing into a field" progress fill. Re-keyed by
+   `activeIndex` in the component so each animation restarts from its own 0% every time its
+   slide becomes active, rather than only playing once. */
+@keyframes cursor-roam {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translate(-12px, -12px) scale(0.8);
   }
-  4% {
+  15% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(0, 0) scale(1);
   }
-  21% {
+  65% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate(var(--cursor-dx), var(--cursor-dy)) scale(1);
   }
-  25% {
+  78% {
+    transform: translate(var(--cursor-dx), var(--cursor-dy)) scale(0.82);
+  }
+  100% {
     opacity: 0;
-    transform: translateY(-10px) scale(0.98);
+    transform: translate(var(--cursor-dx), var(--cursor-dy)) scale(0.82);
   }
+}
+
+@keyframes cursor-ripple {
+  0%,
+  60% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  68% {
+    opacity: 0.55;
+  }
+  85% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+.cursor-artifact {
+  animation: cursor-roam calc(var(--slide-seconds, 5) * 1s) ease-in-out 1 both;
+}
+
+.cursor-ripple {
+  animation: cursor-ripple calc(var(--slide-seconds, 5) * 1s) ease-out 1 both;
+}
+
+@keyframes form-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
   100% {
     opacity: 0;
   }
 }
 
-.feature-slide {
-  animation: feature-cycle 16s ease-in-out infinite backwards;
+@keyframes form-fill-bar {
+  0%,
+  8% {
+    width: 0%;
+  }
+  85%,
+  100% {
+    width: 100%;
+  }
+}
+
+@keyframes form-badge-pop {
+  0%,
+  80% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  90% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.form-caret {
+  animation: form-caret-blink 0.9s steps(1) infinite;
+}
+
+.form-fill-bar {
+  animation: form-fill-bar calc(var(--slide-seconds, 5) * 1s) ease-out 1 both;
+}
+
+.form-badge {
+  opacity: 0;
+  animation: form-badge-pop calc(var(--slide-seconds, 5) * 1s) ease-out 1 both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .feature-slide {
-    animation: none;
-    opacity: 0;
+    transition: none;
   }
 
   .feature-slide:first-of-type {
     opacity: 1;
+  }
+
+  .cursor-artifact,
+  .cursor-ripple,
+  .form-caret,
+  .form-fill-bar,
+  .form-badge {
+    animation: none;
   }
 }
 
