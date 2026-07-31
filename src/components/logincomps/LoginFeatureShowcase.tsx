@@ -133,7 +133,7 @@ const LoginFeatureShowcase = () => {
   return (
     <div
       aria-hidden="true"
-      className="relative h-full w-full overflow-hidden rounded-l-2xl shadow-2xl border border-base-content/10 bg-[linear-gradient(135deg,#1d4ed8_0%,#4c1d95_38%,#f8fafc_68%,#9ca3af_100%)]"
+      className="relative h-full w-full overflow-hidden rounded-l-2xl shadow-2xl border border-r-base-content/10 border-b-base-content/10 border-t-[#4c1d95] border-l-[#4c1d95] bg-[linear-gradient(135deg,#4c1d95_0%,#2563eb_38%,#f8fafc_68%,#9ca3af_100%)]"
       style={{ "--slide-seconds": SLIDE_SECONDS } as React.CSSProperties}
     >
       {SCREENS.map((screen, index) => {
