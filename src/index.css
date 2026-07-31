@@ -117,6 +117,48 @@
   }
 }
 
+/* Login screen's feature showcase (LoginFeatureShowcase.tsx) - each stylized "screen" panel is
+   stacked absolute and fades in/out via this keyframe; per-panel animation-delay (staggered by
+   SLIDE_SECONDS in the component) makes them play in sequence rather than all at once, looping
+   forever. animation-fill-mode: backwards (in .feature-slide below) holds each panel at its 0%
+   (invisible) state during its initial delay, before its first turn. */
+@keyframes feature-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  4% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  21% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.feature-slide {
+  animation: feature-cycle 16s ease-in-out infinite backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-slide {
+    animation: none;
+    opacity: 0;
+  }
+
+  .feature-slide:first-of-type {
+    opacity: 1;
+  }
+}
+
 html,
 body {
   overflow-x: hidden;

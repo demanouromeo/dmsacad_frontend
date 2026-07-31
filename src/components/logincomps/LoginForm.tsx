@@ -1,6 +1,6 @@
 import { Eye, EyeOff, UsersRound, Cloud, Server, Settings, X } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
-import img from "../../assets/medium/login_img1.png";
+import LoginFeatureShowcase from "./LoginFeatureShowcase";
 import Title from "../Title";
 import React, { useEffect, useRef, useState } from "react";
 import { MyReader } from "../../dbmanger/MyReader";
@@ -268,11 +268,7 @@ const LoginForm = () => {
         <Title title={t.title} />
         <div className="flex flex-wrap justify-center items-center">
           <div className="hidden md:block md:h-120 w-96">
-            <img
-              src={img}
-              alt=""
-              className="h-full w-full object-cover rounded-l-2xl shadow-2xl"
-            />
+            <LoginFeatureShowcase />
           </div>
 
           <form
