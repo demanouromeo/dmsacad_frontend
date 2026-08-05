@@ -10,6 +10,12 @@ export class MyConstants {
   public static SECTION_KEY = "section";
   public static LANGUAGE_KEY = "language";
   public static gLocalSchoolCode = "mysql";
+  // On mobile (packaged Capacitor app or a phone-width browser), the school/year pickers default
+  // to this connection/year rather than staying empty, so a tester can run straight into the TEST
+  // school without choosing anything first. Only applies when nothing has been picked yet - see
+  // LoginForm.tsx's selectedSchool/selectedSchoolYear initializers.
+  public static gMobileDefaultSchoolCode = "TEST";
+  public static gMobileDefaultSchoolYear = "2026/2027";
   public static BACKEND_TARGET_KEY = "backendTarget";
   public static SCHOOL_CONFIG_KEY = "schoolConfig";
   // Cookie (not sessionStorage) holding the raw allSchoolConfigOfYear response - fetched fresh on

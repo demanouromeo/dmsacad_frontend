@@ -31,16 +31,20 @@ const LoginForm = () => {
   const [selectedSchool, setSelectedSchool] = useState<string>(() =>
     !shouldForceRemoteOnly() && MyConstants.getBackendTarget() === "local"
       ? MyConstants.gLocalSchoolCode
-      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
+      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) ||
+        (shouldForceRemoteOnly() ? MyConstants.gMobileDefaultSchoolCode : ""),
   );
   const [remoteSchool, setRemoteSchool] = useState<string>(() =>
     !shouldForceRemoteOnly() && MyConstants.getBackendTarget() === "local"
       ? ""
-      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) || "",
+      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) ||
+        (shouldForceRemoteOnly() ? MyConstants.gMobileDefaultSchoolCode : ""),
   );
   const [schoolList, setSchoolList] = useState<string[]>([]);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(
-    () => sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY) || "",
+    () =>
+      sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY) ||
+      (shouldForceRemoteOnly() ? MyConstants.gMobileDefaultSchoolYear : ""),
   );
   const [selectedSection, setSelectedSection] = useState(
     () => sessionStorage.getItem(MyConstants.SECTION_KEY) || "francophone",
