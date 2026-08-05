@@ -10,7 +10,7 @@ import {
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import { AccountReader } from "../../../dbmanger/AccountReader";
 import type { ManagedAccount } from "../../../interfaces/ManagedAccount";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -179,9 +179,7 @@ const AccountManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={7} />
       ) : (
         <div className="surface-card overflow-hidden">
           <div className="table-toolbar">

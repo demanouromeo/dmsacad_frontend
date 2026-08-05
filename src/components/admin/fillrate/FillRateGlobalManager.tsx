@@ -25,7 +25,7 @@ import {
   type ExportColumn,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -226,9 +226,7 @@ const FillRateGlobalManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <TableSkeleton rows={7} columns={3} showToolbar={false} />
       ) : !hasAnyClasses ? (
         <p className="empty-state">{t.emptyClasses}</p>
       ) : (

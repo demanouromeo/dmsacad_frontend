@@ -13,7 +13,7 @@ import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { StudentReader } from "../../../dbmanger/StudentReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { Student } from "../../../interfaces/Student";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -583,8 +583,21 @@ const StudentManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div
+          className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4"
+          aria-hidden="true"
+        >
+          <div className="flex items-center gap-2">
+            <div className="skeleton h-4 w-24 rounded"></div>
+            <div className="skeleton h-8 w-56 rounded-lg"></div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="skeleton h-8 w-28 rounded-lg"></div>
+            <div className="skeleton h-8 w-28 rounded-lg"></div>
+            <div className="skeleton h-8 w-28 rounded-lg"></div>
+            <div className="skeleton h-8 w-28 rounded-lg"></div>
+          </div>
+          <div className="skeleton h-12 w-full rounded-xl"></div>
         </div>
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
@@ -668,9 +681,7 @@ const StudentManager = () => {
           </div>
 
           {isLoadingStudents ? (
-            <div className="surface-card flex justify-center py-20 mb-6">
-              <Loading />
-            </div>
+            <TableSkeleton rows={7} columns={12} className="mb-6" />
           ) : (
             <div className="surface-card overflow-hidden mb-6">
               <div className="table-toolbar">

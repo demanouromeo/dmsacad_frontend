@@ -7,7 +7,7 @@ import { useLanguage } from "../../../i18n/useLanguage";
 import { parentManagerTranslations, exportTranslations } from "../../../i18n/translations";
 import { StudParentReader } from "../../../dbmanger/StudParentReader";
 import type { StudParent } from "../../../interfaces/StudParent";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -347,9 +347,7 @@ const ParentManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20 mb-6">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={10} className="mb-6" />
       ) : (
         <div className="surface-card overflow-hidden mb-6">
           <div className="table-toolbar">

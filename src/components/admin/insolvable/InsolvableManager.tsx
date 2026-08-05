@@ -13,8 +13,8 @@ import {
   exportRowsToPdf,
   type ExportColumn,
 } from "../../../utils/exportData";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -219,8 +219,17 @@ const InsolvableManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div
+          className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4"
+          aria-hidden="true"
+        >
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <div className="skeleton h-8 w-48 rounded-lg"></div>
+            <div className="skeleton h-8 w-64 rounded-lg"></div>
+            <div className="skeleton h-8 w-40 rounded-lg"></div>
+          </div>
+          <div className="skeleton h-4 w-40 mx-auto rounded"></div>
+          <div className="skeleton h-12 w-full rounded-xl"></div>
         </div>
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
@@ -288,9 +297,7 @@ const InsolvableManager = () => {
           </div>
 
           {isLoadingRoster ? (
-            <div className="surface-card flex justify-center py-20">
-              <Loading />
-            </div>
+            <TableSkeleton rows={7} columns={4} showToolbar={false} />
           ) : (
             <div className="surface-card overflow-hidden">
               <div className="overflow-x-auto">

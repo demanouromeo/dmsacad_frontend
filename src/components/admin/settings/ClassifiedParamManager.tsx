@@ -6,7 +6,7 @@ import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { classifiedParamManagerTranslations } from "../../../i18n/translations";
 import { ClassifiedParamReader } from "../../../dbmanger/ClassifiedParamReader";
-import Loading from "../../sharedcomp/Loading";
+import FormSkeleton from "../../sharedcomp/skeletons/FormSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -80,9 +80,7 @@ const ClassifiedParamManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card w-full max-w-2xl flex justify-center py-16">
-          <Loading />
-        </div>
+        <FormSkeleton fields={2} className="w-full max-w-2xl" />
       ) : (
         <div className="w-full max-w-2xl surface-card p-6 md:p-8 flex flex-col gap-2">
           <label

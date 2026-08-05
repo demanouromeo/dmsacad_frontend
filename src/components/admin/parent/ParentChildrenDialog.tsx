@@ -8,7 +8,7 @@ import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { StudParentReader } from "../../../dbmanger/StudParentReader";
 import type { StudParent, ParentChild, AssignableStudent } from "../../../interfaces/StudParent";
 import type { Classe } from "../../../interfaces/Classe";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 
 interface ParentChildrenDialogProps {
@@ -187,9 +187,7 @@ const ParentChildrenDialog = ({ parent, onClose }: ParentChildrenDialogProps) =>
               </select>
             )}
             {isLoadingRoster ? (
-              <div className="flex justify-center py-6">
-                <Loading />
-              </div>
+              <TableSkeleton card={false} showToolbar={false} rows={4} columns={4} />
             ) : (
               <div className="overflow-y-auto max-h-72 border border-base-300 rounded">
                 <table className="table table-zebra table-xs">
@@ -245,9 +243,7 @@ const ParentChildrenDialog = ({ parent, onClose }: ParentChildrenDialogProps) =>
           <div>
             <h4 className="font-semibold mb-2">{t.currentChildrenTitle}</h4>
             {isLoadingChildren ? (
-              <div className="flex justify-center py-6">
-                <Loading />
-              </div>
+              <TableSkeleton card={false} showToolbar={false} rows={4} columns={3} />
             ) : (
               <div className="overflow-y-auto max-h-80 border border-base-300 rounded">
                 <table className="table table-zebra table-xs">

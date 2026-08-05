@@ -11,7 +11,7 @@ import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import { mergeToUnifiedCells, type FillRateCell } from "../../../utils/fillRateAggregation";
 import { buildTimestampedFilename, exportRowsToPdf } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import FillRateChartDialog from "../marks/FillRateChartDialog";
 
@@ -140,9 +140,7 @@ const FillRateClassManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={2} showToolbar={false} />
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
       ) : (
@@ -230,7 +228,13 @@ const FillRateClassManager = () => {
                 </div>
               </div>
               {isLoadingSubjects ? (
-                <Loading />
+                <ul className="space-y-1" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <li key={i}>
+                      <div className="skeleton h-4 w-full rounded"></div>
+                    </li>
+                  ))}
+                </ul>
               ) : (
                 <ul className="space-y-1">
                   {subjects.map((subject, index) => {

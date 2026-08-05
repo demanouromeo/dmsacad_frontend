@@ -25,7 +25,7 @@ import {
   exportRowsToCsv,
   type ExportColumn,
 } from "../../../utils/exportData";
-import Loading from "../../sharedcomp/Loading";
+import PickerSkeleton from "../../sharedcomp/skeletons/PickerSkeleton";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -327,9 +327,7 @@ const PvManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <PickerSkeleton selects={2} hasRadios buttons={2} />
       ) : classes.length === 0 ? (
         <p className="empty-state">Aucune classe trouvée pour cette année.</p>
       ) : (

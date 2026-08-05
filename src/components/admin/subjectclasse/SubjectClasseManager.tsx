@@ -11,8 +11,8 @@ import type { Classe } from "../../../interfaces/Classe";
 import type { Groupe } from "../../../interfaces/Groupe";
 import type { Subject } from "../../../interfaces/Subject";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import { stripHtmlTags } from "../../../utils/apiErrors";
 import {
@@ -380,8 +380,15 @@ const SubjectClasseManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div
+          className="surface-card p-4 flex items-center gap-2 mb-6 flex-wrap"
+          aria-hidden="true"
+        >
+          <div className="skeleton h-8 w-64 rounded-lg"></div>
+          <div className="flex-1" />
+          <div className="skeleton h-8 w-32 rounded-lg"></div>
+          <div className="skeleton h-8 w-28 rounded-lg"></div>
+          <div className="skeleton h-8 w-28 rounded-lg"></div>
         </div>
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
@@ -431,8 +438,24 @@ const SubjectClasseManager = () => {
           </div>
 
           {isLoadingLists ? (
-            <div className="surface-card flex justify-center py-20">
-              <Loading />
+            <div className="flex flex-col lg:flex-row gap-4 items-start">
+              <TableSkeleton
+                rows={6}
+                columns={3}
+                showToolbar={false}
+                className="flex-1 min-w-0 w-full"
+              />
+              <div className="flex lg:flex-col gap-2 pt-8 shrink-0 self-center" aria-hidden="true">
+                <div className="skeleton h-10 w-24 rounded-lg"></div>
+                <div className="skeleton h-10 w-24 rounded-lg"></div>
+                <div className="skeleton h-10 w-24 rounded-lg"></div>
+              </div>
+              <TableSkeleton
+                rows={6}
+                columns={5}
+                showToolbar={false}
+                className="flex-1 min-w-0 w-full"
+              />
             </div>
           ) : (
             selectedClasse && (

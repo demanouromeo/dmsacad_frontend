@@ -9,7 +9,7 @@ import {
 } from "../../../i18n/translations";
 import { FiliereReader } from "../../../dbmanger/FiliereReader";
 import type { Filiere } from "../../../interfaces/Filiere";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -259,9 +259,7 @@ const FiliereManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20 mb-6">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={4} className="mb-6" />
       ) : (
         <div className="surface-card overflow-hidden mb-6">
           <div className="table-toolbar">

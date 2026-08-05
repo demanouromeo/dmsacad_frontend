@@ -11,7 +11,7 @@ import {
 } from "../../../i18n/translations";
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Staff } from "../../../interfaces/Staff";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import StaffPhotoCell from "./StaffPhotoCell";
 import StaffPhotoDialog from "./StaffPhotoDialog";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
@@ -535,9 +535,7 @@ const StaffManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20 mb-6">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={13} className="mb-6" />
       ) : (
         <div className="surface-card overflow-hidden mb-6">
           <div className="table-toolbar">

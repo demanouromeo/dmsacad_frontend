@@ -7,7 +7,7 @@ import { selfCredentialsManagerTranslations } from "../../../i18n/translations";
 import { AccountReader } from "../../../dbmanger/AccountReader";
 import { MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH } from "../../../utils/textValidation";
 import { isDuplicateNameError } from "../../../utils/apiErrors";
-import Loading from "../../sharedcomp/Loading";
+import FormSkeleton from "../../sharedcomp/skeletons/FormSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -122,9 +122,7 @@ const SelfCredentialsManager = () => {
       </div>
 
       {isLoadingAccount ? (
-        <div className="surface-card w-full max-w-sm flex justify-center py-16">
-          <Loading />
-        </div>
+        <FormSkeleton fields={3} className="w-full max-w-sm" />
       ) : (
         <div className="surface-card p-6 flex flex-col gap-4 w-full max-w-sm">
           <div>

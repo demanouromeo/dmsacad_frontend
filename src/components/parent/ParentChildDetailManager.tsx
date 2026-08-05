@@ -28,7 +28,7 @@ import { exportAnnualReportCardsToPdf } from "../../utils/reportCard/exportAnnua
 import { exportAnnualReportCardsApcToPdf } from "../../utils/reportCard/exportAnnualReportCardApcPdf";
 import { buildReleveDeNotesTitle, ANNUAL_RELEVE_TITLE } from "../../utils/reportCard/reportCardPdfShared";
 import { buildTimestampedFilename } from "../../utils/exportData";
-import Loading from "../sharedcomp/Loading";
+import TableSkeleton from "../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../sharedcomp/LoadingOverlay";
 import MarksChartDialog, { type MarksChartEntry } from "./MarksChartDialog";
 
@@ -382,8 +382,13 @@ const ParentChildDetailManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div aria-hidden="true">
+          <div className="skeleton h-4 w-48 rounded mb-4"></div>
+          <div className="flex gap-2 mb-4">
+            <div className="skeleton h-8 w-24 rounded-lg"></div>
+            <div className="skeleton h-8 w-24 rounded-lg"></div>
+          </div>
+          <TableSkeleton rows={6} columns={4} showToolbar={false} />
         </div>
       ) : !child ? (
         <div className="surface-card py-16">

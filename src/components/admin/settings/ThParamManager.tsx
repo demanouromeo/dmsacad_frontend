@@ -6,7 +6,7 @@ import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { thParamManagerTranslations } from "../../../i18n/translations";
 import { ThParamReader } from "../../../dbmanger/ThParamReader";
-import Loading from "../../sharedcomp/Loading";
+import FormSkeleton from "../../sharedcomp/skeletons/FormSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -94,9 +94,7 @@ const ThParamManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card w-full max-w-2xl flex justify-center py-16">
-          <Loading />
-        </div>
+        <FormSkeleton fields={4} className="w-full max-w-2xl" />
       ) : (
         <div className="w-full max-w-2xl surface-card p-6 md:p-8 flex flex-col gap-6">
           <p className="text-sm opacity-70">{t.description}</p>

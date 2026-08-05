@@ -5,7 +5,7 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { parentPortalTranslations } from "../../i18n/translations";
 import { StudParentReader } from "../../dbmanger/StudParentReader";
 import type { ParentChild } from "../../interfaces/StudParent";
-import Loading from "../sharedcomp/Loading";
+import CardGridSkeleton from "../sharedcomp/skeletons/CardGridSkeleton";
 import StudentPhotoCell from "../admin/student/StudentPhotoCell";
 
 // The PARENT role's own landing page (Dashboard.tsx redirects PARENT here) - lists every child
@@ -48,9 +48,7 @@ const ParentDashboard = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <CardGridSkeleton cards={6} />
       ) : children.length === 0 ? (
         <div className="surface-card py-16">
           <p className="empty-state">{t.dashboardEmpty}</p>

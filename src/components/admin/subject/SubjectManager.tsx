@@ -10,7 +10,7 @@ import {
 } from "../../../i18n/translations";
 import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import type { Subject } from "../../../interfaces/Subject";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -398,9 +398,7 @@ const SubjectManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20 mb-6">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={4} className="mb-6" />
       ) : (
         <div className="surface-card overflow-hidden mb-6">
           <div className="table-toolbar">

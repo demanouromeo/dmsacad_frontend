@@ -7,7 +7,7 @@ import { useLanguage } from "../../../i18n/useLanguage";
 import { promotionSettingsManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import type { Classe } from "../../../interfaces/Classe";
-import Loading from "../../sharedcomp/Loading";
+import FormSkeleton from "../../sharedcomp/skeletons/FormSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -125,9 +125,7 @@ const PromotionSettingsManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card w-full max-w-3xl flex justify-center py-16">
-          <Loading />
-        </div>
+        <FormSkeleton fields={5} className="w-full max-w-3xl" />
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
       ) : (

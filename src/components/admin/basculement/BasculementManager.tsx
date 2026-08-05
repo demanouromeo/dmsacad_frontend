@@ -25,8 +25,8 @@ import {
 } from "../../../utils/exportData";
 import { exportProvisionalListToPdf, type ProvisionalListBlock } from "../../../utils/exportProvisionalList";
 import type { Classe } from "../../../interfaces/Classe";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import iconInitBasculement from "../../../assets/compo/basculement/init_basculement.svg";
@@ -706,8 +706,16 @@ const BasculementManager = () => {
       </dialog>
 
       {nothingLoaded ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div
+          className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-start"
+          aria-hidden="true"
+        >
+          <TableSkeleton rows={6} columns={5} />
+          <div className="flex lg:flex-col items-center justify-center gap-2 py-4">
+            <div className="skeleton h-9 w-9 rounded-lg"></div>
+            <div className="skeleton h-9 w-9 rounded-lg"></div>
+          </div>
+          <TableSkeleton rows={6} columns={4} />
         </div>
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
@@ -768,9 +776,7 @@ const BasculementManager = () => {
                 </label>
               </div>
               {isLoadingLeft ? (
-                <div className="flex justify-center py-16">
-                  <Loading />
-                </div>
+                <TableSkeleton rows={7} columns={5} showToolbar={false} card={false} />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="table table-zebra data-table">
@@ -908,9 +914,7 @@ const BasculementManager = () => {
                 />
               </div>
               {isLoadingRight ? (
-                <div className="flex justify-center py-16">
-                  <Loading />
-                </div>
+                <TableSkeleton rows={7} columns={4} showToolbar={false} card={false} />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="table table-zebra data-table">

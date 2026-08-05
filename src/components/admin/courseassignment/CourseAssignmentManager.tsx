@@ -15,8 +15,8 @@ import type { Staff } from "../../../interfaces/Staff";
 import type { Subject } from "../../../interfaces/Subject";
 import type { ClasseOfSubject } from "../../../interfaces/ClasseOfSubject";
 import type { CourseAssignment } from "../../../interfaces/CourseAssignment";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import {
   buildTimestampedFilename,
@@ -501,8 +501,36 @@ const CourseAssignmentManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div aria-hidden="true">
+          <div className="surface-card p-4 flex flex-wrap gap-6 mb-6">
+            <div className="skeleton h-8 w-64 rounded-lg"></div>
+            <div className="skeleton h-8 w-64 rounded-lg"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="surface-card overflow-hidden">
+              <div className="p-4 border-b border-base-content/10">
+                <div className="skeleton h-4 w-40 rounded"></div>
+              </div>
+              <div className="p-3 space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="skeleton h-4 w-full max-w-56 rounded"
+                  ></div>
+                ))}
+              </div>
+            </div>
+            <div className="surface-card overflow-hidden">
+              <div className="p-4 border-b border-base-content/10">
+                <div className="skeleton h-4 w-40 rounded"></div>
+              </div>
+              <TableSkeleton rows={6} columns={5} showToolbar={false} card={false} />
+            </div>
+          </div>
+          <div className="surface-card p-4 flex flex-wrap gap-2">
+            <div className="skeleton h-10 w-28 rounded-lg"></div>
+            <div className="skeleton h-10 w-40 rounded-lg"></div>
+          </div>
         </div>
       ) : (
         <>

@@ -16,7 +16,7 @@ import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { Speciality } from "../../../interfaces/Speciality";
 import type { StaffSummary } from "../../../interfaces/StaffSummary";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -653,9 +653,7 @@ const ClasseManager = () => {
       </div>
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20 mb-6">
-          <Loading />
-        </div>
+        <TableSkeleton rows={7} columns={isAdmin ? 9 : 8} className="mb-6" />
       ) : (
         <div className="surface-card overflow-hidden mb-6">
           <div className="table-toolbar">

@@ -30,7 +30,7 @@ import {
 import { exportSyntheseResultatsToXlsx } from "../../../utils/syntheseResultats/exportSyntheseResultatsWorkbook";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
-import Loading from "../../sharedcomp/Loading";
+import PickerSkeleton from "../../sharedcomp/skeletons/PickerSkeleton";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -342,9 +342,7 @@ const SyntheseResultatsManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <PickerSkeleton buttons={4} />
       ) : classes.length === 0 ? (
         <p className="empty-state">Aucune classe trouvée pour cette année.</p>
       ) : (

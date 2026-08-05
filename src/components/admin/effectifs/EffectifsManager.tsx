@@ -13,7 +13,7 @@ import {
 } from "../../../utils/exportData";
 import { exportEffectifsToPdf } from "../../../utils/exportEffectifs";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import CloseButton from "../../sharedcomp/CloseButton";
@@ -194,9 +194,7 @@ const EffectifsManager = () => {
       {!isLoading && showCharts && sections.length > 0 && <EffectifsCharts sections={sections} />}
 
       {isLoading ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <TableSkeleton rows={7} columns={7} showToolbar={false} />
       ) : sections.length === 0 ? (
         <p className="empty-state">Aucune classe trouvée pour cette année.</p>
       ) : (

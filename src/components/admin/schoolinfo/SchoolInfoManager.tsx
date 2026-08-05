@@ -17,7 +17,7 @@ import {
 } from "../../../utils/schoolTypes";
 import { sanitizeSchoolInfoText } from "../../../utils/textValidation";
 import type { SchoolHeaderConfig } from "../../../interfaces/SchoolHeaderConfig";
-import Loading from "../../sharedcomp/Loading";
+import FormSkeleton from "../../sharedcomp/skeletons/FormSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -251,9 +251,7 @@ const SchoolInfoManager = () => {
         </div>
 
         {isLoading ? (
-          <div className="surface-card flex justify-center py-20">
-            <Loading />
-          </div>
+          <FormSkeleton fields={7} />
         ) : (
         <form
           onSubmit={handleSubmit}

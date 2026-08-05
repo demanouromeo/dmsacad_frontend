@@ -28,8 +28,8 @@ import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
 import type { Student } from "../../../interfaces/Student";
 import type { Mark } from "../../../interfaces/Mark";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import { sanitizeMarkInput, isMarkInRange, formatMarkValue } from "../../../utils/textValidation";
@@ -908,8 +908,21 @@ const MarkEntryManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div
+          className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4"
+          aria-hidden="true"
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="skeleton h-8 w-48 rounded-lg"></div>
+            <div className="skeleton h-8 w-48 rounded-lg"></div>
+            <div className="skeleton h-8 w-36 rounded-lg"></div>
+            <div className="skeleton h-8 w-56 rounded-lg"></div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="skeleton h-8 w-8 rounded-lg"></div>
+            ))}
+          </div>
         </div>
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
@@ -1152,9 +1165,7 @@ const MarkEntryManager = () => {
                   <div className="flex flex-col lg:flex-row gap-6">
                     <div className="flex-1 surface-card overflow-hidden">
                       {isLoadingRoster || isLoadingMarks ? (
-                        <div className="flex justify-center py-20">
-                          <Loading />
-                        </div>
+                        <TableSkeleton rows={8} columns={3} showToolbar={false} card={false} />
                       ) : (
                         <div className="overflow-x-auto">
                         <table className="table table-zebra data-table">

@@ -28,12 +28,12 @@ import { exportThPdf, type ThPageData } from "../../../utils/reportCard/exportTh
 import { exportAnnualThPdf, type AnnualThPageData } from "../../../utils/reportCard/exportThAnnualPdf";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay, {
   type LoadingOverlayProgress,
 } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 
 const TERMS = [1, 2, 3];
 
@@ -777,8 +777,19 @@ const ReportCardManager = () => {
       </div>
 
       {isLoadingClasses ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
+        <div
+          className="surface-card p-4 md:p-6 mb-6 flex flex-col gap-4"
+          aria-hidden="true"
+        >
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <div className="skeleton h-8 w-56 rounded-lg"></div>
+            <div className="skeleton h-8 w-40 rounded-lg"></div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="skeleton h-9 w-28 rounded-lg"></div>
+            ))}
+          </div>
         </div>
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
@@ -922,9 +933,7 @@ const ReportCardManager = () => {
           </div>
 
           {isLoadingData ? (
-            <div className="surface-card flex justify-center py-20">
-              <Loading />
-            </div>
+            <TableSkeleton rows={7} columns={6} />
           ) : (
             <div className="surface-card overflow-hidden">
               <div className="table-toolbar">

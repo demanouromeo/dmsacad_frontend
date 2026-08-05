@@ -11,8 +11,8 @@ import { MarkReader } from "../../../dbmanger/MarkReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
-import Loading from "../../sharedcomp/Loading";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import SearchInput from "../../sharedcomp/SearchInput";
 import CloseButton from "../../sharedcomp/CloseButton";
 import { sanitizeSubjectTitle } from "../../../utils/subjectImport";
@@ -377,9 +377,7 @@ const SubjectCompetenceManager = () => {
         </div>
 
         {isLoadingClasses ? (
-          <div className="surface-card flex justify-center py-20">
-            <Loading />
-          </div>
+          <TableSkeleton rows={1} columns={2} showToolbar={false} />
         ) : apcClasses.length === 0 ? (
           <p className="empty-state">{t.emptyClasses}</p>
         ) : (
@@ -478,9 +476,7 @@ const SubjectCompetenceManager = () => {
                 </div>
 
                 {isLoadingCompetences ? (
-                  <div className="surface-card flex justify-center py-20">
-                    <Loading />
-                  </div>
+                  <TableSkeleton rows={6} columns={4} />
                 ) : (
                   <>
                     <div className="surface-card overflow-hidden mb-4">

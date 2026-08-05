@@ -21,7 +21,7 @@ import {
 } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import type { Classe } from "../../../interfaces/Classe";
-import Loading from "../../sharedcomp/Loading";
+import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -236,9 +236,7 @@ const ScholarshipManager = () => {
       </div>
 
       {nothingLoadedYet ? (
-        <div className="surface-card flex justify-center py-20">
-          <Loading />
-        </div>
+        <TableSkeleton rows={6} columns={6} showToolbar={false} />
       ) : classes.length === 0 ? (
         <p className="empty-state">{t.emptyClasses}</p>
       ) : (
