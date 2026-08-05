@@ -1,4 +1,5 @@
 import type { jsPDF } from "jspdf";
+import { saveOrShareBlob } from "../nativeFileSave";
 import th1smImg from "../../assets/compo/th/TH1sm.png";
 import th1mdImg from "../../assets/compo/th/TH1md.png";
 import th1Img from "../../assets/compo/th/TH1.png";
@@ -239,5 +240,5 @@ export const exportThPdf = async (
     drawPage(doc, kind, page, term, schoolHeader, backgroundImage, tickImage, language);
   });
 
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

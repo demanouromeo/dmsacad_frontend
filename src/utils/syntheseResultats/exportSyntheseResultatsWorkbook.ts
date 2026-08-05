@@ -1,6 +1,7 @@
 import type { StatGroupeesRow } from "../statGroupees/statGroupeesCompute";
 import type { HonorRollRow } from "./syntheseResultatsCompute";
 import { formatRcNumber } from "../reportCard/reportCardCompute";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 // A genuine multi-sheet .xlsx (ExcelJS, same precedent as exportMarksWorkbook.ts) rather than a
 // single flat CSV - unlike Stat Groupées, this report is inherently 4 differently-shaped tables
@@ -117,10 +118,5 @@ export const exportSyntheseResultatsToXlsx = async (
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  await saveOrShareBlob(blob, filename);
 };

@@ -1,4 +1,5 @@
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "./exportHeader";
+import { saveOrShareBlob } from "./nativeFileSave";
 
 export interface AllMarksReportRow {
   studId: number;
@@ -76,5 +77,5 @@ export const exportAllMarksReportToPdf = async (
     drawPdfSignature(doc, schoolHeader, finalY);
   }
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

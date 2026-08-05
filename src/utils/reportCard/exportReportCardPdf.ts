@@ -1,6 +1,7 @@
 import type { jsPDF } from "jspdf";
 import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "../exportHeader";
 import { computeResponsable } from "../schoolTypes";
+import { saveOrShareBlob } from "../nativeFileSave";
 import {
   formatRangText,
   formatRcFixed2,
@@ -726,5 +727,5 @@ export const exportReportCardsToPdf = async (
   });
 
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

@@ -28,6 +28,7 @@ import {
   drawPdfFooters,
   drawPdfSignature,
 } from "../../../utils/exportHeader";
+import { saveOrShareBlob } from "../../../utils/nativeFileSave";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 interface StaffLike {
@@ -480,7 +481,8 @@ const CourseAssignmentManager = () => {
       drawPdfSignature(doc, schoolHeader, y);
     }
     drawPdfFooters(doc, schoolHeader);
-    doc.save(
+    await saveOrShareBlob(
+      doc.output("blob"),
       buildTimestampedFilename(
         "Liste des attributions",
         [`Section ${capitalizeSectionName(section)}`],

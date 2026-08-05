@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">DMSPortfolio</string>
-    <string name="title_activity_main">DMSPortfolio</string>
+    <string name="app_name">DMS-ACAD</string>
+    <string name="title_activity_main">DMS-ACAD</string>
     <string name="package_name">dmsacad.com</string>
     <string name="custom_url_scheme">dmsacad.com</string>
 </resources>

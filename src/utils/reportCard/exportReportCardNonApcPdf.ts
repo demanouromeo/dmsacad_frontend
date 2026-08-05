@@ -4,6 +4,7 @@ import badProgressImg from "../../assets/compo/rc/bad.png";
 import baisseProgressImg from "../../assets/compo/rc/baisse.png";
 import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "../exportHeader";
 import { computeResponsable } from "../schoolTypes";
+import { saveOrShareBlob } from "../nativeFileSave";
 import {
   computeGroupSubtotal,
   formatRangText,
@@ -608,5 +609,5 @@ export const exportNonApcReportCardsToPdf = async (
   });
 
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

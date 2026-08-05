@@ -4,6 +4,7 @@ import { fullName } from "./classementCompute";
 import { formatRcNumber } from "../reportCard/reportCardCompute";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
 import { STAT_GROUPEES_TERM_ORDINAL } from "../statGroupees/exportStatGroupeesPdf";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 // Tabular PDF builders for the "Classement" module (Liste des premiers / Liste des 3 premiers /
 // Classement général), pattern-matched off exportPvPdf.ts/exportStatGroupeesPdf.ts - portrait (only
@@ -25,11 +26,11 @@ const drawTitleBlock = (doc: jsPDF, pageWidth: number, title: string, schoolYear
   return y + 8;
 };
 
-const finish = (doc: jsPDF, schoolHeader: SchoolHeader, filename: string): void => {
+const finish = async (doc: jsPDF, schoolHeader: SchoolHeader, filename: string): Promise<void> => {
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 // "Liste des premiers" - flat table, one row per classe's champion, re-ranked section-wide (see
@@ -61,7 +62,7 @@ export const exportPremiersListToPdf = async (
     bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 1: { halign: "left" }, 3: { halign: "left" } },
   });
-  finish(doc, schoolHeader, filename);
+  await finish(doc, schoolHeader, filename);
 };
 
 // "Classement général" - same flat shape as Liste des premiers but over every classified student of
@@ -93,7 +94,7 @@ export const exportClassementGeneralToPdf = async (
     bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 1: { halign: "left" }, 3: { halign: "left" } },
   });
-  finish(doc, schoolHeader, filename);
+  await finish(doc, schoolHeader, filename);
 };
 
 // "Liste des 3 premiers" - one table, classe groups sharing a merged No./Classes cell via
@@ -143,5 +144,5 @@ export const exportTroisPremiersToPdf = async (
     bodyStyles: { textColor: [0, 0, 0] },
     columnStyles: { 1: { halign: "left" }, 2: { halign: "left" } },
   });
-  finish(doc, schoolHeader, filename);
+  await finish(doc, schoolHeader, filename);
 };

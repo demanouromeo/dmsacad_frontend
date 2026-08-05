@@ -35,6 +35,7 @@ import {
   drawPdfFooters,
   drawPdfSignature,
 } from "../../../utils/exportHeader";
+import { saveOrShareBlob } from "../../../utils/nativeFileSave";
 
 const MIN_NAME_LENGTH = 2;
 
@@ -558,7 +559,8 @@ const StudentManager = () => {
     }
     drawPdfFooters(doc, schoolHeader);
 
-    doc.save(
+    await saveOrShareBlob(
+      doc.output("blob"),
       buildTimestampedFilename(
         "Liste des élèves",
         [

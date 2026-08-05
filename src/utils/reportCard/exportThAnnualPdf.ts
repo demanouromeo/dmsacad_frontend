@@ -4,6 +4,7 @@ import resolution150Img from "../../assets/compo/th/RESOLUTION150.png";
 import resolution200Img from "../../assets/compo/th/RESOLUTION200.png";
 import tickImg from "../../assets/compo/th/tick.png";
 import { drawPdfLetterhead, type SchoolHeader } from "../exportHeader";
+import { saveOrShareBlob } from "../nativeFileSave";
 import { computeResponsable } from "../schoolTypes";
 import { formatRangText, formatRcNumber } from "./reportCardCompute";
 import type { ThKind } from "./exportThPdf";
@@ -179,5 +180,5 @@ export const exportAnnualThPdf = async (
     drawPage(doc, kind, page, schoolHeader, backgroundImage, tickImage, language);
   });
 
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

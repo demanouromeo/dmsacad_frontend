@@ -2,6 +2,7 @@ import type { jsPDF } from "jspdf";
 import type { PvAnnualRow, PvTermRow } from "./pvCompute";
 import { formatPvNumber, formatPvTermRang } from "./pvCompute";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 // Tabular PV PDF builders, pattern-matched off exportEffectifs.ts (the app's only existing
 // jspdf-autotable-based *tabular* PDF export - every report-card exporter is a per-student page
@@ -125,7 +126,7 @@ export const exportPvTermToPdf = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 export const exportPvAnnualToPdf = async (
@@ -199,5 +200,5 @@ export const exportPvAnnualToPdf = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

@@ -2,6 +2,7 @@ import type { StatGroupeesRow } from "../statGroupees/statGroupeesCompute";
 import type { StatMatiereSubjectBlock } from "./statMatiereCompute";
 import { formatRcNumber } from "../reportCard/reportCardCompute";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 // Same wording as the sibling "Stat Groupées" module's own STAT_GROUPEES_TERM_ORDINAL (confirmed by
 // the user to be the same reference document family) - "SECOND"/"TROISIEME", not PV's/
@@ -149,7 +150,7 @@ const renderStatMatiereDocument = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 export const exportStatMatiereTermToPdf = (

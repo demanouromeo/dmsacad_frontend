@@ -3,6 +3,7 @@ import goodProgressImg from "../../assets/compo/rc/good.png";
 import badProgressImg from "../../assets/compo/rc/bad.png";
 import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "../exportHeader";
 import { computeResponsable } from "../schoolTypes";
+import { saveOrShareBlob } from "../nativeFileSave";
 import {
   computeGroupSubtotal,
   formatRangText,
@@ -621,5 +622,5 @@ export const exportAnnualReportCardsToPdf = async (
   });
 
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

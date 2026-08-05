@@ -1,3 +1,5 @@
+import { saveOrShareBlob } from "./nativeFileSave";
+
 // "Fiches de report de notes" - one blank paper form per classe, meant to be printed and handed to
 // each teacher to write marks on by hand (a separate, offline-collection workflow from the digital
 // mark-entry screen) - not a report of marks already in the database, so no mark data is fetched or
@@ -97,5 +99,5 @@ export const exportMarkSheetsToPdf = async (
     }
   });
 
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

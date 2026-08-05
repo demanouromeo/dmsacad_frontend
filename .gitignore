@@ -28,3 +28,6 @@ STATs/
 SAMPLE_RC/
 SAMPLE_PV/
 #screnshots/
+
+# Ignore all android files
+android/

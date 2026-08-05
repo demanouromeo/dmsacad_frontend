@@ -9,6 +9,7 @@ import {
   buildBodyRow,
 } from "../statGroupees/exportStatGroupeesPdf";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 export { STAT_GROUPEES_TERM_ORDINAL };
 
@@ -132,7 +133,7 @@ const renderSyntheseResultats = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 export const exportSyntheseResultatsTermToPdf = (

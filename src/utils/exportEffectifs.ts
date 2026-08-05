@@ -1,6 +1,7 @@
 import type { SectionEffectif } from "./effectifs";
 import { sumSections } from "./effectifs";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "./exportHeader";
+import { saveOrShareBlob } from "./nativeFileSave";
 
 const SUMMARY_ROW_STYLE = { fontStyle: "bold" as const, fillColor: [229, 231, 235] as [number, number, number] };
 const BILAN_ROW_STYLE = {
@@ -120,5 +121,5 @@ export const exportEffectifsToPdf = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

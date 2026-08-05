@@ -7,6 +7,7 @@ import type {
 import { formatRcNumber } from "../reportCard/reportCardCompute";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
 import { STAT_GROUPEES_TERM_ORDINAL } from "../statGroupees/exportStatGroupeesPdf";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 // "SECOND"/"TROISIEME" wording confirmed via Term-2/Term-3 samples
 // ("STATISTIQUES PAR CLASSE DU SECOND TRIMESTRE" / "... TROISIEME TRIMESTRE") - same wording as
@@ -182,7 +183,7 @@ const renderStatParClasse = async (
   });
 
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 export const exportStatParClasseTermToPdf = (

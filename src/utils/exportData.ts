@@ -4,6 +4,7 @@ import {
   drawPdfSignature,
   type SchoolHeader,
 } from "./exportHeader";
+import { saveOrShareBlob } from "./nativeFileSave";
 
 export interface ExportColumn<T> {
   header: string;
@@ -45,15 +46,6 @@ export const buildTimestampedFilename = (
   return `${segments.join(" - ")}.${extension}`.replace(INVALID_FILENAME_CHARS, " ");
 };
 
-const downloadBlob = (blob: Blob, filename: string): void => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-};
-
 // Accessors are typed as string | number, but real row data (straight from the API) can still
 // carry a null/undefined DB field through at runtime - render that as an empty cell, not "null".
 const formatCellValue = (value: string | number): string =>
@@ -70,11 +62,11 @@ const csvEscape = (value: string | number): string => {
 // .csv natively; the UTF-8 BOM keeps accented characters (Filière, Spécialité...) intact.
 // Unlike exportRowsToPdf, this never prepends the school letterhead - CSV/Excel is treated as raw
 // tabular data for further processing, not a document to be printed as-is.
-export const exportRowsToCsv = <T>(
+export const exportRowsToCsv = async <T>(
   filename: string,
   columns: ExportColumn<T>[],
   rows: T[],
-): void => {
+): Promise<void> => {
   const lines = [
     columns.map((c) => csvEscape(c.header)).join(","),
     ...rows.map((row, index) =>
@@ -85,7 +77,7 @@ export const exportRowsToCsv = <T>(
   const blob = new Blob([BOM + lines.join("\r\n")], {
     type: "text/csv;charset=utf-8;",
   });
-  downloadBlob(blob, filename);
+  await saveOrShareBlob(blob, filename);
 };
 
 export const exportRowsToPdf = async <T>(
@@ -123,5 +115,5 @@ export const exportRowsToPdf = async <T>(
     drawPdfSignature(doc, schoolHeader, finalY);
   }
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

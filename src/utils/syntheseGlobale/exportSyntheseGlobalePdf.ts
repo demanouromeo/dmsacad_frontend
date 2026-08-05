@@ -3,6 +3,7 @@ import type { SyntheseGlobaleRow } from "./syntheseGlobaleCompute";
 import { formatRcNumber } from "../reportCard/reportCardCompute";
 import { STAT_GROUPEES_TERM_ORDINAL } from "../statGroupees/exportStatGroupeesPdf";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 const CENTERED = { halign: "center" as const };
 
@@ -126,7 +127,7 @@ const renderSyntheseGlobaleTable = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 export const exportSyntheseGlobaleTermToPdf = (

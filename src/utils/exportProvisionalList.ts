@@ -1,4 +1,5 @@
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "./exportHeader";
+import { saveOrShareBlob } from "./nativeFileSave";
 
 // One block = one next-year classe's roster - the basculement toolbox's "Liste provisoire" print.
 // Same cover-page-then-one-page-per-block pattern as exportAllMarksReportToPdf (drawPdfLetterhead
@@ -76,5 +77,5 @@ export const exportProvisionalListToPdf = async (
     drawPdfSignature(doc, schoolHeader, finalY);
   }
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };

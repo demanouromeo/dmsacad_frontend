@@ -1,5 +1,6 @@
 import type { Mark } from "../interfaces/Mark";
 import type { Student } from "../interfaces/Student";
+import { saveOrShareBlob } from "./nativeFileSave";
 
 export interface MarksSheet {
   sheetName: string;
@@ -68,10 +69,5 @@ export const exportMarksWorkbookToXlsx = async (
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  await saveOrShareBlob(blob, filename);
 };

@@ -1,6 +1,7 @@
 import type { StatGroupeesRow } from "./statGroupeesCompute";
 import { formatRcNumber } from "../reportCard/reportCardCompute";
 import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "../exportHeader";
+import { saveOrShareBlob } from "../nativeFileSave";
 
 // "SECOND" (not "DEUXIÈME"/"DEUXIEME" as PV/exportAllMarksReport.ts use) - matches the sample
 // "Statistiques Groupées" PDFs' own wording exactly ("STATISTIQUES GROUPÉES DU SECOND TRIMESTRE").
@@ -107,7 +108,7 @@ const renderStatGroupeesTable = async (
 
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
-  doc.save(filename);
+  await saveOrShareBlob(doc.output("blob"), filename);
 };
 
 export const exportStatGroupeesTermToPdf = (
