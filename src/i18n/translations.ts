@@ -1339,6 +1339,12 @@ export const markEntryManagerTranslations = {
     exportAllClassesMarksTooltip:
       "Exporter les notes du trimestre actuel de toutes les classes de la section dans un seul fichier PDF",
     exportAllClassesMarksEmpty: "Aucune note à exporter pour cette section.",
+    progressLoadingData: "Chargement des données...",
+    progressSubject: (current: number, total: number, name: string) =>
+      `Matière ${current}/${total} : ${name}`,
+    progressClasse: (current: number, total: number, name: string) =>
+      `Classe ${current}/${total} : ${name}`,
+    progressGeneratingDocument: "Génération du document...",
   },
   en: {
     title: "Mark entry",
@@ -1435,6 +1441,12 @@ export const markEntryManagerTranslations = {
     exportAllClassesMarksTooltip:
       "Export the current term's marks for every class of the section to a single PDF file",
     exportAllClassesMarksEmpty: "No marks to export for this section.",
+    progressLoadingData: "Loading data...",
+    progressSubject: (current: number, total: number, name: string) =>
+      `Subject ${current}/${total}: ${name}`,
+    progressClasse: (current: number, total: number, name: string) =>
+      `Classe ${current}/${total}: ${name}`,
+    progressGeneratingDocument: "Generating document...",
   },
 };
 

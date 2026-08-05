@@ -28,7 +28,7 @@ import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import type { SubjectCompetence } from "../../../interfaces/SubjectCompetence";
 import type { Student } from "../../../interfaces/Student";
 import type { Mark } from "../../../interfaces/Mark";
-import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -53,6 +53,7 @@ import {
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import FillRateChartDialog from "./FillRateChartDialog";
 import { computeDbSequence } from "../../../utils/markSequence";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 
 const TERMS = [1, 2, 3];
 const SEQUENCES = [1, 2];
@@ -89,6 +90,7 @@ const MarkEntryManager = () => {
   const [isChartDialogOpen, setIsChartDialogOpen] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [isExportingReport, setIsExportingReport] = useState(false);
+  const [exportProgress, setExportProgress] = useState<LoadingOverlayProgress | null>(null);
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [apcLevels, setApcLevels] = useState<Map<number, boolean>>(new Map());
@@ -663,10 +665,20 @@ const MarkEntryManager = () => {
     const classeId = selectedClasseId;
     setIsExportingAll(true);
     const usedNames = new Set<string>();
+    const total = subjects.length;
+    const onSubjectDone = (subject: SubjectClasseRow, _index: number, completed: number) =>
+      setExportProgress({
+        current: completed,
+        total,
+        label: t.progressLoadingData,
+        overall: t.progressSubject(completed, total, subject.subject_title),
+      });
     let sheets: MarksSheet[];
     if (isApc) {
-      const perSubject = await Promise.all(
-        subjects.map(async (subject) => {
+      const perSubject = await mapWithConcurrency(
+        subjects,
+        DEFAULT_REPORT_CONCURRENCY,
+        async (subject) => {
           const subjectCompetences = await SubjectReader.fetchCompetences(
             accessToken,
             connection,
@@ -696,12 +708,15 @@ const MarkEntryManager = () => {
               };
             }),
           );
-        }),
+        },
+        onSubjectDone,
       );
       sheets = perSubject.flat();
     } else {
-      sheets = await Promise.all(
-        subjects.map(async (subject) => {
+      sheets = await mapWithConcurrency(
+        subjects,
+        DEFAULT_REPORT_CONCURRENCY,
+        async (subject) => {
           const rows = await MarkReader.fetchSeqMarks(
             accessToken,
             connection,
@@ -714,9 +729,11 @@ const MarkEntryManager = () => {
             sheetName: buildUniqueSheetName(subject.subject_title, usedNames),
             marksByStudId: new Map(rows.map((r) => [r.stud_id, r])),
           };
-        }),
+        },
+        onSubjectDone,
       );
     }
+    setExportProgress({ current: total, total, label: t.progressGeneratingDocument });
     const filename = buildTimestampedFilename(
       selectedClasse?.classe_name ?? "",
       isApc ? [`Trim ${selectedTerm}`] : [`Trim ${selectedTerm}`, `Seq ${selectedSequence}`],
@@ -730,6 +747,7 @@ const MarkEntryManager = () => {
       mark: t.exportMarksColMark,
     });
     setIsExportingAll(false);
+    setExportProgress(null);
   };
 
   // "Notes trim N" report - a single PDF spanning EVERY classe of the current section (not just the
@@ -747,81 +765,81 @@ const MarkEntryManager = () => {
       return;
     }
     setIsExportingReport(true);
-    const blocks: AllMarksReportBlock[] = [];
-    for (const classe of classes) {
-      const classeIsApc = isLevelApc(classe.level);
-      const [subjectList, rosterList] = await Promise.all([
-        SubjectReader.fetchSubjectsOfClasse(
-          accessToken,
-          connection,
-          schoolYear,
-          section,
-          classe.classe_id,
-        ),
-        StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classe.classe_id),
-      ]);
-      if (rosterList.length === 0) {
-        continue;
-      }
-      const nameByStudId = new Map(
-        rosterList.map((s) => [s.stud_id, `${s.name} ${s.surname ?? ""}`.trim()]),
-      );
-
-      if (classeIsApc) {
-        const subjectBlocks = await Promise.all(
-          subjectList.map(async (subject): Promise<AllMarksReportBlock | null> => {
-            const subjectCompetences = await SubjectReader.fetchCompetences(
-              accessToken,
-              connection,
-              schoolYear,
-              section,
-              classe.classe_id,
-              subject.subject_id,
-              selectedTerm,
-            );
-            if (subjectCompetences.length === 0) {
-              return null;
-            }
-            const marksPerCompetence = await Promise.all(
-              subjectCompetences.map((comp) =>
-                MarkReader.fetchCompMarks(
-                  accessToken,
-                  connection,
-                  schoolYear,
-                  classe.classe_id,
-                  subject.subject_id,
-                  selectedTerm,
-                  comp.subject_competence_id,
-                ),
-              ),
-            );
-            const marksByStudIdPerCompetence = marksPerCompetence.map(
-              (rows) => new Map(rows.map((r) => [r.stud_id, r])),
-            );
-            const rows: AllMarksReportRow[] = rosterList.map((student) => ({
-              studId: student.stud_id,
-              name: nameByStudId.get(student.stud_id) ?? "",
-              values: marksByStudIdPerCompetence.map((m) =>
-                formatReportMarkValue(m.get(student.stud_id)),
-              ),
-            }));
-            return {
-              classeName: classe.classe_name,
-              subjectTitle: subject.subject_title,
-              columnHeaders: subjectCompetences.map((_, index) => `Comp. ${index + 1}`),
-              rows,
-            };
-          }),
+    const total = classes.length;
+    const perClasse = await mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe): Promise<AllMarksReportBlock[]> => {
+        const classeIsApc = isLevelApc(classe.level);
+        const [subjectList, rosterList] = await Promise.all([
+          SubjectReader.fetchSubjectsOfClasse(
+            accessToken,
+            connection,
+            schoolYear,
+            section,
+            classe.classe_id,
+          ),
+          StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classe.classe_id),
+        ]);
+        if (rosterList.length === 0) {
+          return [];
+        }
+        const nameByStudId = new Map(
+          rosterList.map((s) => [s.stud_id, `${s.name} ${s.surname ?? ""}`.trim()]),
         );
-        subjectBlocks.forEach((block) => {
-          if (block) {
-            blocks.push(block);
-          }
-        });
-      } else {
+
+        if (classeIsApc) {
+          const subjectBlocks = await Promise.all(
+            subjectList.map(async (subject): Promise<AllMarksReportBlock | null> => {
+              const subjectCompetences = await SubjectReader.fetchCompetences(
+                accessToken,
+                connection,
+                schoolYear,
+                section,
+                classe.classe_id,
+                subject.subject_id,
+                selectedTerm,
+              );
+              if (subjectCompetences.length === 0) {
+                return null;
+              }
+              const marksPerCompetence = await Promise.all(
+                subjectCompetences.map((comp) =>
+                  MarkReader.fetchCompMarks(
+                    accessToken,
+                    connection,
+                    schoolYear,
+                    classe.classe_id,
+                    subject.subject_id,
+                    selectedTerm,
+                    comp.subject_competence_id,
+                  ),
+                ),
+              );
+              const marksByStudIdPerCompetence = marksPerCompetence.map(
+                (rows) => new Map(rows.map((r) => [r.stud_id, r])),
+              );
+              const rows: AllMarksReportRow[] = rosterList.map((student) => ({
+                studId: student.stud_id,
+                name: nameByStudId.get(student.stud_id) ?? "",
+                values: marksByStudIdPerCompetence.map((m) =>
+                  formatReportMarkValue(m.get(student.stud_id)),
+                ),
+              }));
+              return {
+                classeName: classe.classe_name,
+                subjectTitle: subject.subject_title,
+                columnHeaders: subjectCompetences.map((_, index) => `Comp. ${index + 1}`),
+                rows,
+              };
+            }),
+          );
+          return subjectBlocks.filter((block): block is AllMarksReportBlock => block !== null);
+        }
+
         const dbseq1 = computeDbSequence(selectedTerm, 1);
         const dbseq2 = computeDbSequence(selectedTerm, 2);
-        const subjectBlocks = await Promise.all(
+        return Promise.all(
           subjectList.map(async (subject): Promise<AllMarksReportBlock> => {
             const [seq1Rows, seq2Rows] = await Promise.all([
               MarkReader.fetchSeqMarks(
@@ -859,16 +877,25 @@ const MarkEntryManager = () => {
             };
           }),
         );
-        blocks.push(...subjectBlocks);
-      }
-    }
+      },
+      (classe, _index, completed) =>
+        setExportProgress({
+          current: completed,
+          total,
+          label: t.progressLoadingData,
+          overall: t.progressClasse(completed, total, classe.classe_name),
+        }),
+    );
+    const blocks = perClasse.flat();
 
     if (blocks.length === 0) {
       setIsExportingReport(false);
+      setExportProgress(null);
       showToast(t.exportAllClassesMarksEmpty, { type: "warning" });
       return;
     }
 
+    setExportProgress({ current: total, total, label: t.progressGeneratingDocument });
     const filename = buildTimestampedFilename(
       `Notes trim ${selectedTerm}`,
       [`Section ${capitalizeSectionName(section)}`],
@@ -876,6 +903,7 @@ const MarkEntryManager = () => {
     );
     await exportAllMarksReportToPdf(schoolYear, selectedTerm, blocks, schoolHeader, filename);
     setIsExportingReport(false);
+    setExportProgress(null);
   };
 
   const handleExportFillRatePdf = async () => {
@@ -901,7 +929,9 @@ const MarkEntryManager = () => {
 
   return (
     <div className="page-shell-wide pb-32">
-      {(isSaving || isExportingAll || isExportingReport) && <LoadingOverlay />}
+      {(isSaving || isExportingAll || isExportingReport) && (
+        <LoadingOverlay progress={isExportingAll || isExportingReport ? exportProgress : null} />
+      )}
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
         <CloseButton />
