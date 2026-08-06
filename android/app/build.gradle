@@ -7,10 +7,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "dmsacad.com"
+    namespace = "com.dmsacad"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "dmsacad.com"
+        applicationId "com.dmsacad"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

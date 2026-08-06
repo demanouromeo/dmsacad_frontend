@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">DMS-ACAD</string>
     <string name="title_activity_main">DMS-ACAD</string>
-    <string name="package_name">dmsacad.com</string>
+    <string name="package_name">com.dmsacad</string>
     <string name="custom_url_scheme">dmsacad.com</string>
 </resources>
