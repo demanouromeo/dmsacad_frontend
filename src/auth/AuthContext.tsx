@@ -20,11 +20,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const restore = async () => {
-      const storedConnection = sessionStorage.getItem(
-        MyConstants.SCHOOL_NAME_KEY,
-      );
-      const storedYear = sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY);
-      const storedSection = sessionStorage.getItem(MyConstants.SECTION_KEY);
+      const storage = MyConstants.getSelectionStorage();
+      const storedConnection = storage.getItem(MyConstants.SCHOOL_NAME_KEY);
+      const storedYear = storage.getItem(MyConstants.SCHOOL_YEAR_KEY);
+      const storedSection = storage.getItem(MyConstants.SECTION_KEY);
       if (storedYear) {
         setSchoolYearState(storedYear);
       }
@@ -62,9 +61,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setConnection(connectionVal);
     setSchoolYearState(yearVal);
     setSectionState(sectionVal);
-    sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, connectionVal);
-    sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, yearVal);
-    sessionStorage.setItem(MyConstants.SECTION_KEY, sectionVal);
+    const storage = MyConstants.getSelectionStorage();
+    storage.setItem(MyConstants.SCHOOL_NAME_KEY, connectionVal);
+    storage.setItem(MyConstants.SCHOOL_YEAR_KEY, yearVal);
+    storage.setItem(MyConstants.SECTION_KEY, sectionVal);
 
     // The school header cookie itself is (re)fetched by the effect below, which reacts to
     // connection/schoolYear/accessToken - setting them above is enough to trigger it, here and
@@ -112,12 +112,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setSchoolYear = (year: string) => {
     setSchoolYearState(year);
-    sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, year);
+    MyConstants.getSelectionStorage().setItem(MyConstants.SCHOOL_YEAR_KEY, year);
   };
 
   const setSection = (sectionVal: string) => {
     setSectionState(sectionVal);
-    sessionStorage.setItem(MyConstants.SECTION_KEY, sectionVal);
+    MyConstants.getSelectionStorage().setItem(MyConstants.SECTION_KEY, sectionVal);
   };
 
   const logout = () => {

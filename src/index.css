@@ -282,10 +282,28 @@
   }
 }
 
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
 html,
 body {
   overflow-x: hidden;
   max-width: 100%;
+}
+
+/* Android 15+/16 draw the app edge-to-edge behind the status/nav bars by default (Capacitor's
+   WebView included) - pad the document flow so content never sits under the system bars. Fixed
+   elements (TopBanner, MagicAssistant, ...) ignore this, since `position: fixed` positions
+   relative to the viewport, not body padding - those pad themselves individually with the same
+   --safe-* variables. */
+body {
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 html {

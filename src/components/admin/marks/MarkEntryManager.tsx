@@ -1315,7 +1315,7 @@ const MarkEntryManager = () => {
                     </aside>
                   </div>
 
-                  <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-8 z-10">
+                  <div className="fixed bottom-[calc(2rem+var(--safe-bottom))] left-1/2 -translate-x-1/2 flex gap-8 z-10">
                     <div className="tooltip" data-tip={t.clearAllTooltip}>
                       <button
                         type="button"

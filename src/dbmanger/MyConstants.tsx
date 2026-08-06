@@ -1,5 +1,7 @@
 //const gBaserUrl = "https://dmsacad.com/dmsacad_backend/api/modules/schoolConfig/allSchools";
 //const gBaserUrl = "https://dmsacad.com/dmsacad_backend/api/modules";
+import { Capacitor } from "@capacitor/core";
+
 export type BackendTarget = "remote" | "local";
 
 export class MyConstants {
@@ -50,4 +52,14 @@ export class MyConstants {
       ? MyConstants.gBaseLocalUrl
       : MyConstants.gBaseRemoteUrl;
   };
+
+  // On the packaged Android/iOS app, Capacitor tears down and recreates the WebView (and with it,
+  // sessionStorage) every time the app is fully closed and reopened - so a user's chosen
+  // school/year/section (SCHOOL_NAME_KEY/SCHOOL_YEAR_KEY/SECTION_KEY) would silently reset on every
+  // relaunch. In a browser tab, sessionStorage clearing on close is the expected/desired behavior,
+  // so only native platforms are switched to localStorage (which Capacitor persists to disk across
+  // app restarts); the selection is still overwritten in place whenever the user actually changes
+  // it, so it's "remembered until changed", not sticky forever.
+  public static getSelectionStorage = (): Storage =>
+    Capacitor.isNativePlatform() ? localStorage : sessionStorage;
 }

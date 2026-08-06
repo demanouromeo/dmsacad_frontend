@@ -108,7 +108,7 @@ const TopBanner = () => {
 
   return (
     <>
-      <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-2 sm:px-4 gap-1">
+      <div className="navbar bg-base-100/90 backdrop-blur-md border-b border-base-content/10 shadow-sm fixed top-0 inset-x-0 z-50 px-2 sm:px-4 gap-1 pt-(--safe-top)">
         <div className="flex-1 flex items-center gap-1 sm:gap-3 min-w-0">
           {logoUrl && (
             <div

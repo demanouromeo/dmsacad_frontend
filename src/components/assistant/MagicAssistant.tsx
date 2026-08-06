@@ -117,7 +117,7 @@ const MagicAssistant = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-[calc(1.5rem+var(--safe-bottom))] right-[calc(1.5rem+var(--safe-right))] z-50 flex flex-col items-end gap-3">
       {isOpen && (
         <div className="w-80 sm:w-96 max-w-[calc(100vw-3rem)] h-112 max-h-[70vh] rounded-2xl p-0.5 bg-linear-to-br from-sky-400 via-indigo-500 to-purple-600 shadow-2xl shadow-purple-500/30">
           <div className="w-full h-full bg-base-100 rounded-[calc(1rem-2px)] flex flex-col overflow-hidden">

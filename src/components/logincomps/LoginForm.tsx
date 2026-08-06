@@ -1,4 +1,13 @@
-import { Eye, EyeOff, UsersRound, Cloud, Server, Settings, X } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  UsersRound,
+  Cloud,
+  Server,
+  Settings,
+  X,
+  ChevronDown,
+} from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import LoginFeatureShowcase from "./LoginFeatureShowcase";
 import Title from "../Title";
@@ -31,23 +40,28 @@ const LoginForm = () => {
   const [selectedSchool, setSelectedSchool] = useState<string>(() =>
     !shouldForceRemoteOnly() && MyConstants.getBackendTarget() === "local"
       ? MyConstants.gLocalSchoolCode
-      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) ||
+      : MyConstants.getSelectionStorage().getItem(MyConstants.SCHOOL_NAME_KEY) ||
         (shouldForceRemoteOnly() ? MyConstants.gMobileDefaultSchoolCode : ""),
   );
   const [remoteSchool, setRemoteSchool] = useState<string>(() =>
     !shouldForceRemoteOnly() && MyConstants.getBackendTarget() === "local"
       ? ""
-      : sessionStorage.getItem(MyConstants.SCHOOL_NAME_KEY) ||
+      : MyConstants.getSelectionStorage().getItem(MyConstants.SCHOOL_NAME_KEY) ||
         (shouldForceRemoteOnly() ? MyConstants.gMobileDefaultSchoolCode : ""),
   );
   const [schoolList, setSchoolList] = useState<string[]>([]);
+  const [schoolDropdownOpen, setSchoolDropdownOpen] = useState(false);
+  const [schoolSearch, setSchoolSearch] = useState("");
+  const schoolDropdownRef = useRef<HTMLDivElement>(null);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState(
     () =>
-      sessionStorage.getItem(MyConstants.SCHOOL_YEAR_KEY) ||
+      MyConstants.getSelectionStorage().getItem(MyConstants.SCHOOL_YEAR_KEY) ||
       (shouldForceRemoteOnly() ? MyConstants.gMobileDefaultSchoolYear : ""),
   );
   const [selectedSection, setSelectedSection] = useState(
-    () => sessionStorage.getItem(MyConstants.SECTION_KEY) || "francophone",
+    () =>
+      MyConstants.getSelectionStorage().getItem(MyConstants.SECTION_KEY) ||
+      "francophone",
   );
   const [schoolYearList, setSchoolYearList] = useState<SchoolYear[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +94,8 @@ const LoginForm = () => {
   };
 
   const handleSettingsDialogClose = () => {
+    setSchoolDropdownOpen(false);
+    setSchoolSearch("");
     settingsButtonRef.current?.focus();
   };
 
@@ -123,16 +139,37 @@ const LoginForm = () => {
     }
   };
 
-  const handleSchoolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedSchool(e.target.value);
-    setCookie("schoolName", e.target.value, { path: "/", maxAge: 604800 });
+  const selectSchool = (school: string) => {
+    setSelectedSchool(school);
+    setCookie("schoolName", school, { path: "/", maxAge: 604800 });
 
     setSelectedSchoolYear("");
     setSchoolYearList([]);
-    if (e.target.value && e.target.value !== "") {
-      loadSchoolYears(e.target.value);
+    if (school && school !== "") {
+      loadSchoolYears(school);
     }
+
+    setSchoolDropdownOpen(false);
+    setSchoolSearch("");
   };
+
+  const filteredSchoolList = schoolList.filter((school) =>
+    school.toLowerCase().includes(schoolSearch.trim().toLowerCase()),
+  );
+
+  useEffect(() => {
+    if (!schoolDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        schoolDropdownRef.current &&
+        !schoolDropdownRef.current.contains(e.target as Node)
+      ) {
+        setSchoolDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [schoolDropdownOpen]);
 
   const handleSchoolYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSchoolYear(e.target.value);
@@ -141,9 +178,10 @@ const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     //setCookie("schoolName", selectedSchool, { path: "/", maxAge: 604800 });
-    sessionStorage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
-    sessionStorage.setItem(MyConstants.SCHOOL_YEAR_KEY, selectedSchoolYear);
-    sessionStorage.setItem(MyConstants.SECTION_KEY, selectedSection);
+    const storage = MyConstants.getSelectionStorage();
+    storage.setItem(MyConstants.SCHOOL_NAME_KEY, selectedSchool);
+    storage.setItem(MyConstants.SCHOOL_YEAR_KEY, selectedSchoolYear);
+    storage.setItem(MyConstants.SECTION_KEY, selectedSection);
     if (missingSchool || missingSchoolYear) {
       showToast(t.settingsPrompt(missingSchool, missingSchoolYear), {
         type: "warning",
@@ -426,18 +464,53 @@ const LoginForm = () => {
               <label htmlFor="schoolList" className="label mt-5">
                 {t.schoolLabel}
               </label>
-              <select
-                id="schoolList"
-                className="select w-full"
-                onChange={handleSchoolChange}
-                value={selectedSchool}
-              >
-                {schoolList.map((school, index) => (
-                  <option key={index} value={school}>
-                    {school}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={schoolDropdownRef}>
+                <button
+                  type="button"
+                  id="schoolList"
+                  className="select w-full flex items-center justify-between"
+                  onClick={() => setSchoolDropdownOpen((open) => !open)}
+                >
+                  <span className={selectedSchool ? "" : "opacity-50"}>
+                    {selectedSchool || t.schoolLabel}
+                  </span>
+                  <ChevronDown className="w-4 h-4 opacity-60 shrink-0" />
+                </button>
+                {schoolDropdownOpen && (
+                  <div className="mt-1 border border-base-content/10 rounded-box bg-base-100 shadow-lg overflow-hidden">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder={t.schoolSearchPlaceholder}
+                      className="input input-sm w-full rounded-none border-0 border-b border-base-content/10 focus:outline-none"
+                      value={schoolSearch}
+                      onChange={(e) => setSchoolSearch(e.target.value)}
+                    />
+                    <ul className="max-h-[35vh] overflow-y-auto py-1">
+                      {filteredSchoolList.map((school) => (
+                        <li key={school}>
+                          <button
+                            type="button"
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer ${
+                              school === selectedSchool
+                                ? "bg-primary/10 font-medium"
+                                : ""
+                            }`}
+                            onClick={() => selectSchool(school)}
+                          >
+                            {school}
+                          </button>
+                        </li>
+                      ))}
+                      {filteredSchoolList.length === 0 && (
+                        <li className="px-3 py-2 text-sm opacity-60">
+                          {t.noSchoolResults}
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
               <label className="label mt-1 mb-3 w-full">
                 {selectedSchool ? t.currentSchool + selectedSchool : ""}
               </label>

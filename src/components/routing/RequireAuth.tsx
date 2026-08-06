@@ -22,7 +22,7 @@ const RequireAuth = () => {
   return (
     <>
       <TopBanner />
-      <div className="pt-16">
+      <div className="pt-[calc(4rem+var(--safe-top))]">
         <Outlet />
       </div>
       <MagicAssistant />
