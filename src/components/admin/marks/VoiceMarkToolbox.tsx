@@ -175,6 +175,8 @@ const VoiceMarkToolbox = ({
         </div>
       </div>
 
+      <p className="text-sm opacity-70">{t.voiceLowMarkHint}</p>
+
       <div className="flex flex-wrap items-center justify-between gap-3 bg-base-200/50 rounded-xl px-4 py-3">
         <div>
           <p className="font-medium">{t.voiceStudentProgress(index + 1, roster.length)}</p>

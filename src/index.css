@@ -4,7 +4,7 @@
 }
 @plugin "daisyui/theme" {
   name: "dmsacad";
-  default: true;
+  default: false;
   prefersdark: true;
   color-scheme: dark;
 
@@ -51,7 +51,7 @@
 
 @plugin "daisyui/theme" {
   name: "dmsacad-light";
-  default: false;
+  default: true;
   prefersdark: false;
   color-scheme: light;
 
@@ -404,4 +404,23 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in oklch, var(--color-base-content) 40%, transparent);
+}
+
+/* MagicAssistant's floating button (src/components/assistant/MagicAssistant.tsx) uses a hardcoded
+   sky-blue background rather than a daisyUI theme token, so it doesn't adapt across themes on its
+   own - in the light theme it barely stands out against the near-white page background. Override
+   it to a black gradient there only; the dark theme keeps its existing sky-blue look untouched. */
+:root[data-theme="dmsacad-light"] .magic-assistant-fab {
+  background: linear-gradient(135deg, #050505, #2b2b2e);
+  border-color: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dmsacad-light"] .magic-assistant-fab:hover {
+  background: linear-gradient(135deg, #171717, #3a3a3f);
+  box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme="dmsacad-light"] .magic-assistant-fab .magic-assistant-ripple {
+  background-color: rgba(0, 0, 0, 0.25);
 }

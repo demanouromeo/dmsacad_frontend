@@ -1,0 +1,34 @@
+diff --git a/node_modules/@capacitor-community/speech-recognition/android/.gradle/nb-cache/trust/F4A5EA371A9ACA9A0CA884B2D444C4E3EFFBC95C6D46604C9F11D239A5396ED3 b/node_modules/@capacitor-community/speech-recognition/android/.gradle/nb-cache/trust/F4A5EA371A9ACA9A0CA884B2D444C4E3EFFBC95C6D46604C9F11D239A5396ED3
+new file mode 100644
+index 0000000..e2fcab8
+--- /dev/null
++++ b/node_modules/@capacitor-community/speech-recognition/android/.gradle/nb-cache/trust/F4A5EA371A9ACA9A0CA884B2D444C4E3EFFBC95C6D46604C9F11D239A5396ED3
+@@ -0,0 +1 @@
++435FDCBA454DBFF908EB403F45D0015006E851F886EE74F71EB7F477874B51B8
+diff --git a/node_modules/@capacitor-community/speech-recognition/android/src/main/java/com/getcapacitor/community/speechrecognition/SpeechRecognition.java b/node_modules/@capacitor-community/speech-recognition/android/src/main/java/com/getcapacitor/community/speechrecognition/SpeechRecognition.java
+index a99ea69..e3da5c2 100644
+--- a/node_modules/@capacitor-community/speech-recognition/android/src/main/java/com/getcapacitor/community/speechrecognition/SpeechRecognition.java
++++ b/node_modules/@capacitor-community/speech-recognition/android/src/main/java/com/getcapacitor/community/speechrecognition/SpeechRecognition.java
+@@ -162,12 +162,21 @@ public class SpeechRecognition extends Plugin implements Constants {
+         Logger.info(getLogTag(), "Beginning to listen for audible speech");
+ 
+         final Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
++        // WEB_SEARCH (not FREE_FORM) is Android's own recommendation for short, discrete utterances
++        // like a single spoken number - FREE_FORM is tuned for continuous dictation and tends to
++        // mis-hear or drop very short one-word utterances (e.g. digits 0-9), which is common in
++        // this app's mark-entry use case.
++        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
+         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
+         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, maxResults);
+         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, bridge.getActivity().getPackageName());
+         intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, partialResults);
+         intent.putExtra("android.speech.extra.DICTATION_MODE", partialResults);
++        // Give short utterances more room before the recognizer decides speech has ended, instead
++        // of cutting off a quick single-word number.
++        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3000);
++        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000);
++        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500);
+ 
+         if (prompt != null) {
+             intent.putExtra(RecognizerIntent.EXTRA_PROMPT, prompt);

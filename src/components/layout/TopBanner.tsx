@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
+import { Capacitor } from "@capacitor/core";
 import {
   ArrowLeft,
   CalendarDays,
@@ -27,6 +28,15 @@ import type { SchoolHeaderConfig } from "../../interfaces/SchoolHeaderConfig";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 import { capitalizeSectionName } from "../../utils/exportData";
 import { useToast } from "../../toast/useToast";
+
+// On the packaged Android/iOS app, these nav icon buttons are the only way to reach the
+// year/section/theme/language controls - bump them (and their icons) up from the
+// browser's btn-sm/w-5 sizing to bigger touch targets there, matching LoginForm.tsx's
+// Capacitor.isNativePlatform() convention for other native-only behavior.
+const isNativeApp = Capacitor.isNativePlatform();
+const navBtnSizeClass = isNativeApp ? "btn-lg" : "btn-sm sm:btn-md";
+const navIconSizeClass = isNativeApp ? "w-7 h-7" : "w-5 h-5";
+const flagIconSizeClass = isNativeApp ? "w-8 h-6" : "w-6 h-4";
 
 const TopBanner = () => {
   const {
@@ -146,28 +156,28 @@ const TopBanner = () => {
             <div className="tooltip tooltip-bottom" data-tip={t.homeHint}>
               <Link
                 to="/dashboard"
-                className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
+                className={`btn ${navBtnSizeClass} btn-ghost btn-circle hover:text-primary`}
               >
-                <Home className="w-5 h-5" />
+                <Home className={navIconSizeClass} />
               </Link>
             </div>
             <div className="hidden sm:block w-px h-6 bg-base-content/10 mx-1" />
             <div className="tooltip tooltip-bottom" data-tip={t.schoolYearHint}>
               <button
                 type="button"
-                className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
+                className={`btn ${navBtnSizeClass} btn-ghost btn-circle hover:text-primary`}
                 onClick={openSchoolYearDialog}
               >
-                <CalendarDays className="w-5 h-5" />
+                <CalendarDays className={navIconSizeClass} />
               </button>
             </div>
             <div className="tooltip tooltip-bottom" data-tip={t.sectionHint}>
               <button
                 type="button"
-                className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
+                className={`btn ${navBtnSizeClass} btn-ghost btn-circle hover:text-primary`}
                 onClick={openSectionDialog}
               >
-                <GraduationCap className="w-5 h-5" />
+                <GraduationCap className={navIconSizeClass} />
               </button>
             </div>
           </div>
@@ -189,13 +199,13 @@ const TopBanner = () => {
               aria-label={
                 theme === "dark" ? t.themeHintToLight : t.themeHintToDark
               }
-              className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
+              className={`btn ${navBtnSizeClass} btn-ghost btn-circle hover:text-primary`}
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               {theme === "dark" ? (
-                <Sun className="w-5 h-5" />
+                <Sun className={navIconSizeClass} />
               ) : (
-                <Moon className="w-5 h-5" />
+                <Moon className={navIconSizeClass} />
               )}
             </button>
           </div>
@@ -208,12 +218,12 @@ const TopBanner = () => {
               <div
                 tabIndex={0}
                 role="button"
-                className="btn btn-sm sm:btn-md btn-ghost btn-circle"
+                className={`btn ${navBtnSizeClass} btn-ghost btn-circle`}
               >
                 {language === "fr" ? (
-                  <FlagFR className="w-6 h-4 rounded-xs" />
+                  <FlagFR className={`${flagIconSizeClass} rounded-xs`} />
                 ) : (
-                  <FlagGB className="w-6 h-4 rounded-xs" />
+                  <FlagGB className={`${flagIconSizeClass} rounded-xs`} />
                 )}
               </div>
             </div>

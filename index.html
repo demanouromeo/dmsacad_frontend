@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="en" data-theme="dmsacad">
+<html lang="en" data-theme="dmsacad-light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/app_icon.ico" />
     <link href="/src/index.css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1a1d29" />
+    <meta name="theme-color" content="#f8f9fb" />
     <title>DMS-ACAD</title>
     <script>
-      // Runs before ThemeProvider mounts so a stored "light" preference doesn't flash the
-      // default dark theme first - dark is the default (data-theme="dmsacad" is already set on
-      // <html> above), so this only ever needs to override it.
+      // Runs before ThemeProvider mounts so a stored "dark" preference doesn't flash the
+      // default light theme first - light is the default (data-theme="dmsacad-light" is already
+      // set on <html> above), so this only ever needs to override it.
       (function () {
-        if (localStorage.getItem("theme") === "light") {
-          document.documentElement.setAttribute("data-theme", "dmsacad-light");
+        if (localStorage.getItem("theme") === "dark") {
+          document.documentElement.setAttribute("data-theme", "dmsacad");
         }
       })();
     </script>

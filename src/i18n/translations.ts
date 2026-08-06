@@ -1367,6 +1367,8 @@ export const markEntryManagerTranslations = {
     voiceLanguageLabel: "Langue :",
     voiceLanguageFr: "Français",
     voiceLanguageEn: "Anglais",
+    voiceLowMarkHint:
+      "Astuce : les notes en dessous de 10 sont parfois mal reconnues si elles sont dites seules - préférez « cinq virgule cinq » ou « cinq sur vingt » plutôt que « cinq ».",
     voiceStudentProgress: (current: number, total: number) => `Élève ${current}/${total}`,
     voiceCurrentValueLabel: "Note actuelle :",
     voiceStartBtn: "Démarrer l'écoute",
@@ -1495,6 +1497,8 @@ export const markEntryManagerTranslations = {
     voiceLanguageLabel: "Language:",
     voiceLanguageFr: "French",
     voiceLanguageEn: "English",
+    voiceLowMarkHint:
+      "Tip: marks below 10 are sometimes misheard when said alone - prefer \"five point five\" or \"five out of twenty\" rather than just \"five\".",
     voiceStudentProgress: (current: number, total: number) => `Student ${current}/${total}`,
     voiceCurrentValueLabel: "Current mark:",
     voiceStartBtn: "Start listening",

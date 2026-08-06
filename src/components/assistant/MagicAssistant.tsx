@@ -203,12 +203,12 @@ const MagicAssistant = () => {
       )}
       <button
         type="button"
-        className="group relative btn btn-circle btn-lg border border-sky-300/40 bg-sky-400/20 backdrop-blur-md shadow-lg shadow-sky-500/20 transition-all duration-300 ease-out hover:bg-sky-400/30 hover:scale-110 hover:shadow-xl hover:shadow-sky-400/40"
+        className="magic-assistant-fab group relative btn btn-circle btn-lg border border-sky-300/40 bg-sky-400/20 backdrop-blur-md shadow-lg shadow-sky-500/20 transition-all duration-300 ease-out hover:bg-sky-400/30 hover:scale-110 hover:shadow-xl hover:shadow-sky-400/40"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={t.buttonLabel}
         title={t.buttonLabel}
       >
-        <span className="absolute inset-0 rounded-full bg-sky-400/40 opacity-0 group-hover:opacity-100 group-hover:animate-ping" />
+        <span className="magic-assistant-ripple absolute inset-0 rounded-full bg-sky-400/40 opacity-0 group-hover:opacity-100 group-hover:animate-ping" />
         <img
           src={magicIcon}
           alt=""

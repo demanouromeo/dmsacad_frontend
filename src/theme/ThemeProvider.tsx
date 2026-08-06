@@ -12,7 +12,7 @@ const DAISYUI_THEME_NAME: Record<ThemeMode, string> = {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeMode>(
     () =>
-      (localStorage.getItem(MyConstants.THEME_KEY) as ThemeMode) || "dark",
+      (localStorage.getItem(MyConstants.THEME_KEY) as ThemeMode) || "light",
   );
 
   // index.html already sets data-theme synchronously (before this component mounts) to avoid a
