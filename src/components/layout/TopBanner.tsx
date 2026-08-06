@@ -8,13 +8,16 @@ import {
   Home,
   KeyRound,
   LogOut,
+  Moon,
   Settings,
   SlidersHorizontal,
+  Sun,
   UserCog,
   UserRound,
 } from "lucide-react";
 import { useAuth } from "../../auth/useAuth";
 import { useLanguage } from "../../i18n/useLanguage";
+import { useTheme } from "../../theme/useTheme";
 import { bannerTranslations } from "../../i18n/translations";
 import { MyReader } from "../../dbmanger/MyReader";
 import { SchoolInfoReader } from "../../dbmanger/SchoolInfoReader";
@@ -36,6 +39,7 @@ const TopBanner = () => {
     logout,
   } = useAuth();
   const [language, setLanguage] = useLanguage();
+  const [theme, setTheme] = useTheme();
   const t = bannerTranslations[language];
   const showToast = useToast();
   const navigate = useNavigate();
@@ -176,6 +180,26 @@ const TopBanner = () => {
         </div>
 
         <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
+          <div
+            className="tooltip tooltip-bottom"
+            data-tip={theme === "dark" ? t.themeHintToLight : t.themeHintToDark}
+          >
+            <button
+              type="button"
+              aria-label={
+                theme === "dark" ? t.themeHintToLight : t.themeHintToDark
+              }
+              className="btn btn-sm sm:btn-md btn-ghost btn-circle hover:text-primary"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+
           <div className="dropdown dropdown-end">
             <div
               className="tooltip tooltip-bottom"

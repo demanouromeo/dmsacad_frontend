@@ -52,6 +52,7 @@ import {
 } from "../../../utils/exportAllMarksReport";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import FillRateChartDialog from "./FillRateChartDialog";
+import VoiceMarkToolbox from "./VoiceMarkToolbox";
 import { computeDbSequence } from "../../../utils/markSequence";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 
@@ -119,6 +120,7 @@ const MarkEntryManager = () => {
   const [subjectFillRates, setSubjectFillRates] = useState<Map<number, number | null>>(new Map());
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [entryMode, setEntryMode] = useState<"manual" | "voice">("manual");
 
   // SG/TEACHER only ever see the classes/subjects they've actually been assigned via Course
   // assignment (StaffController::AllAttributionsOfSection, filtered client-side to this staff
@@ -437,6 +439,19 @@ const MarkEntryManager = () => {
   const handleMarkBlur = (studId: number) => {
     commitMarkFormat(studId);
   };
+
+  // VoiceMarkToolbox already validated/parsed the value into [0, MAX_MARK_VALUE] before offering it
+  // for Confirm - this just writes it into the same state handleMarkChange/commitMarkFormat would
+  // have produced from typing, so Save behaves identically regardless of entry mode.
+  const handleVoiceConfirm = (studId: number, value: number) => {
+    setMarks((prev) => {
+      const next = new Map(prev);
+      next.set(studId, { value: formatMarkValue(String(value)), isEmpty: false, dirty: true });
+      return next;
+    });
+  };
+
+  const getMarkValue = (studId: number): string => marks.get(studId)?.value ?? "";
 
   const handleMarkKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number) => {
     if (e.key === "Enter") {
@@ -1064,6 +1079,26 @@ const MarkEntryManager = () => {
                 title={t.searchTooltip}
                 className="w-56"
               />
+
+              <div className="flex items-center gap-2">
+                <label className="font-medium">{t.entryModeLabel}</label>
+                <div className="join">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${entryMode === "manual" ? "btn-primary" : "btn-neutral"}`}
+                    onClick={() => setEntryMode("manual")}
+                  >
+                    {t.entryModeManual}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${entryMode === "voice" ? "btn-primary" : "btn-neutral"}`}
+                    onClick={() => setEntryMode("voice")}
+                  >
+                    {t.entryModeVoice}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -1190,6 +1225,17 @@ const MarkEntryManager = () => {
                     <p className="text-warning mb-4">
                       {isApc ? t.lockedHintTerm : t.lockedHint}
                     </p>
+                  )}
+
+                  {entryMode === "voice" && (
+                    <VoiceMarkToolbox
+                      t={t}
+                      language={language}
+                      roster={filteredRoster}
+                      getMarkValue={getMarkValue}
+                      isLocked={isLocked}
+                      onConfirm={handleVoiceConfirm}
+                    />
                   )}
 
                   <div className="flex flex-col lg:flex-row gap-6">

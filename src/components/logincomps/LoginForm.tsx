@@ -3,8 +3,10 @@ import {
   EyeOff,
   UsersRound,
   Cloud,
+  Moon,
   Server,
   Settings,
+  Sun,
   X,
   ChevronDown,
 } from "lucide-react";
@@ -21,6 +23,7 @@ import { MyConstants, type BackendTarget } from "../../dbmanger/MyConstants";
 import { FlagFR, FlagGB } from "../sharedcomp/Flags";
 import { loginTranslations } from "../../i18n/translations";
 import { useLanguage } from "../../i18n/useLanguage";
+import { useTheme } from "../../theme/useTheme";
 import { useAuth } from "../../auth/useAuth";
 import { useToast } from "../../toast/useToast";
 
@@ -68,6 +71,7 @@ const LoginForm = () => {
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useLanguage();
+  const [theme, setTheme] = useTheme();
   const [backendTarget, setBackendTargetState] = useState<BackendTarget>(() =>
     shouldForceRemoteOnly() ? "remote" : MyConstants.getBackendTarget(),
   );
@@ -258,6 +262,19 @@ const LoginForm = () => {
       />
 
       <div className="relative z-10 flex justify-end items-center gap-2 mb-2">
+        <button
+          type="button"
+          aria-label={theme === "dark" ? t.themeHintToLight : t.themeHintToDark}
+          title={theme === "dark" ? t.themeHintToLight : t.themeHintToDark}
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="btn btn-xs btn-ghost btn-circle hover:text-primary"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-4 h-4" />
+          ) : (
+            <Moon className="w-4 h-4" />
+          )}
+        </button>
         <button
           type="button"
           aria-label="Français"

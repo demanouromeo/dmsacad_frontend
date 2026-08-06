@@ -11,6 +11,7 @@ export class MyConstants {
   public static SCHOOL_YEAR_KEY = "schoolYear";
   public static SECTION_KEY = "section";
   public static LANGUAGE_KEY = "language";
+  public static THEME_KEY = "theme";
   public static gLocalSchoolCode = "mysql";
   // On mobile (packaged Capacitor app or a phone-width browser), the school/year pickers default
   // to this connection/year rather than staying empty, so a tester can run straight into the TEST
