@@ -31,3 +31,7 @@ SAMPLE_PV/
 
 # Ignore all android files
 android/
+
+# Ignore all .doc or .docx files
+*.doc
+*.docx
