@@ -35,3 +35,9 @@ android/
 # Ignore all .doc or .docx files
 *.doc
 *.docx
+
+
+.claude/
+IMPLEMENTATION_PLAN.md
+CLAUDE.md 
+PRIVACY_POLICY.md
