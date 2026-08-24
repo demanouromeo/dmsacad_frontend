@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     yearVal: string,
     sectionVal: string,
   ): Promise<boolean> => {
-    const result = await MyReader.login(loginVal, pwd, connectionVal);
+    const result = await MyReader.login(loginVal, pwd, connectionVal, yearVal);
     if (!result) {
       return false;
     }

@@ -69,10 +69,14 @@ export class MyReader {
   // LoginForm can distinguish "bad credentials" from "network error" for inline UI feedback.
   // The backend's login/refresh responses also use a `status` boolean, not the
   // `Response: "False"` convention the other endpoints use.
+  // `year` is required by AccountController::connect, which marks it as this connection's
+  // school_year.is_current on a successful login (see that controller for the reasoning) - not
+  // just used for the JWT/session itself.
   public static login = async (
     login: string,
     pwd: string,
     connection: string,
+    year: string,
   ): Promise<LoginResponse | null> => {
     const targetUrl = `${MyConstants.getBaseUrl()}api/accounts/connect`;
     try {
@@ -83,7 +87,7 @@ export class MyReader {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ login, pwd, connection }),
+        body: JSON.stringify({ login, pwd, connection, year }),
       });
       const data = await response.json();
       if (!response.ok || data.status === false) {
