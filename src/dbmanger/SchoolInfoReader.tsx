@@ -214,4 +214,32 @@ export class SchoolInfoReader {
       return NETWORK_ERROR_RESULT;
     }
   };
+
+  // ADMIN-only (SchoolInfoController::addSchoolYear, role:ADMIN group) - appends a new row to this
+  // connection's own school_year table. `year` must be "YYYY/YYYY" (see src/utils/schoolYear.ts's
+  // computeNextSchoolYear, which is what SchoolYearManager uses to build it). The backend relies on
+  // school_year.year's own UNIQUE index to reject a duplicate, surfaced as a 409 whose message
+  // matches src/utils/apiErrors.ts's isDuplicateNameError.
+  public static addSchoolYear = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<ApiResult> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/configs/addSchoolYear`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ connection, year }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error(`SchoolInfoReader.addSchoolYear(): Error: ${error}`);
+      return NETWORK_ERROR_RESULT;
+    }
+  };
 }

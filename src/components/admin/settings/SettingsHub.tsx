@@ -5,10 +5,12 @@ import iconClassifiedParam from "../../../assets/compo/settings/classified_setti
 import iconAnnualRcAvgParam from "../../../assets/compo/settings/bulletin_settings.svg";
 import iconThParam from "../../../assets/compo/settings/th_settings.svg";
 import iconPromotionSettings from "../../../assets/compo/promotion/promo_settings.svg";
+import iconSchoolYears from "../../../assets/compo/settings/school_year_settings.svg";
 
 // Landing page for the "settings" dashboard card - sub-modules: "classifiedParam" ->
 // ClassifiedParamManager, "annualRcAvgParam" -> AnnualRcAvgManager, "thParam" -> ThParamManager,
-// "promotionSettings" -> PromotionSettingsManager. Same SubjectsHub/AccountHub pattern.
+// "promotionSettings" -> PromotionSettingsManager, "schoolYears" -> SchoolYearManager. Same
+// SubjectsHub/AccountHub pattern.
 const SettingsHub = () => {
   const [language] = useLanguage();
   const t = settingsHubTranslations[language];
@@ -37,6 +39,12 @@ const SettingsHub = () => {
       label: t.promotionSettings,
       icon: iconPromotionSettings,
       to: "/admin/settings/promotion",
+    },
+    {
+      key: "schoolYears",
+      label: t.schoolYears,
+      icon: iconSchoolYears,
+      to: "/admin/settings/school-years",
     },
   ];
 

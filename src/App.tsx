@@ -41,6 +41,7 @@ import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamM
 import AnnualRcAvgManager from "./components/admin/settings/AnnualRcAvgManager";
 import ThParamManager from "./components/admin/settings/ThParamManager";
 import PromotionSettingsManager from "./components/admin/settings/PromotionSettingsManager";
+import SchoolYearManager from "./components/admin/settings/SchoolYearManager";
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
 import PromotionManager from "./components/admin/promotion/PromotionManager";
@@ -161,6 +162,10 @@ function App() {
                 <Route
                   path="/admin/settings/promotion"
                   element={<PromotionSettingsManager />}
+                />
+                <Route
+                  path="/admin/settings/school-years"
+                  element={<SchoolYearManager />}
                 />
                 <Route
                   path="/admin/report-cards"

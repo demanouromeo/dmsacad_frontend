@@ -2347,6 +2347,7 @@ export const settingsHubTranslations = {
     annualRcAvgParam: "Paramètres du bulletin annuel",
     thParam: "Paramètres du tableau d'honneur",
     promotionSettings: "Paramètres de promotion",
+    schoolYears: "Gestion des années scolaires",
   },
   en: {
     title: "Settings",
@@ -2354,6 +2355,47 @@ export const settingsHubTranslations = {
     annualRcAvgParam: "Annual report card parameters",
     thParam: "Honors Roll parameters",
     promotionSettings: "Promotion settings",
+    schoolYears: "Manage school years",
+  },
+};
+
+// "Gestion des années scolaires" / "Manage school years" - ADMIN-only settings sub-module listing
+// every school_year row of the current connection and letting the admin append the next one
+// (computeNextSchoolYear("2025/2026") -> "2026/2027", src/utils/schoolYear.ts). Unlike the other
+// settings screens above, this isn't a single-record form - it's a short read-only list plus one
+// confirm-gated Add action (SchoolInfoReader.addSchoolYear), no edit/delete: removing or renaming a
+// school year isn't part of this feature and would be destructive across every table keyed by sy_id.
+export const schoolYearManagerTranslations = {
+  fr: {
+    title: "Gestion des années scolaires",
+    addBtn: "Ajouter",
+    addConfirmMessage: (nextYear: string) =>
+      `Ajouter l'année scolaire ${nextYear} ?`,
+    addSuccess: "Année scolaire ajoutée avec succès.",
+    addFailure: "Échec de l'ajout de l'année scolaire.",
+    addDuplicate: "Cette année scolaire existe déjà.",
+    noNextYearTooltip:
+      "Impossible de déterminer l'année scolaire suivante : aucune année scolaire n'existe encore.",
+    tableHeaderYear: "Année scolaire",
+    tableHeaderStatus: "Statut",
+    currentLabel: "Année en cours",
+    notCurrentLabel: "—",
+    emptyState: "Aucune année scolaire enregistrée.",
+  },
+  en: {
+    title: "Manage school years",
+    addBtn: "Add",
+    addConfirmMessage: (nextYear: string) => `Add school year ${nextYear}?`,
+    addSuccess: "School year added successfully.",
+    addFailure: "Failed to add the school year.",
+    addDuplicate: "This school year already exists.",
+    noNextYearTooltip:
+      "Cannot determine the next school year: no school year exists yet.",
+    tableHeaderYear: "School year",
+    tableHeaderStatus: "Status",
+    currentLabel: "Current year",
+    notCurrentLabel: "—",
+    emptyState: "No school year recorded yet.",
   },
 };
 
