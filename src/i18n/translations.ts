@@ -3368,9 +3368,28 @@ export const timetableHubTranslations = {
     generateFailure: "Échec de la génération de l'emploi du temps.",
     noJoursError:
       "Aucun jour de classe n'est configuré. Configurez les jours dans les paramètres de l'emploi du temps avant de générer.",
+    sendEmailsBtn: "Envoyer",
+    sendEmailsTooltip:
+      "Envoyer à chaque enseignant, par courriel, son emploi du temps individuel (nécessite un emploi du temps déjà généré).",
+    sendEmailsConfirmMessage:
+      "Ceci va envoyer un courriel à chaque enseignant avec son emploi du temps individuel. Continuer ?",
+    sendEmailsSuccess: (sent: number) => `Emploi du temps envoyé par courriel à ${sent} enseignant(s).`,
+    sendEmailsSuccessWithWarnings: (sent: number, noEmail: number, failed: number) =>
+      `Emploi du temps envoyé à ${sent} enseignant(s).` +
+      (noEmail > 0 ? ` ${noEmail} enseignant(s) sans adresse courriel.` : "") +
+      (failed > 0 ? ` ${failed} envoi(s) ont échoué.` : ""),
+    sendEmailsFailure: "Échec de l'envoi des courriels.",
+    settingsTooltip: "Paramètres de l'emploi du temps",
+    exportExcelTooltip: "Exporter tous les emplois du temps vers Excel (un onglet par classe)",
+    exportPdfTooltip: "Exporter tous les emplois du temps vers PDF (une page par classe)",
+    exportClassePdfTooltip: "Exporter l'emploi du temps de cette classe vers PDF",
+    exportClasseExcelTooltip: "Exporter l'emploi du temps de cette classe vers Excel",
+    exportNotConfiguredMessage:
+      "Aucun jour de classe n'est configuré. Configurez les jours dans les paramètres de l'emploi du temps avant d'exporter.",
     classesListTitle: "Consulter / modifier par classe",
     tableHeaderClasse: "Classe",
     tableHeaderLevel: "Niveau",
+    tableHeaderExport: "Export",
     viewBtn: "Voir",
     emptyState: "Aucune classe trouvée pour cette année.",
   },
@@ -3387,9 +3406,28 @@ export const timetableHubTranslations = {
     generateFailure: "Failed to generate the time table.",
     noJoursError:
       "No school days are configured yet. Configure them in Time table settings before generating.",
+    sendEmailsBtn: "Send",
+    sendEmailsTooltip:
+      "Email each teacher their individual time table (requires a time table that has already been generated).",
+    sendEmailsConfirmMessage:
+      "This will email every teacher their individual time table. Continue?",
+    sendEmailsSuccess: (sent: number) => `Time table emailed to ${sent} teacher(s).`,
+    sendEmailsSuccessWithWarnings: (sent: number, noEmail: number, failed: number) =>
+      `Time table emailed to ${sent} teacher(s).` +
+      (noEmail > 0 ? ` ${noEmail} teacher(s) have no email address.` : "") +
+      (failed > 0 ? ` ${failed} send(s) failed.` : ""),
+    sendEmailsFailure: "Failed to send the time table emails.",
+    settingsTooltip: "Time table settings",
+    exportExcelTooltip: "Export every time table to Excel (one sheet per class)",
+    exportPdfTooltip: "Export every time table to PDF (one page per class)",
+    exportClassePdfTooltip: "Export this class's time table to PDF",
+    exportClasseExcelTooltip: "Export this class's time table to Excel",
+    exportNotConfiguredMessage:
+      "No school days are configured yet. Configure them in Time table settings before exporting.",
     classesListTitle: "View / edit per class",
     tableHeaderClasse: "Class",
     tableHeaderLevel: "Level",
+    tableHeaderExport: "Export",
     viewBtn: "View",
     emptyState: "No class found for this year.",
   },
@@ -3513,7 +3551,10 @@ export const classeSubjectSettingsManagerTranslations = {
     tableHeaderPeriodsPerWeek: "Périodes / semaine",
     tableHeaderCommonCourse: "Cours combiné",
     noTeacherLabel: "Aucun enseignant assigné",
-    weightHint: "Une priorité plus élevée est placée en premier et privilégie les créneaux du matin.",
+    weightHelpBtn: "Aide sur la priorité",
+    weightHelpTitle: "Priorité",
+    weightHelpText:
+      "Une matière avec une priorité élevée (5) a plus de chances d'être placée le matin dans l'emploi du temps, tandis qu'une priorité basse (1) est plus susceptible d'être placée plus tard dans la journée.",
     commonCourseHint:
       "Cochez pour regrouper ce cours avec celui des autres classes du même niveau (même matière, même jour/période, même enseignant).",
     saveSuccess: "Paramètre enregistré avec succès.",
@@ -3530,7 +3571,10 @@ export const classeSubjectSettingsManagerTranslations = {
     tableHeaderPeriodsPerWeek: "Periods / week",
     tableHeaderCommonCourse: "Combined course",
     noTeacherLabel: "No teacher assigned",
-    weightHint: "A higher priority is placed first and preferentially claims morning slots.",
+    weightHelpBtn: "Priority help",
+    weightHelpTitle: "Priority",
+    weightHelpText:
+      "A subject with a high priority (5) is more likely to be scheduled in the morning, while a low priority (1) is more likely to be scheduled later in the day.",
     commonCourseHint:
       "Check to group this course with the same subject in other classes of the same level (same day/period, same teacher).",
     saveSuccess: "Setting saved successfully.",
@@ -3544,6 +3588,7 @@ export const timetableGridViewTranslations = {
   fr: {
     title: "Emploi du temps",
     classeLabel: "Classe :",
+    hoursHeader: "Horaires",
     freeSlotLabel: "—",
     noTeacherLabel: "Sans enseignant",
     editDialogTitle: "Modifier la période",
@@ -3563,6 +3608,7 @@ export const timetableGridViewTranslations = {
   en: {
     title: "Time table",
     classeLabel: "Class:",
+    hoursHeader: "Hours",
     freeSlotLabel: "—",
     noTeacherLabel: "No teacher",
     editDialogTitle: "Edit period",

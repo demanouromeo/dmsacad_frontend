@@ -166,8 +166,8 @@ const TimetableGridView = () => {
       {isSaving && <LoadingOverlay />}
       <div className="page-header w-full">
         <h1 className="page-title">{t.title}</h1>
-        <div className="flex items-center gap-3">
-          <span className="font-semibold">{t.classeLabel}</span>
+        <div className="flex items-center gap-3 flex-nowrap">
+          <span className="font-semibold whitespace-nowrap">{t.classeLabel}</span>
           <select
             className="select select-bordered select-sm"
             value={selectedClasseId || ""}
@@ -196,6 +196,7 @@ const TimetableGridView = () => {
               <thead>
                 <tr>
                   <th></th>
+                  <th>{t.hoursHeader}</th>
                   {jours.map((j) => (
                     <th key={j.jour_id}>{j.label}</th>
                   ))}
@@ -205,19 +206,17 @@ const TimetableGridView = () => {
                 {timeline.map((entry, idx) =>
                   entry.type === "break" ? (
                     <tr key={`break-${idx}`} className="bg-base-200">
-                      <td colSpan={jours.length + 1} className="text-center font-semibold">
+                      <td colSpan={jours.length + 2} className="text-center font-semibold uppercase">
                         {t.breakLabel} {entry.start && `(${entry.start} - ${entry.end})`}
                       </td>
                     </tr>
                   ) : (
                     <tr key={`period-${entry.period_number}`}>
-                      <td className="whitespace-nowrap font-semibold">
+                      <td className="whitespace-nowrap font-semibold text-center">
                         {entry.period_number}
-                        {entry.start && (
-                          <div className="text-xs opacity-70 font-normal">
-                            {entry.start} - {entry.end}
-                          </div>
-                        )}
+                      </td>
+                      <td className="whitespace-nowrap text-sm opacity-70">
+                        {entry.start && `${entry.start} - ${entry.end}`}
                       </td>
                       {jours.map((j) => {
                         if (entry.period_number > j.number_of_periods) {

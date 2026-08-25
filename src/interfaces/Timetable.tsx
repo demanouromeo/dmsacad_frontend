@@ -60,3 +60,17 @@ export interface GenerateResult {
     noCapacity: GenerateWarningEntry[];
   };
 }
+
+export interface SendEmailsWarningEntry {
+  staff_name: string;
+}
+
+export interface SendEmailsResult {
+  status: boolean;
+  message: string;
+  sentCount?: number;
+  warnings?: {
+    noEmail: SendEmailsWarningEntry[];
+    sendFailed: SendEmailsWarningEntry[];
+  };
+}

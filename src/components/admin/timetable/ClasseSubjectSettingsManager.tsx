@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Save, HelpCircle } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -12,8 +12,7 @@ import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
-const MIN_WEIGHT = 1;
-const MAX_WEIGHT = 10;
+const WEIGHT_OPTIONS = [1, 2, 3, 4, 5];
 const MIN_PERIODS = 0;
 const MAX_PERIODS = 20;
 
@@ -40,6 +39,7 @@ const ClasseSubjectSettingsManager = () => {
   const [edited, setEdited] = useState<Record<number, EditedSetting>>({});
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
+  const weightHelpDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -115,8 +115,8 @@ const ClasseSubjectSettingsManager = () => {
         <CloseButton />
       </div>
 
-      <div className="w-full max-w-4xl flex items-center gap-3 mb-4">
-        <span className="font-semibold">{t.classeLabel}</span>
+      <div className="w-full max-w-4xl flex items-center gap-3 mb-4 flex-nowrap">
+        <span className="font-semibold whitespace-nowrap">{t.classeLabel}</span>
         {isLoadingClasses ? (
           <span className="loading loading-spinner loading-sm" />
         ) : (
@@ -144,7 +144,19 @@ const ClasseSubjectSettingsManager = () => {
                 <tr>
                   <th>{t.tableHeaderSubject}</th>
                   <th>{t.tableHeaderTeacher}</th>
-                  <th title={t.weightHint}>{t.tableHeaderWeight}</th>
+                  <th>
+                    <span className="inline-flex items-center gap-1">
+                      {t.tableHeaderWeight}
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs btn-square"
+                        title={t.weightHelpBtn}
+                        onClick={() => weightHelpDialogRef.current?.showModal()}
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                      </button>
+                    </span>
+                  </th>
                   <th>{t.tableHeaderPeriodsPerWeek}</th>
                   <th title={t.commonCourseHint}>{t.tableHeaderCommonCourse}</th>
                   <th></th>
@@ -166,11 +178,8 @@ const ClasseSubjectSettingsManager = () => {
                           : <span className="opacity-60">{t.noTeacherLabel}</span>}
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          min={MIN_WEIGHT}
-                          max={MAX_WEIGHT}
-                          className="input input-bordered input-sm w-20"
+                        <select
+                          className="select select-bordered select-sm w-20"
                           value={values.weight}
                           onChange={(e) =>
                             setEdited((prev) => ({
@@ -178,7 +187,13 @@ const ClasseSubjectSettingsManager = () => {
                               [row.subject_classe_id]: { ...values, weight: Number(e.target.value) },
                             }))
                           }
-                        />
+                        >
+                          {WEIGHT_OPTIONS.map((w) => (
+                            <option key={w} value={w}>
+                              {w}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>
                         <input
@@ -236,6 +251,23 @@ const ClasseSubjectSettingsManager = () => {
           </div>
         </div>
       )}
+
+      <dialog ref={weightHelpDialogRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg">{t.weightHelpTitle}</h3>
+          <p className="py-4">{t.weightHelpText}</p>
+          <div className="modal-action">
+            <form method="dialog">
+              <button type="submit" className="btn">
+                {t.closeBtn}
+              </button>
+            </form>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
   );
 };

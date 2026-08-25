@@ -7,6 +7,7 @@ import type {
   ClasseSubjectSetting,
   ClasseCell,
   GenerateResult,
+  SendEmailsResult,
 } from "../interfaces/Timetable";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
@@ -173,6 +174,29 @@ export class TimetableReader {
       return await response.json();
     } catch (error) {
       console.error(`TimetableReader.generate(): Error: ${error}`);
+      return NETWORK_ERROR_RESULT;
+    }
+  };
+
+  public static sendTeacherEmails = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<SendEmailsResult> => {
+    const targetUrl = `${MyConstants.getBaseUrl()}api/timetable/sendTeacherEmails`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ connection, year }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error(`TimetableReader.sendTeacherEmails(): Error: ${error}`);
       return NETWORK_ERROR_RESULT;
     }
   };
