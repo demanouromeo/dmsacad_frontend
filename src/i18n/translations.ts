@@ -1869,6 +1869,7 @@ export const adminMenuTranslations = {
     subjectsOfClasse: "Matières des classes",
     staff: "Personnel",
     assignCourses: "Attribution des cours",
+    timetable: "Emploi du temps",
     manageVp: "Gérer les censeurs",
     students: "Elèves",
     marksEntry: "Saisir les notes",
@@ -1898,6 +1899,7 @@ export const adminMenuTranslations = {
     subjectsOfClasse: "Class subjects",
     staff: "Staff",
     assignCourses: "Assign courses",
+    timetable: "Time table",
     manageVp: "Manage vice principals",
     students: "Manage students",
     marksEntry: "Marks entry",
@@ -3349,5 +3351,231 @@ export const magicAssistantTranslations = {
     nothingToExport: "No results found for this request.",
     printSuccess: (title: string, count: number) => `"${title}" exported to PDF (${count} row(s)).`,
     navigateToStudents: (classeName: string) => `Here are the students of class ${classeName}.`,
+  },
+};
+
+export const timetableHubTranslations = {
+  fr: {
+    title: "Emploi du temps",
+    generateBtn: "Générer",
+    settingsBtn: "Paramètres de l'emploi du temps",
+    generateConfirmMessage:
+      "Ceci va régénérer l'emploi du temps de TOUTES les classes pour l'année en cours. L'emploi du temps actuel sera remplacé. Continuer ?",
+    generateSuccess: "Emploi du temps généré avec succès pour toutes les classes.",
+    generateSuccessWithWarnings: (unassigned: number, noCapacity: number) =>
+      `Emploi du temps généré. ${unassigned} période(s) sans enseignant assigné` +
+      (noCapacity > 0 ? `, ${noCapacity} période(s) n'ont pas pu être placées (capacité insuffisante).` : "."),
+    generateFailure: "Échec de la génération de l'emploi du temps.",
+    noJoursError:
+      "Aucun jour de classe n'est configuré. Configurez les jours dans les paramètres de l'emploi du temps avant de générer.",
+    classesListTitle: "Consulter / modifier par classe",
+    tableHeaderClasse: "Classe",
+    tableHeaderLevel: "Niveau",
+    viewBtn: "Voir",
+    emptyState: "Aucune classe trouvée pour cette année.",
+  },
+  en: {
+    title: "Time table",
+    generateBtn: "Generate",
+    settingsBtn: "Time table settings",
+    generateConfirmMessage:
+      "This will regenerate the time table for EVERY class of the current school year. The existing time table will be replaced. Continue?",
+    generateSuccess: "Time table generated successfully for every class.",
+    generateSuccessWithWarnings: (unassigned: number, noCapacity: number) =>
+      `Time table generated. ${unassigned} period(s) have no teacher assigned` +
+      (noCapacity > 0 ? `, ${noCapacity} period(s) could not be placed (not enough weekly capacity).` : "."),
+    generateFailure: "Failed to generate the time table.",
+    noJoursError:
+      "No school days are configured yet. Configure them in Time table settings before generating.",
+    classesListTitle: "View / edit per class",
+    tableHeaderClasse: "Class",
+    tableHeaderLevel: "Level",
+    viewBtn: "View",
+    emptyState: "No class found for this year.",
+  },
+};
+
+export const timetableSettingsHubTranslations = {
+  fr: {
+    title: "Paramètres de l'emploi du temps",
+    staffLoad: "Charge horaire des enseignants",
+    ttConfig: "Configuration des horaires",
+    jours: "Jours de classe",
+    subjects: "Matières par classe",
+  },
+  en: {
+    title: "Time table settings",
+    staffLoad: "Teacher weekly load",
+    ttConfig: "Time configuration",
+    jours: "School days",
+    subjects: "Subjects per class",
+  },
+};
+
+export const ttConfigManagerTranslations = {
+  fr: {
+    title: "Configuration des horaires",
+    startTimeLabel: "Heure de début des cours",
+    startTimeHint: "Format HHhMM, ex : 07h30",
+    periodDurationLabel: "Durée d'une période (minutes)",
+    break1DurationLabel: "Durée de la 1ère pause (minutes)",
+    break2DurationLabel: "Durée de la 2ème pause (minutes)",
+    beforeBreak1Label: "Nombre de périodes avant la 1ère pause",
+    beforeBreak2Label: "Nombre de périodes (après la 1ère pause) avant la 2ème pause",
+    saveBtn: "Enregistrer",
+    closeBtn: "Fermer",
+    saveSuccess: "Configuration enregistrée avec succès.",
+    saveFailure: "Échec de l'enregistrement de la configuration.",
+    invalidStartTime: "L'heure de début doit être au format HHhMM, ex : 07h30.",
+  },
+  en: {
+    title: "Time configuration",
+    startTimeLabel: "Class start time",
+    startTimeHint: "Format HHhMM, e.g. 07h30",
+    periodDurationLabel: "Period duration (minutes)",
+    break1DurationLabel: "1st break duration (minutes)",
+    break2DurationLabel: "2nd break duration (minutes)",
+    beforeBreak1Label: "Number of periods before the 1st break",
+    beforeBreak2Label: "Number of periods (after the 1st break) before the 2nd break",
+    saveBtn: "Save",
+    closeBtn: "Close",
+    saveSuccess: "Configuration saved successfully.",
+    saveFailure: "Failed to save the configuration.",
+    invalidStartTime: "Start time must be in HHhMM format, e.g. 07h30.",
+  },
+};
+
+export const joursManagerTranslations = {
+  fr: {
+    title: "Jours de classe",
+    tableHeaderLabel: "Jour",
+    tableHeaderNum: "Ordre",
+    tableHeaderPeriods: "Nombre de périodes",
+    tableHeaderActions: "Actions",
+    addBtn: "Ajouter un jour",
+    dayLabelPlaceholder: "Nom du jour",
+    saveSuccess: "Jour enregistré avec succès.",
+    saveFailure: "Échec de l'enregistrement du jour.",
+    deleteConfirmMessage: (label: string) =>
+      `Supprimer le jour "${label}" ? Toutes les périodes déjà planifiées ce jour seront également supprimées.`,
+    deleteSuccess: "Jour supprimé avec succès.",
+    deleteFailure: "Échec de la suppression du jour.",
+    emptyState: "Aucun jour configuré pour le moment.",
+    closeBtn: "Fermer",
+  },
+  en: {
+    title: "School days",
+    tableHeaderLabel: "Day",
+    tableHeaderNum: "Order",
+    tableHeaderPeriods: "Number of periods",
+    tableHeaderActions: "Actions",
+    addBtn: "Add a day",
+    dayLabelPlaceholder: "Day name",
+    saveSuccess: "Day saved successfully.",
+    saveFailure: "Failed to save the day.",
+    deleteConfirmMessage: (label: string) =>
+      `Delete day "${label}"? Every period already scheduled on that day will also be removed.`,
+    deleteSuccess: "Day deleted successfully.",
+    deleteFailure: "Failed to delete the day.",
+    emptyState: "No day configured yet.",
+    closeBtn: "Close",
+  },
+};
+
+export const staffMaxPeriodsManagerTranslations = {
+  fr: {
+    title: "Charge horaire des enseignants",
+    tableHeaderName: "Enseignant",
+    tableHeaderMaxPeriods: "Max. périodes / semaine",
+    saveSuccess: "Charge horaire enregistrée avec succès.",
+    saveFailure: "Échec de l'enregistrement de la charge horaire.",
+    emptyState: "Aucun enseignant trouvé pour cette année.",
+    closeBtn: "Fermer",
+  },
+  en: {
+    title: "Teacher weekly load",
+    tableHeaderName: "Teacher",
+    tableHeaderMaxPeriods: "Max. periods / week",
+    saveSuccess: "Weekly load saved successfully.",
+    saveFailure: "Failed to save the weekly load.",
+    emptyState: "No teacher found for this year.",
+    closeBtn: "Close",
+  },
+};
+
+export const classeSubjectSettingsManagerTranslations = {
+  fr: {
+    title: "Matières par classe - paramètres de l'emploi du temps",
+    classeLabel: "Classe :",
+    tableHeaderSubject: "Matière",
+    tableHeaderTeacher: "Enseignant",
+    tableHeaderWeight: "Priorité",
+    tableHeaderPeriodsPerWeek: "Périodes / semaine",
+    tableHeaderCommonCourse: "Cours combiné",
+    noTeacherLabel: "Aucun enseignant assigné",
+    weightHint: "Une priorité plus élevée est placée en premier et privilégie les créneaux du matin.",
+    commonCourseHint:
+      "Cochez pour regrouper ce cours avec celui des autres classes du même niveau (même matière, même jour/période, même enseignant).",
+    saveSuccess: "Paramètre enregistré avec succès.",
+    saveFailure: "Échec de l'enregistrement du paramètre.",
+    emptyState: "Aucune matière assignée à cette classe pour cette année.",
+    closeBtn: "Fermer",
+  },
+  en: {
+    title: "Subjects per class - time table settings",
+    classeLabel: "Class:",
+    tableHeaderSubject: "Subject",
+    tableHeaderTeacher: "Teacher",
+    tableHeaderWeight: "Priority",
+    tableHeaderPeriodsPerWeek: "Periods / week",
+    tableHeaderCommonCourse: "Combined course",
+    noTeacherLabel: "No teacher assigned",
+    weightHint: "A higher priority is placed first and preferentially claims morning slots.",
+    commonCourseHint:
+      "Check to group this course with the same subject in other classes of the same level (same day/period, same teacher).",
+    saveSuccess: "Setting saved successfully.",
+    saveFailure: "Failed to save the setting.",
+    emptyState: "No subject assigned to this class for this year.",
+    closeBtn: "Close",
+  },
+};
+
+export const timetableGridViewTranslations = {
+  fr: {
+    title: "Emploi du temps",
+    classeLabel: "Classe :",
+    freeSlotLabel: "—",
+    noTeacherLabel: "Sans enseignant",
+    editDialogTitle: "Modifier la période",
+    subjectLabel: "Matière",
+    noSubjectOption: "(Aucune - période libre)",
+    teacherLabel: "Enseignant",
+    saveBtn: "Enregistrer",
+    clearBtn: "Vider",
+    cancelBtn: "Annuler",
+    saveSuccess: "Période enregistrée avec succès.",
+    clearSuccess: "Période vidée avec succès.",
+    saveFailure: "Échec de l'enregistrement de la période.",
+    breakLabel: "Pause",
+    notConfiguredMessage:
+      "Aucun emploi du temps n'a encore été généré, ou les jours de classe ne sont pas configurés.",
+  },
+  en: {
+    title: "Time table",
+    classeLabel: "Class:",
+    freeSlotLabel: "—",
+    noTeacherLabel: "No teacher",
+    editDialogTitle: "Edit period",
+    subjectLabel: "Subject",
+    noSubjectOption: "(None - free period)",
+    teacherLabel: "Teacher",
+    saveBtn: "Save",
+    clearBtn: "Clear",
+    cancelBtn: "Cancel",
+    saveSuccess: "Period saved successfully.",
+    clearSuccess: "Period cleared successfully.",
+    saveFailure: "Failed to save the period.",
+    breakLabel: "Break",
+    notConfiguredMessage: "No time table has been generated yet, or school days aren't configured.",
   },
 };

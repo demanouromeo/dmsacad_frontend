@@ -7,6 +7,7 @@ import iconClasses from "../../assets/menu/Gestion des classes.svg";
 import iconSubjects from "../../assets/menu/Matières.svg";
 import iconStaff from "../../assets/menu/Gestion du personnel.svg";
 import iconAssignCourses from "../../assets/menu/Attribution.svg";
+import iconTimetable from "../../assets/menu/Emploi du temps.svg";
 import iconManageVp from "../../assets/menu/censeur.svg";
 import iconStudents from "../../assets/menu/Gestion des élèves.svg";
 import iconMarksEntry from "../../assets/menu/Saisie des notes.svg";
@@ -54,6 +55,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: iconAssignCourses,
     to: "/admin/course-assignment",
   },
+  { key: "timetable", icon: iconTimetable, to: "/admin/timetable" },
   { key: "manageVp", icon: iconManageVp, to: "/admin/vp-management" },
   { key: "students", icon: iconStudents, to: "/admin/students" },
   { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },

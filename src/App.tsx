@@ -42,6 +42,13 @@ import AnnualRcAvgManager from "./components/admin/settings/AnnualRcAvgManager";
 import ThParamManager from "./components/admin/settings/ThParamManager";
 import PromotionSettingsManager from "./components/admin/settings/PromotionSettingsManager";
 import SchoolYearManager from "./components/admin/settings/SchoolYearManager";
+import TimetableHub from "./components/admin/timetable/TimetableHub";
+import TimetableSettingsHub from "./components/admin/timetable/TimetableSettingsHub";
+import StaffMaxPeriodsManager from "./components/admin/timetable/StaffMaxPeriodsManager";
+import TtConfigManager from "./components/admin/timetable/TtConfigManager";
+import JoursManager from "./components/admin/timetable/JoursManager";
+import ClasseSubjectSettingsManager from "./components/admin/timetable/ClasseSubjectSettingsManager";
+import TimetableGridView from "./components/admin/timetable/TimetableGridView";
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
 import PromotionManager from "./components/admin/promotion/PromotionManager";
@@ -166,6 +173,31 @@ function App() {
                 <Route
                   path="/admin/settings/school-years"
                   element={<SchoolYearManager />}
+                />
+                <Route path="/admin/timetable" element={<TimetableHub />} />
+                <Route
+                  path="/admin/timetable/settings"
+                  element={<TimetableSettingsHub />}
+                />
+                <Route
+                  path="/admin/timetable/settings/staff-load"
+                  element={<StaffMaxPeriodsManager />}
+                />
+                <Route
+                  path="/admin/timetable/settings/config"
+                  element={<TtConfigManager />}
+                />
+                <Route
+                  path="/admin/timetable/settings/days"
+                  element={<JoursManager />}
+                />
+                <Route
+                  path="/admin/timetable/settings/subjects"
+                  element={<ClasseSubjectSettingsManager />}
+                />
+                <Route
+                  path="/admin/timetable/view/:classeId"
+                  element={<TimetableGridView />}
                 />
                 <Route
                   path="/admin/report-cards"
