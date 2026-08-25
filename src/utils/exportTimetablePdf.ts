@@ -25,7 +25,7 @@ export const exportTimetablesToPdf = async (
     import("jspdf"),
     import("jspdf-autotable"),
   ]);
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
 
@@ -35,7 +35,7 @@ export const exportTimetablesToPdf = async (
     }
     const y = drawPdfLetterhead(doc, schoolHeader);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(15);
     doc.text(`${title} - ${classe.classeName}`, centerX, y, { align: "center" });
 
     const body: AutoTableCell[][] = classe.rows.map((row) =>
@@ -48,8 +48,8 @@ export const exportTimetablesToPdf = async (
       startY: y + 6,
       head: [["", ...classe.dayLabels]],
       body,
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [30, 64, 175] },
+      styles: { fontSize: 11, cellPadding: 3, textColor: [0, 0, 0] },
+      headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
     });
   });
 
