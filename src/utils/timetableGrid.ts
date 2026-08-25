@@ -1,4 +1,4 @@
-import type { Jour, TtConfig, ClasseCell } from "../interfaces/Timetable";
+import type { Jour, TtConfig, ClasseCell, StaffCell } from "../interfaces/Timetable";
 import { computeDayTimeline, type TimelineEntry } from "./timetableTime";
 
 export interface TimetableGridLabels {
@@ -70,6 +70,42 @@ export const buildClasseTimetableRows = (
         ? `${cell.staff_name ?? ""} ${cell.staff_surname ?? ""}`.trim()
         : labels.noTeacherLabel;
       return `${cell.subject_title}\n${teacher}`;
+    });
+
+    return { kind: "period" as const, label, cells: rowCells };
+  });
+};
+
+// Reduces one staff member's own cells into the same TimetableGridRow shape "My Timetable" needs, so
+// it can reuse the classe exporters/grid rendering unchanged. Unlike buildClasseTimetableRows, a
+// staff member's cells are already unique per day/period (a teacher can't be in two places at once),
+// so the day columns here are keyed the same way but each cell shows the classe name instead of a
+// teacher name, since the teacher is always the same person on this grid.
+export const buildStaffTimetableRows = (
+  jours: Jour[],
+  timeline: TimelineEntry[],
+  cells: StaffCell[],
+  labels: Pick<TimetableGridLabels, "breakLabel" | "freeSlotLabel">,
+): TimetableGridRow[] => {
+  const cellMap = new Map<string, StaffCell>();
+  cells.forEach((c) => cellMap.set(cellKey(c.jour_id, c.period_number), c));
+
+  return timeline.map((entry) => {
+    if (entry.type === "break") {
+      const range = entry.start ? ` (${entry.start} - ${entry.end})` : "";
+      return { kind: "break" as const, label: `${labels.breakLabel}${range}` };
+    }
+
+    const label = entry.start
+      ? `${entry.period_number} (${entry.start}-${entry.end})`
+      : String(entry.period_number);
+
+    const rowCells = jours.map((j) => {
+      if (entry.period_number > j.number_of_periods) {
+        return labels.freeSlotLabel;
+      }
+      const cell = cellMap.get(cellKey(j.jour_id, entry.period_number));
+      return cell ? `${cell.classe_name}\n${cell.subject_title}` : labels.freeSlotLabel;
     });
 
     return { kind: "period" as const, label, cells: rowCells };

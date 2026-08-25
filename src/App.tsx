@@ -49,6 +49,7 @@ import TtConfigManager from "./components/admin/timetable/TtConfigManager";
 import JoursManager from "./components/admin/timetable/JoursManager";
 import ClasseSubjectSettingsManager from "./components/admin/timetable/ClasseSubjectSettingsManager";
 import TimetableGridView from "./components/admin/timetable/TimetableGridView";
+import MyTimetableManager from "./components/admin/timetable/MyTimetableManager";
 import ReportCardManager from "./components/admin/reportcard/ReportCardManager";
 import InsolvableManager from "./components/admin/insolvable/InsolvableManager";
 import PromotionManager from "./components/admin/promotion/PromotionManager";
@@ -249,6 +250,12 @@ function App() {
                   path="/admin/mark-entry"
                   element={<MarkEntryManager />}
                 />
+              </Route>
+              {/* My time table: TEACHER/SG/CENSEUR viewing their own individual schedule, scoped
+                  server-side to auth_payload.user_id (see TimetableController::getMyCells) - not
+                  ADMIN, which has no staff_id to scope against. */}
+              <Route element={<RequireRole allow={["TEACHER", "SG", "CENSEUR"]} />}>
+                <Route path="/admin/my-timetable" element={<MyTimetableManager />} />
               </Route>
               <Route element={<RequireRole allow={["PARENT"]} />}>
                 <Route path="/parent/dashboard" element={<ParentDashboard />} />

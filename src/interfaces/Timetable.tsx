@@ -46,6 +46,15 @@ export interface ClasseCell {
   staff_surname: string | null;
 }
 
+export interface StaffCell {
+  jour_id: number;
+  period_number: number;
+  subject_id: number;
+  subject_title: string;
+  classe_id: number;
+  classe_name: string;
+}
+
 export interface GenerateWarningEntry {
   classe_name: string;
   subject_title: string;

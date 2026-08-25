@@ -1870,6 +1870,7 @@ export const adminMenuTranslations = {
     staff: "Personnel",
     assignCourses: "Attribution des cours",
     timetable: "Emploi du temps",
+    myTimetable: "Mon emploi du temps",
     manageVp: "Gérer les censeurs",
     students: "Elèves",
     marksEntry: "Saisir les notes",
@@ -1900,6 +1901,7 @@ export const adminMenuTranslations = {
     staff: "Staff",
     assignCourses: "Assign courses",
     timetable: "Time table",
+    myTimetable: "My time table",
     manageVp: "Manage vice principals",
     students: "Manage students",
     marksEntry: "Marks entry",
@@ -3623,5 +3625,22 @@ export const timetableGridViewTranslations = {
     saveFailure: "Failed to save the period.",
     breakLabel: "Break",
     notConfiguredMessage: "No time table has been generated yet, or school days aren't configured.",
+  },
+};
+
+export const myTimetableTranslations = {
+  fr: {
+    title: "Mon emploi du temps",
+    exportExcelTooltip: "Exporter mon emploi du temps vers Excel",
+    exportPdfTooltip: "Exporter mon emploi du temps vers PDF",
+    exportNotConfiguredMessage:
+      "Aucun jour de classe n'est configuré. Configurez les jours dans les paramètres de l'emploi du temps avant d'exporter.",
+  },
+  en: {
+    title: "My time table",
+    exportExcelTooltip: "Export my time table to Excel",
+    exportPdfTooltip: "Export my time table to PDF",
+    exportNotConfiguredMessage:
+      "No school days are configured yet. Configure them in Time table settings before exporting.",
   },
 };
