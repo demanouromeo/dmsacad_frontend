@@ -55,6 +55,23 @@ export interface StaffCell {
   classe_name: string;
 }
 
+// Backs the official "individual time table" PDF/Excel export (My Timetable) - the auth-scoped
+// staff member's own HR record (used as-is, blank/unmapped fields included - see
+// TimetableController::getMyStaffInfo) plus their weekly load cap.
+export interface StaffTimetableInfo {
+  staff_id: number;
+  name: string;
+  surname: string | null;
+  function: number;
+  status: number | null;
+  grade: string | null;
+  diplome: string | null;
+  specilitee: string | null;
+  matiereEnseignee: string | null;
+  longivity: number | null;
+  max_periods_per_week: number;
+}
+
 export interface GenerateWarningEntry {
   classe_name: string;
   subject_title: string;

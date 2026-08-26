@@ -7,6 +7,7 @@ import type {
   ClasseSubjectSetting,
   ClasseCell,
   StaffCell,
+  StaffTimetableInfo,
   GenerateResult,
   SendEmailsResult,
 } from "../interfaces/Timetable";
@@ -256,6 +257,19 @@ export class TimetableReader {
         { connection, year },
         "fetchMyCells",
       )) ?? []
+    );
+  };
+
+  public static fetchMyStaffInfo = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<StaffTimetableInfo | null> => {
+    return TimetableReader.getJson<StaffTimetableInfo>(
+      "api/timetable/getMyStaffInfo",
+      accessToken,
+      { connection, year },
+      "fetchMyStaffInfo",
     );
   };
 

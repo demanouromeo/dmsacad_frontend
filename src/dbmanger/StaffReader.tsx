@@ -189,6 +189,40 @@ export class StaffReader {
     );
   };
 
+  // Backs StaffDetailsDialog's "more info" HR profile form (StaffController::modifyStaff) - a
+  // separate endpoint from updateStaff/updateManyStaffs since it only ever touches this extended
+  // profile, never the core identity/account fields (name/login/pwd/...). Every field is optional
+  // server-side; send "" rather than omitting one the user cleared, so clearing a field actually
+  // clears it instead of leaving the previous value untouched.
+  public static modifyStaff = async (
+    accessToken: string | null,
+    connection: string,
+    updates: {
+      staff_id: number;
+      grade: string;
+      diplome: string;
+      specilitee: string;
+      matiereEnseignee: string;
+      longivity: string;
+      posting_decision: string;
+      region: string;
+      department: string;
+      arrodissement: string;
+      numeroRecrutement: string;
+      provenantDe: string;
+      dateReprise: string;
+      dateEntree: string;
+      date1erePrise: string;
+    },
+  ): Promise<ApiResult> => {
+    return StaffReader.postJson(
+      "api/staffs/modifyStaff",
+      accessToken,
+      { connection, ...updates },
+      "modifyStaff",
+    );
+  };
+
   // Backs the Excel/CSV import feature. Unlike Classe/Subject's import (a separate delete-then-save
   // pair of calls), saveManyStaffs has its own built-in `override` flag: when set, the backend wipes
   // every staff record of the current year+section server-side before inserting the new ones, in one

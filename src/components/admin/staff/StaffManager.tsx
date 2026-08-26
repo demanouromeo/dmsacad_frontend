@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Upload, Wand2 } from "lucide-react";
+import { Eye, EyeOff, IdCard, Upload, Wand2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useToast } from "../../../toast/useToast";
@@ -14,6 +14,7 @@ import type { Staff } from "../../../interfaces/Staff";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import StaffPhotoCell from "./StaffPhotoCell";
 import StaffPhotoDialog from "./StaffPhotoDialog";
+import StaffDetailsDialog from "./StaffDetailsDialog";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
@@ -111,6 +112,14 @@ const StaffManager = () => {
   const [photoVersions, setPhotoVersions] = useState<Record<number, number>>({});
   const bumpPhotoVersion = (staffId: number) => {
     setPhotoVersions((prev) => ({ ...prev, [staffId]: (prev[staffId] ?? 0) + 1 }));
+  };
+  const [detailsDialogStaff, setDetailsDialogStaff] = useState<Staff | null>(null);
+  // Merges the saved fields into the already-loaded row in place rather than refetching the whole
+  // list - modifyStaff only ever touches this one staff member's extended profile.
+  const handleDetailsSaved = (staffId: number, updates: Partial<Staff>) => {
+    setStaffList((prev) =>
+      prev.map((s) => (s.staff_id === staffId ? { ...s, ...updates } : s)),
+    );
   };
 
   const loadStaff = async () => {
@@ -757,32 +766,44 @@ const StaffManager = () => {
                         )}
                       </td>
                       <td className="text-right">
-                        {isEditing ? (
-                          <>
+                        <div className="flex items-center justify-end gap-1">
+                          <div className="tooltip" data-tip={t.moreInfoHint}>
                             <button
                               type="button"
-                              className="btn btn-xs btn-primary mr-2"
-                              onClick={() => saveEdit(staff)}
+                              className="btn btn-xs btn-ghost btn-square"
+                              aria-label={t.moreInfoHint}
+                              onClick={() => setDetailsDialogStaff(staff)}
                             >
-                              {t.saveBtn}
+                              <IdCard className="w-4 h-4" />
                             </button>
+                          </div>
+                          {isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-primary"
+                                onClick={() => saveEdit(staff)}
+                              >
+                                {t.saveBtn}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={cancelEdit}
+                              >
+                                {t.cancelBtn}
+                              </button>
+                            </>
+                          ) : (
                             <button
                               type="button"
                               className="btn btn-xs btn-ghost"
-                              onClick={cancelEdit}
+                              onClick={() => startEdit(staff)}
                             >
-                              {t.cancelBtn}
+                              {t.editBtn}
                             </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-xs btn-ghost"
-                            onClick={() => startEdit(staff)}
-                          >
-                            {t.editBtn}
-                          </button>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -916,6 +937,12 @@ const StaffManager = () => {
         staff={photoDialogStaff}
         onClose={() => setPhotoDialogStaff(null)}
         onSaved={bumpPhotoVersion}
+      />
+      <StaffDetailsDialog
+        key={detailsDialogStaff?.staff_id ?? "none"}
+        staff={detailsDialogStaff}
+        onClose={() => setDetailsDialogStaff(null)}
+        onSaved={handleDetailsSaved}
       />
     </div>
   );

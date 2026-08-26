@@ -18,6 +18,7 @@ export interface Staff {
   pob: string | null;
   matricule: string | null;
   posting_decision: string | null;
+  longivity: number | null;
   grade: string | null;
   region: string | null;
   department: string | null;

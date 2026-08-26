@@ -3,14 +3,20 @@ import { FileSpreadsheet, FileText } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
-import { myTimetableTranslations, timetableGridViewTranslations } from "../../../i18n/translations";
+import { myTimetableTranslations, timetableGridViewTranslations, staffFunctionLabels } from "../../../i18n/translations";
 import { TimetableReader } from "../../../dbmanger/TimetableReader";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { buildTimestampedFilename } from "../../../utils/exportData";
-import { buildTimetableTimeline, buildStaffTimetableRows } from "../../../utils/timetableGrid";
-import { exportTimetablesToPdf } from "../../../utils/exportTimetablePdf";
-import { exportTimetablesToXlsx } from "../../../utils/exportTimetableWorkbook";
-import type { Jour, TtConfig, StaffCell } from "../../../interfaces/Timetable";
+import {
+  buildTimetableTimeline,
+  buildStaffWeeklyGrid,
+  computeStaffClasseHours,
+  computeStaffHours,
+  displayOrDash,
+} from "../../../utils/timetableGrid";
+import { exportMyTimetableToPdf, type StaffTimetableHeaderData, type MyTimetablePdfLabels } from "../../../utils/exportMyTimetablePdf";
+import { exportMyTimetableToXlsx } from "../../../utils/exportMyTimetableXlsx";
+import type { Jour, TtConfig, StaffCell, StaffTimetableInfo } from "../../../interfaces/Timetable";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 
@@ -32,26 +38,50 @@ const MyTimetableManager = () => {
   const [jours, setJours] = useState<Jour[]>([]);
   const [ttConfig, setTtConfig] = useState<TtConfig | null>(null);
   const [cells, setCells] = useState<StaffCell[]>([]);
+  const [staffInfo, setStaffInfo] = useState<StaffTimetableInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      const [jourList, config, cellList] = await Promise.all([
+      const [jourList, config, cellList, info] = await Promise.all([
         TimetableReader.fetchJours(accessToken, connection),
         TimetableReader.fetchTtConfig(accessToken, connection, schoolYear),
         TimetableReader.fetchMyCells(accessToken, connection, schoolYear),
+        TimetableReader.fetchMyStaffInfo(accessToken, connection, schoolYear),
       ]);
       setJours([...jourList].sort((a, b) => a.num - b.num));
       setTtConfig(config);
       setCells(cellList);
+      setStaffInfo(info);
       setIsLoading(false);
     };
     load();
   }, [connection, schoolYear, accessToken]);
 
   const timeline = useMemo(() => buildTimetableTimeline(ttConfig, jours), [ttConfig, jours]);
+  const weeklyGrid = useMemo(() => buildStaffWeeklyGrid(jours, timeline, cells), [jours, timeline, cells]);
+  const classeHours = useMemo(() => computeStaffClasseHours(cells), [cells]);
+
+  const headerData: StaffTimetableHeaderData | null = useMemo(() => {
+    if (!staffInfo) {
+      return null;
+    }
+    const functionLabels = staffFunctionLabels[language];
+    return {
+      staffFullName: `${staffInfo.name} ${staffInfo.surname ?? ""}`.trim(),
+      functionLabel:
+        functionLabels[staffInfo.function as keyof typeof functionLabels] ?? String(staffInfo.function),
+      statut: displayOrDash(staffInfo.status),
+      diplome: displayOrDash(staffInfo.diplome),
+      grade: displayOrDash(staffInfo.grade),
+      specialite: displayOrDash(staffInfo.specilitee),
+      matiereEnseignee: displayOrDash(staffInfo.matiereEnseignee),
+      anciennete: displayOrDash(staffInfo.longivity),
+      hours: computeStaffHours(cells, staffInfo.max_periods_per_week),
+    };
+  }, [staffInfo, cells, language]);
 
   const cellMap = useMemo(() => {
     const map = new Map<string, StaffCell>();
@@ -66,17 +96,54 @@ const MyTimetableManager = () => {
       showToast(t.exportNotConfiguredMessage, { type: "warning" });
       return;
     }
+    if (!headerData) {
+      showToast(t.staffInfoUnavailableMessage, { type: "warning" });
+      return;
+    }
     setIsExporting(true);
-    const rows = buildStaffTimetableRows(jours, timeline, cells, {
-      breakLabel: gridLabels.breakLabel,
-      freeSlotLabel: gridLabels.freeSlotLabel,
-    });
-    const data = [{ classeName: staffName, dayLabels: jours.map((j) => j.label), rows }];
     const filename = buildTimestampedFilename(t.title, staffName ? [staffName] : [], format);
+    const pdfLabels: MyTimetablePdfLabels = {
+      documentTitle: t.documentTitle,
+      fieldStaffName: t.fieldStaffName,
+      fieldFunction: t.fieldFunction,
+      fieldStatut: t.fieldStatut,
+      fieldDiplome: t.fieldDiplome,
+      fieldGrade: t.fieldGrade,
+      fieldSpecialite: t.fieldSpecialite,
+      fieldMatiereEnseignee: t.fieldMatiereEnseignee,
+      fieldAnciennete: t.fieldAnciennete,
+      fieldHeuresDues: t.fieldHeuresDues,
+      fieldHeuresFaites: t.fieldHeuresFaites,
+      fieldHeuresSupplementaires: t.fieldHeuresSupplementaires,
+      fieldHeuresSousEmployees: t.fieldHeuresSousEmployees,
+      summaryClasseHeader: t.summaryClasseHeader,
+      summaryHoursRow: t.summaryHoursRow,
+      summaryTotalHeader: t.summaryTotalHeader,
+      breakDurationSuffix: t.breakDurationSuffix,
+      breakLabel: gridLabels.breakLabel,
+    };
     if (format === "pdf") {
-      await exportTimetablesToPdf(t.title, data, schoolHeader, filename);
+      await exportMyTimetableToPdf(
+        headerData,
+        weeklyGrid.columns,
+        weeklyGrid.rows,
+        classeHours,
+        ttConfig,
+        schoolHeader,
+        pdfLabels,
+        filename,
+      );
     } else {
-      await exportTimetablesToXlsx(filename, data);
+      await exportMyTimetableToXlsx(
+        t.documentTitle,
+        headerData,
+        weeklyGrid.columns,
+        weeklyGrid.rows,
+        classeHours,
+        ttConfig,
+        pdfLabels,
+        filename,
+      );
     }
     setIsExporting(false);
   };

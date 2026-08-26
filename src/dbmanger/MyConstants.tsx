@@ -5,8 +5,15 @@ import { Capacitor } from "@capacitor/core";
 export type BackendTarget = "remote" | "local";
 
 export class MyConstants {
-  public static gBaseRemoteUrl = "https://dmsacad.com/dmsacad_backend_secured/";
-  public static gBaseLocalUrl = "http://localhost/dmsacad_backend_dev/";
+  // Overridable via VITE_BASE_REMOTE_URL/VITE_BASE_LOCAL_URL (see .env.production/.env.local) so
+  // each developer's own XAMPP layout - or a future production host change - doesn't require
+  // editing this committed source file. The literals below are the fallback when no env file sets
+  // them; gBaseLocalUrl in particular must match wherever THIS machine's backend repo actually
+  // lives under htdocs (see frontend/CLAUDE.md's "Backend base URL" section).
+  public static gBaseRemoteUrl =
+    import.meta.env.VITE_BASE_REMOTE_URL || "https://dmsacad.com/dmsacad_backend_secured/";
+  public static gBaseLocalUrl =
+    import.meta.env.VITE_BASE_LOCAL_URL || "http://localhost/dmsacad-react/backend/";
   public static SCHOOL_NAME_KEY = "schoolName";
   public static SCHOOL_YEAR_KEY = "schoolYear";
   public static SECTION_KEY = "section";
