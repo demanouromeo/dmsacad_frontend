@@ -1,3 +1,5 @@
+import type { jsPDF } from "jspdf";
+import type { UserOptions } from "jspdf-autotable";
 import { drawPdfLetterhead, drawPdfFooters, drawPdfSignature, type SchoolHeader } from "./exportHeader";
 import { saveOrShareBlob } from "./nativeFileSave";
 import type { StaffClasseHours, StaffHours, StaffWeeklyGridColumn, StaffWeeklyGridRow } from "./timetableGrid";
@@ -39,6 +41,16 @@ export interface MyTimetablePdfLabels {
   breakLabel: string;
 }
 
+// One staff member's already-resolved header + weekly grid + per-class summary, ready to be laid
+// out as its own page/sheet - the shape both the single-staff exporters below and the bulk "every
+// staff" exporters (exportAllStaffTimetablesPdf.ts/exportAllStaffTimetablesXlsx.ts) consume.
+export interface StaffTimetableExportEntry {
+  header: StaffTimetableHeaderData;
+  columns: StaffWeeklyGridColumn[];
+  rows: StaffWeeklyGridRow[];
+  classeHours: StaffClasseHours[];
+}
+
 const BREAK_FILL: [number, number, number] = [229, 231, 235];
 
 const breakDurationOf = (column: StaffWeeklyGridColumn, ttConfig: TtConfig | null): number => {
@@ -48,25 +60,22 @@ const breakDurationOf = (column: StaffWeeklyGridColumn, ttConfig: TtConfig | nul
   return column.which === 1 ? ttConfig.duration_break1 : ttConfig.duration_break2;
 };
 
-// Official single-page "individual time table" document (bilingual government letterhead, staff HR
-// header, days-as-rows weekly grid, per-class weekly-hours summary, signature) - a distinct exporter
-// from exportTimetablesToPdf's per-class grid, since that one is shared with TimetableHub's
-// whole-school class-by-class export and must keep its own simpler layout unchanged.
-export const exportMyTimetableToPdf = async (
-  header: StaffTimetableHeaderData,
-  columns: StaffWeeklyGridColumn[],
-  rows: StaffWeeklyGridRow[],
-  classeHours: StaffClasseHours[],
+// Draws one staff member's HR header + weekly grid + per-class summary onto the doc's *current*
+// page (the letterhead included), returning the Y position the caller should place a
+// signature/footer after. Factored out of exportMyTimetableToPdf so the bulk "every staff" exporter
+// (exportAllStaffTimetablesPdf.ts) can call this once per page - both draw exactly the same page
+// content, the bulk one just loops it and only signs/foots once at the very end. `autoTable` is
+// passed in rather than imported at module scope so this file stays a plain dynamic-import-only
+// consumer of jspdf-autotable, matching every other PDF exporter in the app.
+export const drawStaffTimetablePage = (
+  doc: jsPDF,
+  autoTable: (d: jsPDF, options: UserOptions) => void,
+  entry: StaffTimetableExportEntry,
   ttConfig: TtConfig | null,
   schoolHeader: SchoolHeader,
   labels: MyTimetablePdfLabels,
-  filename: string,
-): Promise<void> => {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
-    import("jspdf"),
-    import("jspdf-autotable"),
-  ]);
-  const doc = new jsPDF({ orientation: "landscape" });
+): number => {
+  const { header, columns, rows, classeHours } = entry;
   const pageWidth = doc.internal.pageSize.getWidth();
   const centerX = pageWidth / 2;
 
@@ -145,7 +154,38 @@ export const exportMyTimetableToPdf = async (
     columnStyles: { [classeHours.length + 1]: { fontStyle: "bold" } },
   });
 
-  const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+  return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+};
+
+// Official single-page "individual time table" document (bilingual government letterhead, staff HR
+// header, days-as-rows weekly grid, per-class weekly-hours summary, signature) - a distinct exporter
+// from exportTimetablesToPdf's per-class grid, since that one is shared with TimetableHub's
+// whole-school class-by-class export and must keep its own simpler layout unchanged. Its bulk
+// "every staff" sibling (exportAllStaffTimetablesPdf.ts) reuses this same page layout via
+// drawStaffTimetablePage above rather than duplicating it.
+export const exportMyTimetableToPdf = async (
+  header: StaffTimetableHeaderData,
+  columns: StaffWeeklyGridColumn[],
+  rows: StaffWeeklyGridRow[],
+  classeHours: StaffClasseHours[],
+  ttConfig: TtConfig | null,
+  schoolHeader: SchoolHeader,
+  labels: MyTimetablePdfLabels,
+  filename: string,
+): Promise<void> => {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF({ orientation: "landscape" });
+  const finalY = drawStaffTimetablePage(
+    doc,
+    autoTable,
+    { header, columns, rows, classeHours },
+    ttConfig,
+    schoolHeader,
+    labels,
+  );
   drawPdfSignature(doc, schoolHeader, finalY);
   drawPdfFooters(doc, schoolHeader);
   await saveOrShareBlob(doc.output("blob"), filename);

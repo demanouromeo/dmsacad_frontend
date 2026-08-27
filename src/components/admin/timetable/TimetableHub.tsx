@@ -5,23 +5,40 @@ import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useLanguage } from "../../../i18n/useLanguage";
-import { timetableHubTranslations, timetableGridViewTranslations } from "../../../i18n/translations";
+import {
+  timetableHubTranslations,
+  timetableGridViewTranslations,
+  myTimetableTranslations,
+  staffFunctionLabels,
+} from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { TimetableReader } from "../../../dbmanger/TimetableReader";
 import type { Classe } from "../../../interfaces/Classe";
+import type { Jour, TtConfig, AllStaffCell } from "../../../interfaces/Timetable";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
+import type { TimelineEntry } from "../../../utils/timetableTime";
 import {
   buildTimetableTimeline,
   buildClasseTimetableRows,
+  buildStaffWeeklyGrid,
+  computeStaffClasseHours,
+  computeStaffHours,
+  displayOrDash,
   type ClasseTimetableExport,
 } from "../../../utils/timetableGrid";
 import { exportTimetablesToPdf } from "../../../utils/exportTimetablePdf";
 import { exportTimetablesToXlsx } from "../../../utils/exportTimetableWorkbook";
+import {
+  type MyTimetablePdfLabels,
+  type StaffTimetableExportEntry,
+} from "../../../utils/exportMyTimetablePdf";
+import { exportAllStaffTimetablesToPdf } from "../../../utils/exportAllStaffTimetablesPdf";
+import { exportAllStaffTimetablesToXlsx } from "../../../utils/exportAllStaffTimetablesXlsx";
 
 // Landing page for the "Time table" dashboard card - Generate (confirm-gated, regenerates the whole
 // school's time table for the current year) and Time table settings buttons, plus a per-class list
@@ -99,15 +116,12 @@ const TimetableHub = () => {
     (a, b) => a.level - b.level || a.classe_name.localeCompare(b.classe_name),
   );
 
-  // Shared by every export button below (the toolbar's whole-section pair and each row's own
-  // per-class pair) - fetches the school days/time config once, then every requested class's own
-  // cells (bounded concurrency, same DEFAULT_REPORT_CONCURRENCY convention as every other
-  // whole-section export loop in this app - a single-class call just runs one worker), reducing each
-  // into the same plain grid rows buildClasseTimetableRows already uses to back TimetableGridView's
-  // on-screen table.
-  const buildTimetableExportData = async (
-    classesToExport: Classe[],
-  ): Promise<ClasseTimetableExport[] | null> => {
+  // Shared by every export builder below (per-class and per-staff alike) - fetches the school
+  // days/time config once and derives the timeline, warning + bailing out if no days are configured
+  // yet rather than exporting an empty document.
+  const loadTimetableBasics = async (): Promise<
+    { jours: Jour[]; ttConfig: TtConfig | null; timeline: TimelineEntry[] } | null
+  > => {
     const [jourList, ttConfig] = await Promise.all([
       TimetableReader.fetchJours(accessToken, connection),
       TimetableReader.fetchTtConfig(accessToken, connection, schoolYear),
@@ -117,7 +131,22 @@ const TimetableHub = () => {
       showToast(t.exportNotConfiguredMessage, { type: "warning" });
       return null;
     }
-    const timeline = buildTimetableTimeline(ttConfig, jours);
+    return { jours, ttConfig, timeline: buildTimetableTimeline(ttConfig, jours) };
+  };
+
+  // Shared by every export button below (the toolbar's whole-section pair and each row's own
+  // per-class pair) - every requested class's own cells (bounded concurrency, same
+  // DEFAULT_REPORT_CONCURRENCY convention as every other whole-section export loop in this app - a
+  // single-class call just runs one worker), reducing each into the same plain grid rows
+  // buildClasseTimetableRows already uses to back TimetableGridView's on-screen table.
+  const buildTimetableExportData = async (
+    classesToExport: Classe[],
+  ): Promise<ClasseTimetableExport[] | null> => {
+    const basics = await loadTimetableBasics();
+    if (!basics) {
+      return null;
+    }
+    const { jours, timeline } = basics;
     const labels = {
       breakLabel: gridLabels.breakLabel,
       freeSlotLabel: gridLabels.freeSlotLabel,
@@ -136,6 +165,131 @@ const TimetableHub = () => {
         rows: buildClasseTimetableRows(jours, timeline, cells, labels),
       };
     });
+  };
+
+  // Backs the "print/export every staff member's individual time table at once" feature - two
+  // requests (getAllStaffCells/getAllStaffInfo) instead of looping the single-staff "My Timetable"
+  // endpoints once per staff member, then groups the flat cells list by staff_id and reduces each
+  // staff's own slice through the exact same buildStaffWeeklyGrid/computeStaffClasseHours/
+  // computeStaffHours pipeline MyTimetableManager already uses for the logged-in staff's own export.
+  const buildAllStaffExportData = async (): Promise<
+    { entries: StaffTimetableExportEntry[]; ttConfig: TtConfig | null } | null
+  > => {
+    const basics = await loadTimetableBasics();
+    if (!basics) {
+      return null;
+    }
+    const { jours, ttConfig, timeline } = basics;
+    const [cells, staffInfoList] = await Promise.all([
+      TimetableReader.fetchAllStaffCells(accessToken, connection, schoolYear),
+      TimetableReader.fetchAllStaffInfo(accessToken, connection, schoolYear),
+    ]);
+    if (staffInfoList.length === 0) {
+      showToast(t.staffEmptyState, { type: "warning" });
+      return null;
+    }
+
+    const cellsByStaff = new Map<number, AllStaffCell[]>();
+    cells.forEach((c) => {
+      const existing = cellsByStaff.get(c.staff_id);
+      if (existing) {
+        existing.push(c);
+      } else {
+        cellsByStaff.set(c.staff_id, [c]);
+      }
+    });
+
+    const functionLabels = staffFunctionLabels[language];
+    const entries: StaffTimetableExportEntry[] = staffInfoList.map((info) => {
+      const staffCells = cellsByStaff.get(info.staff_id) ?? [];
+      const { columns, rows } = buildStaffWeeklyGrid(jours, timeline, staffCells);
+      return {
+        header: {
+          staffFullName: `${info.name} ${info.surname ?? ""}`.trim(),
+          functionLabel:
+            functionLabels[info.function as keyof typeof functionLabels] ?? String(info.function),
+          statut: displayOrDash(info.status),
+          diplome: displayOrDash(info.diplome),
+          grade: displayOrDash(info.grade),
+          specialite: displayOrDash(info.specilitee),
+          matiereEnseignee: displayOrDash(info.matiereEnseignee),
+          anciennete: displayOrDash(info.longivity),
+          hours: computeStaffHours(staffCells, info.max_periods_per_week),
+        },
+        columns,
+        rows,
+        classeHours: computeStaffClasseHours(staffCells),
+      };
+    });
+
+    return { entries, ttConfig };
+  };
+
+  // Same field/label set MyTimetableManager builds for the single logged-in staff's own PDF/Excel
+  // export - reused as-is so every individual page/sheet this bulk export produces reads identically
+  // to what that staff member would get exporting "My Timetable" themselves.
+  const buildStaffPdfLabels = (): MyTimetablePdfLabels => {
+    const mt = myTimetableTranslations[language];
+    return {
+      documentTitle: mt.documentTitle,
+      fieldStaffName: mt.fieldStaffName,
+      fieldFunction: mt.fieldFunction,
+      fieldStatut: mt.fieldStatut,
+      fieldDiplome: mt.fieldDiplome,
+      fieldGrade: mt.fieldGrade,
+      fieldSpecialite: mt.fieldSpecialite,
+      fieldMatiereEnseignee: mt.fieldMatiereEnseignee,
+      fieldAnciennete: mt.fieldAnciennete,
+      fieldHeuresDues: mt.fieldHeuresDues,
+      fieldHeuresFaites: mt.fieldHeuresFaites,
+      fieldHeuresSupplementaires: mt.fieldHeuresSupplementaires,
+      fieldHeuresSousEmployees: mt.fieldHeuresSousEmployees,
+      summaryClasseHeader: mt.summaryClasseHeader,
+      summaryHoursRow: mt.summaryHoursRow,
+      summaryTotalHeader: mt.summaryTotalHeader,
+      breakDurationSuffix: mt.breakDurationSuffix,
+      breakLabel: gridLabels.breakLabel,
+    };
+  };
+
+  const handleExportAllStaffPdf = async () => {
+    setIsExportingTimetable(true);
+    const data = await buildAllStaffExportData();
+    setIsExportingTimetable(false);
+    if (!data) {
+      return;
+    }
+    await exportAllStaffTimetablesToPdf(
+      data.entries,
+      data.ttConfig,
+      schoolHeader,
+      buildStaffPdfLabels(),
+      buildTimestampedFilename(
+        t.individualTimetablesTitle,
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      ),
+    );
+  };
+
+  const handleExportAllStaffExcel = async () => {
+    setIsExportingTimetable(true);
+    const data = await buildAllStaffExportData();
+    setIsExportingTimetable(false);
+    if (!data) {
+      return;
+    }
+    await exportAllStaffTimetablesToXlsx(
+      myTimetableTranslations[language].documentTitle,
+      data.entries,
+      data.ttConfig,
+      buildStaffPdfLabels(),
+      buildTimestampedFilename(
+        t.individualTimetablesTitle,
+        [`Section ${capitalizeSectionName(section)}`],
+        "xlsx",
+      ),
+    );
   };
 
   const handleExportExcel = async () => {
@@ -252,6 +406,27 @@ const TimetableHub = () => {
               className="btn btn-outline btn-error btn-sm btn-square"
               disabled={isLoading || isExportingTimetable}
               onClick={handleExportPdf}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="w-px h-6 bg-base-300 mx-1" aria-hidden="true" />
+          <div className="tooltip" data-tip={t.exportAllStaffExcelTooltip}>
+            <button
+              type="button"
+              className="btn btn-outline btn-success btn-sm btn-square"
+              disabled={isLoading || isExportingTimetable}
+              onClick={handleExportAllStaffExcel}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="tooltip" data-tip={t.exportAllStaffPdfTooltip}>
+            <button
+              type="button"
+              className="btn btn-outline btn-error btn-sm btn-square"
+              disabled={isLoading || isExportingTimetable}
+              onClick={handleExportAllStaffPdf}
             >
               <FileText className="w-4 h-4" />
             </button>

@@ -55,6 +55,13 @@ export interface StaffCell {
   classe_name: string;
 }
 
+// Same shape as StaffCell, plus the staff_id it belongs to - backs TimetableController::getAllStaffCells
+// (the ADMIN-only bulk equivalent of getMyCells, returning every staff member's cells in one call so
+// the frontend can group them by staff_id instead of looping the single-staff endpoint N times).
+export interface AllStaffCell extends StaffCell {
+  staff_id: number;
+}
+
 // Backs the official "individual time table" PDF/Excel export (My Timetable) - the auth-scoped
 // staff member's own HR record (used as-is, blank/unmapped fields included - see
 // TimetableController::getMyStaffInfo) plus their weekly load cap.

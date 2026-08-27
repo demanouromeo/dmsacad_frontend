@@ -3397,6 +3397,7 @@ export const magicAssistantTranslations = {
 export const timetableHubTranslations = {
   fr: {
     title: "Emploi du temps",
+    individualTimetablesTitle: "Emplois du temps individuels",
     generateBtn: "Générer",
     settingsBtn: "Paramètres de l'emploi du temps",
     generateConfirmMessage:
@@ -3422,6 +3423,11 @@ export const timetableHubTranslations = {
     settingsTooltip: "Paramètres de l'emploi du temps",
     exportExcelTooltip: "Exporter tous les emplois du temps vers Excel (un onglet par classe)",
     exportPdfTooltip: "Exporter tous les emplois du temps vers PDF (une page par classe)",
+    exportAllStaffExcelTooltip:
+      "Exporter les emplois du temps individuels de tout le personnel vers Excel (un onglet par agent)",
+    exportAllStaffPdfTooltip:
+      "Imprimer les emplois du temps individuels de tout le personnel (PDF, une page par agent)",
+    staffEmptyState: "Aucun membre du personnel trouvé pour cette année.",
     exportClassePdfTooltip: "Exporter l'emploi du temps de cette classe vers PDF",
     exportClasseExcelTooltip: "Exporter l'emploi du temps de cette classe vers Excel",
     exportNotConfiguredMessage:
@@ -3435,6 +3441,7 @@ export const timetableHubTranslations = {
   },
   en: {
     title: "Time table",
+    individualTimetablesTitle: "Individual time tables",
     generateBtn: "Generate",
     settingsBtn: "Time table settings",
     generateConfirmMessage:
@@ -3460,6 +3467,10 @@ export const timetableHubTranslations = {
     settingsTooltip: "Time table settings",
     exportExcelTooltip: "Export every time table to Excel (one sheet per class)",
     exportPdfTooltip: "Export every time table to PDF (one page per class)",
+    exportAllStaffExcelTooltip:
+      "Export every staff member's individual time table to Excel (one sheet per staff)",
+    exportAllStaffPdfTooltip: "Print every staff member's individual time table (PDF, one page per staff)",
+    staffEmptyState: "No staff member found for this year.",
     exportClassePdfTooltip: "Export this class's time table to PDF",
     exportClasseExcelTooltip: "Export this class's time table to Excel",
     exportNotConfiguredMessage:

@@ -7,6 +7,7 @@ import type {
   ClasseSubjectSetting,
   ClasseCell,
   StaffCell,
+  AllStaffCell,
   StaffTimetableInfo,
   GenerateResult,
   SendEmailsResult,
@@ -270,6 +271,40 @@ export class TimetableReader {
       accessToken,
       { connection, year },
       "fetchMyStaffInfo",
+    );
+  };
+
+  // Bulk, ADMIN-only equivalents of fetchMyCells/fetchMyStaffInfo above - back the Time table hub's
+  // "print/export every staff member's individual time table at once" feature
+  // (TimetableController::getAllStaffCells/getAllStaffInfo), so that loop only costs 2 requests for
+  // the whole school instead of 2×N single-staff requests.
+  public static fetchAllStaffCells = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<AllStaffCell[]> => {
+    return (
+      (await TimetableReader.getJson<AllStaffCell[]>(
+        "api/timetable/getAllStaffCells",
+        accessToken,
+        { connection, year },
+        "fetchAllStaffCells",
+      )) ?? []
+    );
+  };
+
+  public static fetchAllStaffInfo = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<StaffTimetableInfo[]> => {
+    return (
+      (await TimetableReader.getJson<StaffTimetableInfo[]>(
+        "api/timetable/getAllStaffInfo",
+        accessToken,
+        { connection, year },
+        "fetchAllStaffInfo",
+      )) ?? []
     );
   };
 

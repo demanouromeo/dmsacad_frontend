@@ -1,25 +1,22 @@
+import type { Worksheet } from "exceljs";
 import { saveOrShareBlob } from "./nativeFileSave";
-import type { StaffClasseHours, StaffWeeklyGridColumn, StaffWeeklyGridRow } from "./timetableGrid";
+import type { StaffWeeklyGridColumn } from "./timetableGrid";
 import type { TtConfig } from "../interfaces/Timetable";
-import type { StaffTimetableHeaderData, MyTimetablePdfLabels } from "./exportMyTimetablePdf";
+import type { MyTimetablePdfLabels, StaffTimetableExportEntry } from "./exportMyTimetablePdf";
 
-// Excel counterpart to exportMyTimetableToPdf - same HR header / weekly grid / per-class summary
-// content, laid out as plain worksheet rows (one field per row for the header block - Excel isn't
-// page-width constrained like the PDF, so there's no need for the PDF's multi-column packing) rather
-// than mirroring the PDF's fixed x-position layout.
-export const exportMyTimetableToXlsx = async (
+// Writes one staff member's HR header / weekly grid / per-class summary onto an already-created
+// worksheet, one field per row for the header block (Excel isn't page-width constrained like the
+// PDF, so there's no need for the PDF's multi-column packing). Factored out of
+// exportMyTimetableToXlsx so exportAllStaffTimetablesXlsx.ts (the bulk "every staff" workbook) can
+// call this once per sheet without duplicating the layout.
+export const writeStaffTimetableSheet = (
+  worksheet: Worksheet,
   title: string,
-  header: StaffTimetableHeaderData,
-  columns: StaffWeeklyGridColumn[],
-  rows: StaffWeeklyGridRow[],
-  classeHours: StaffClasseHours[],
+  entry: StaffTimetableExportEntry,
   ttConfig: TtConfig | null,
   labels: MyTimetablePdfLabels,
-  filename: string,
-): Promise<void> => {
-  const { default: ExcelJS } = await import("exceljs");
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet(title.slice(0, 31));
+): void => {
+  const { header, columns, rows, classeHours } = entry;
 
   const titleRow = worksheet.addRow([title]);
   titleRow.font = { bold: true, size: 14 };
@@ -78,6 +75,25 @@ export const exportMyTimetableToXlsx = async (
   for (let i = 2; i <= columns.length + 1; i++) {
     worksheet.getColumn(i).width = 20;
   }
+};
+
+// Excel counterpart to exportMyTimetableToPdf - same content as writeStaffTimetableSheet above, in
+// a single-sheet workbook. Its bulk "every staff" sibling (exportAllStaffTimetablesXlsx.ts) reuses
+// that same helper rather than duplicating this layout.
+export const exportMyTimetableToXlsx = async (
+  title: string,
+  header: StaffTimetableExportEntry["header"],
+  columns: StaffTimetableExportEntry["columns"],
+  rows: StaffTimetableExportEntry["rows"],
+  classeHours: StaffTimetableExportEntry["classeHours"],
+  ttConfig: TtConfig | null,
+  labels: MyTimetablePdfLabels,
+  filename: string,
+): Promise<void> => {
+  const { default: ExcelJS } = await import("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(title.slice(0, 31));
+  writeStaffTimetableSheet(worksheet, title, { header, columns, rows, classeHours }, ttConfig, labels);
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
