@@ -3717,3 +3717,18 @@ export const myTimetableTranslations = {
     breakDurationSuffix: "MIN",
   },
 };
+
+export const datePickerTranslations = {
+  fr: {
+    placeholder: "jj/mm/aaaa",
+    clear: "Effacer",
+    today: "Aujourd'hui",
+    chooseMonth: "Choisir un mois",
+  },
+  en: {
+    placeholder: "dd/mm/yyyy",
+    clear: "Clear",
+    today: "Today",
+    chooseMonth: "Choose a month",
+  },
+};

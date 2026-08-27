@@ -5,6 +5,7 @@ import { useLanguage } from "../../../i18n/useLanguage";
 import { staffManagerTranslations } from "../../../i18n/translations";
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Staff } from "../../../interfaces/Staff";
+import DatePickerInput from "../../sharedcomp/DatePickerInput";
 
 interface StaffDetailsDialogProps {
   staff: Staff | null;
@@ -41,6 +42,15 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // `staff`'s date-ish columns are free-form varchar (see the dateFields comment below) - existing
+  // rows can hold the column's literal default single space, or older manually-typed text that
+  // isn't a real date at all, neither of which a native `<input type="date">` accepts as its
+  // `value` (it silently blanks itself and logs a console warning otherwise).
+  const toDateInputValue = (value: string | null | undefined): string => {
+    const trimmed = (value ?? "").trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : "";
+  };
+
   // Seeded once from `staff` via a lazy initializer, not synced through an effect - StaffManager
   // remounts this component (key={staff.staff_id}) each time a different row's dialog is opened,
   // so a fresh initializer run is exactly the "reset state for a new prop" React itself recommends
@@ -56,9 +66,9 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
     arrodissement: staff?.arrodissement ?? "",
     numeroRecrutement: staff?.numeroRecrutement ?? "",
     provenantDe: staff?.provenantDe ?? "",
-    dateReprise: staff?.dateReprise ?? "",
-    dateEntree: staff?.dateEntree ?? "",
-    date1erePrise: staff?.date1erePrise ?? "",
+    dateReprise: toDateInputValue(staff?.dateReprise),
+    dateEntree: toDateInputValue(staff?.dateEntree),
+    date1erePrise: toDateInputValue(staff?.date1erePrise),
   }));
   const [longivity, setLongivity] = useState(() =>
     staff?.longivity != null ? String(staff.longivity) : "",
@@ -88,6 +98,13 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
     { key: "arrodissement", label: t.detailsArrondissementLabel },
     { key: "numeroRecrutement", label: t.detailsNumeroRecrutementLabel },
     { key: "provenantDe", label: t.detailsProvenantDeLabel },
+  ];
+
+  // Stored as plain varchar on `staff` (no DATE column, no format validation server-side) - same
+  // "native date input backed by a free-form string" convention StudentManager's `bday` field
+  // already uses, chosen over adding real DATE columns since these are pure display/print fields
+  // with no date arithmetic anywhere in the app.
+  const dateFields: { key: FieldKey; label: string }[] = [
     { key: "dateReprise", label: t.detailsDateRepriseLabel },
     { key: "dateEntree", label: t.detailsDateEntreeLabel },
     { key: "date1erePrise", label: t.detailsDate1erePriseLabel },
@@ -163,6 +180,16 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
                 className="input input-sm w-full"
                 value={fields[key]}
                 onChange={(e) => setField(key, e.target.value)}
+              />
+            </label>
+          ))}
+          {dateFields.map(({ key, label }) => (
+            <label key={key} className="form-control">
+              <span className="label-text">{label}</span>
+              <DatePickerInput
+                className="input-sm w-full"
+                value={fields[key]}
+                onChange={(v) => setField(key, v)}
               />
             </label>
           ))}
