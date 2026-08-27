@@ -169,20 +169,30 @@ const CourseAssignmentManager = () => {
   const selectedSubject =
     subjects.find((s) => s.subject_id === selectedSubjectId) ?? null;
 
-  const leftPanelRows = classesOfSubject.map((c) => {
-    const otherTeachers = allAttributions
-      .filter(
-        (a) =>
-          a.subject_id === selectedSubjectId &&
-          a.classe_id === c.classe_id &&
-          a.staff_id !== selectedStaffId,
-      )
-      .map((a) => {
-        const staff = staffList.find((s) => s.staff_id === a.staff_id);
-        return staff ? formatStaffLabel(staff) : a.name;
-      });
-    return { ...c, otherTeachers };
-  });
+  const leftPanelRows = classesOfSubject
+    .filter(
+      (c) =>
+        !allAttributions.some(
+          (a) =>
+            a.subject_id === selectedSubjectId &&
+            a.classe_id === c.classe_id &&
+            a.staff_id === selectedStaffId,
+        ),
+    )
+    .map((c) => {
+      const otherTeachers = allAttributions
+        .filter(
+          (a) =>
+            a.subject_id === selectedSubjectId &&
+            a.classe_id === c.classe_id &&
+            a.staff_id !== selectedStaffId,
+        )
+        .map((a) => {
+          const staff = staffList.find((s) => s.staff_id === a.staff_id);
+          return staff ? formatStaffLabel(staff) : a.name;
+        });
+      return { ...c, otherTeachers };
+    });
 
   const rightPanelRows = allAttributions.filter(
     (a) => a.staff_id === selectedStaffId,

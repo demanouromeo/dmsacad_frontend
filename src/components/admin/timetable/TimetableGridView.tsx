@@ -284,7 +284,7 @@ const TimetableGridView = () => {
           </label>
 
           {dialogSubjectId !== "" && (
-            <label className="flex items-center gap-2 mb-3">
+            <label className="flex items-center gap-2 mb-3 mt-5">
               <input
                 type="checkbox"
                 className="checkbox checkbox-sm"
