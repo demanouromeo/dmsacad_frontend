@@ -79,6 +79,38 @@ export interface StaffTimetableInfo {
   max_periods_per_week: number;
 }
 
+// Backs TimetableGridView's "Change or Assign teacher" flow - one entry per already-placed period of
+// the (classe, subject) pair whose day/period slot the selected teacher can't take without either a
+// commoncourse-exempt combined session (not surfaced here - only genuine conflicts are) or the admin
+// explicitly agreeing to free them from the other classe's conflicting period.
+export interface TeacherAssignmentCollision {
+  jour_id: number;
+  jour_label: string;
+  period_number: number;
+  other_classe_id: number;
+  other_classe_name: string;
+  other_subject_id: number;
+  other_subject_title: string;
+}
+
+export interface TeacherAssignmentPreview {
+  status: boolean;
+  message?: string;
+  current_staff_id: number | null;
+  current_staff_name: string | null;
+  total_periods: number;
+  free_periods: number;
+  collisions: TeacherAssignmentCollision[];
+}
+
+export interface TeacherAssignmentResult {
+  status: boolean;
+  message: string;
+  assigned_count?: number;
+  freed_count?: number;
+  skipped_count?: number;
+}
+
 export interface GenerateWarningEntry {
   classe_name: string;
   subject_title: string;

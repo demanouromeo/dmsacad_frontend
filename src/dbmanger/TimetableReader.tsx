@@ -11,6 +11,8 @@ import type {
   StaffTimetableInfo,
   GenerateResult,
   SendEmailsResult,
+  TeacherAssignmentPreview,
+  TeacherAssignmentResult,
 } from "../interfaces/Timetable";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
@@ -243,6 +245,50 @@ export class TimetableReader {
         staff_id: staffId,
       },
       "updateCell",
+    );
+  };
+
+  // "Change or Assign teacher" (TimetableGridView) - preview() reports what a bulk subject-classe
+  // teacher reassignment would do across every already-placed period without touching the database;
+  // commit() (assignTeacherToSubjectClasse) actually applies it, given which of the previewed
+  // collisions the admin agreed to override.
+  public static previewAssignTeacher = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    classeId: number,
+    subjectId: number,
+    staffId: number,
+  ): Promise<TeacherAssignmentPreview | null> => {
+    return TimetableReader.getJson<TeacherAssignmentPreview>(
+      "api/timetable/previewAssignTeacher",
+      accessToken,
+      { connection, year, classe_id: classeId, subject_id: subjectId, staff_id: staffId },
+      "previewAssignTeacher",
+    );
+  };
+
+  public static assignTeacherToSubjectClasse = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    classeId: number,
+    subjectId: number,
+    staffId: number,
+    overrides: { jour_id: number; period_number: number }[],
+  ): Promise<TeacherAssignmentResult> => {
+    return TimetableReader.postJson(
+      "api/timetable/assignTeacherToSubjectClasse",
+      accessToken,
+      {
+        connection,
+        year,
+        classe_id: classeId,
+        subject_id: subjectId,
+        staff_id: staffId,
+        overrides,
+      },
+      "assignTeacherToSubjectClasse",
     );
   };
 

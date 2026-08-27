@@ -3655,6 +3655,32 @@ export const timetableGridViewTranslations = {
     breakLabel: "Pause",
     notConfiguredMessage:
       "Aucun emploi du temps n'a encore été généré, ou les jours de classe ne sont pas configurés.",
+    changeOrAssignTeacherBtn: "Changer/Assigner l'enseignant",
+    assignDialogTitle: (subjectTitle: string) => `Enseignant pour '${subjectTitle}'`,
+    assignStaffLabel: "Personnel",
+    assignBtn: "Assigner",
+    assignNoStaffOption: "Sélectionnez un membre du personnel",
+    assignEmptyStaffList: "Aucun autre membre du personnel disponible.",
+    assignConfirmNew: (subjectTitle: string, staffLabel: string, classeName: string) =>
+      `Assigner '${subjectTitle}' à ${staffLabel} dans ${classeName} ?`,
+    assignConfirmChange: (currentStaffLabel: string, subjectTitle: string, staffLabel: string) =>
+      `'${currentStaffLabel}' est déjà assigné(e) à cette matière dans cette classe (que son nom apparaisse ou non sur l'emploi du temps). Voulez-vous assigner '${subjectTitle}' à ${staffLabel} à la place ?`,
+    assignPreviewFailure: "Échec de la vérification de l'attribution.",
+    assignSuccess: "Enseignant assigné avec succès.",
+    assignFailure: "Échec de l'attribution de l'enseignant.",
+    collisionsDialogTitle: "Conflits détectés",
+    collisionsIntro: (staffLabel: string) =>
+      `${staffLabel} enseigne déjà à ces créneaux dans d'autres classes. Cochez les créneaux où retirer son nom de l'autre classe pour l'affecter ici :`,
+    collisionLine: (
+      jourLabel: string,
+      periodNumber: number,
+      time: string,
+      otherSubjectTitle: string,
+      otherClasseName: string,
+    ) =>
+      `${jourLabel}, période ${periodNumber}${time ? ` (${time})` : ""} : enseigne '${otherSubjectTitle}' dans ${otherClasseName}`,
+    collisionsConfirmBtn: "Confirmer",
+    collisionsCancelBtn: "Annuler",
   },
   en: {
     title: "Time table",
@@ -3674,6 +3700,32 @@ export const timetableGridViewTranslations = {
     saveFailure: "Failed to save the period.",
     breakLabel: "Break",
     notConfiguredMessage: "No time table has been generated yet, or school days aren't configured.",
+    changeOrAssignTeacherBtn: "Change or Assign teacher",
+    assignDialogTitle: (subjectTitle: string) => `Teacher for '${subjectTitle}'`,
+    assignStaffLabel: "Staff",
+    assignBtn: "Assign",
+    assignNoStaffOption: "Select a staff member",
+    assignEmptyStaffList: "No other staff member available.",
+    assignConfirmNew: (subjectTitle: string, staffLabel: string, classeName: string) =>
+      `Assign '${subjectTitle}' to ${staffLabel} in ${classeName}?`,
+    assignConfirmChange: (currentStaffLabel: string, subjectTitle: string, staffLabel: string) =>
+      `'${currentStaffLabel}' is already assigned to this subject in this class (whether or not their name appears on the time table). Would you like to assign '${subjectTitle}' to ${staffLabel} instead?`,
+    assignPreviewFailure: "Failed to check the assignment.",
+    assignSuccess: "Teacher assigned successfully.",
+    assignFailure: "Failed to assign the teacher.",
+    collisionsDialogTitle: "Conflicts detected",
+    collisionsIntro: (staffLabel: string) =>
+      `${staffLabel} already teaches at these slots in other classes. Check the slots where their name should be removed from the other class so they can be used here:`,
+    collisionLine: (
+      jourLabel: string,
+      periodNumber: number,
+      time: string,
+      otherSubjectTitle: string,
+      otherClasseName: string,
+    ) =>
+      `${jourLabel}, period ${periodNumber}${time ? ` (${time})` : ""}: teaches '${otherSubjectTitle}' in ${otherClasseName}`,
+    collisionsConfirmBtn: "Confirm",
+    collisionsCancelBtn: "Cancel",
   },
 };
 
