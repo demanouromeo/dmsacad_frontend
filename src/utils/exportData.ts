@@ -105,6 +105,17 @@ export const exportRowsToPdf = async <T>(
     body: rows.map((row, index) =>
       columns.map((c) => formatCellValue(c.accessor(row, index))),
     ),
+    // jspdf-autotable's default "striped" theme renders body text in a dark gray, not pure black -
+    // force it explicitly, matching every other PDF exporter in the app (exportMyTimetablePdf,
+    // exportEffectifsToPdf, ...), which already set this the same way.
+    styles: { textColor: [0, 0, 0] },
+    // The generic `styles.textColor` above is merged in *after* the theme's own head/foot color
+    // (see jspdf-autotable's cellStyles(): theme.table -> theme[section] -> styles.styles ->
+    // sectionStyles), so without this it silently overrides the theme's white head text to black
+    // too, leaving black-on-blue in the header row. Every other exporter in this app that uses the
+    // striped theme's blue head fill (exportMyTimetablePdf, exportTimetablePdf) already carves out
+    // this same headStyles exception - this generic exporter was missing it.
+    headStyles: { textColor: [255, 255, 255] },
   });
   if (includeSignature && schoolHeader) {
     // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own

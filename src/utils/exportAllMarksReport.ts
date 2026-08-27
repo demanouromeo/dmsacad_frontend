@@ -67,8 +67,12 @@ export const exportAllMarksReportToPdf = async (
       startY: 20,
       head: [["NO.", "NOM ET PRÉNOM", ...block.columnHeaders]],
       body: block.rows.map((row, index) => [index + 1, row.name, ...row.values]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [30, 64, 175] },
+      // Body text defaults to the "striped" theme's dark gray otherwise - force pure black, and
+      // keep the head row's white text explicit too (a bare `styles.textColor` merges in after
+      // the theme's own head color and would flip it to black-on-blue - see exportData.ts's
+      // exportRowsToPdf for the same fix).
+      styles: { fontSize: 9, textColor: [0, 0, 0] },
+      headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
     });
   });
 

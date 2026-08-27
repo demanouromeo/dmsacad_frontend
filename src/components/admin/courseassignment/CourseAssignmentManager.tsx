@@ -468,6 +468,12 @@ const CourseAssignmentManager = () => {
           row.subject_title,
           row.name,
         ]),
+        // jspdf-autotable's default "striped" theme renders body text in dark gray, not pure
+        // black - force it explicitly (and keep the head row's white text on the blue fill,
+        // which the plain default already gets right and a bare `styles.textColor` would
+        // otherwise flip to black too - see exportData.ts's exportRowsToPdf for the same fix).
+        styles: { textColor: [0, 0, 0] },
+        headStyles: { textColor: [255, 255, 255] },
       });
       // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own
       // source, jspdf.plugin.autotable.js) - its published types don't expose this on the plain

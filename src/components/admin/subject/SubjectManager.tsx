@@ -334,6 +334,16 @@ const SubjectManager = () => {
     { header: t.tableHeaderName, accessor: (s: Subject) => s.subject_title },
   ];
 
+  // PDF-only: prepends a row-index column, same convention as StaffManager/StudentManager's own
+  // pdfExportColumns - CSV relies on the spreadsheet's own implicit row numbers instead.
+  const pdfExportColumns = [
+    {
+      header: t.tableHeaderIndex,
+      accessor: (_s: Subject, index: number) => index + 1,
+    },
+    ...exportColumns,
+  ];
+
   const handleExportExcel = () => {
     exportRowsToCsv(
       buildTimestampedFilename(
@@ -354,7 +364,7 @@ const SubjectManager = () => {
         [`Section ${capitalizeSectionName(section)}`],
         "pdf",
       ),
-      exportColumns,
+      pdfExportColumns,
       subjects,
       schoolHeader,
     );

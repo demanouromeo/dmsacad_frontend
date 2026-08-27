@@ -92,8 +92,13 @@ export const exportEffectifsToPdf = async (
       startY: y,
       head: [HEAD],
       body,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [30, 64, 175] },
+      // Body text defaults to the "striped" theme's dark gray otherwise - force pure black (the
+      // RÉSUMÉ/Bilan rows' own per-cell SUMMARY_ROW_STYLE/BILAN_ROW_STYLE still take precedence
+      // where they set their own textColor), and keep the head row's white text explicit too (a
+      // bare `styles.textColor` merges in after the theme's own head color and would flip it to
+      // black-on-blue - see exportData.ts's exportRowsToPdf for the same fix).
+      styles: { fontSize: 9, textColor: [0, 0, 0] },
+      headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
     });
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
   });

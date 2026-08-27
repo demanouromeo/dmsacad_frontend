@@ -890,6 +890,7 @@ export const subjectManagerTranslations = {
     title: "Matières",
     sectionHint: (section: string) =>
       `Section : ${section} — utilisez l'icône section dans la barre du haut pour changer de section.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Nom de la matière",
     emptySection: "Aucune matière pour cette section.",
     searchPlaceholder: "Rechercher une matière…",
@@ -941,6 +942,7 @@ export const subjectManagerTranslations = {
     title: "Subjects",
     sectionHint: (section: string) =>
       `Section: ${section} — use the section icon in the top bar to switch sections.`,
+    tableHeaderIndex: "Nº",
     tableHeaderName: "Subject name",
     emptySection: "No subject for this section.",
     searchPlaceholder: "Search a subject…",

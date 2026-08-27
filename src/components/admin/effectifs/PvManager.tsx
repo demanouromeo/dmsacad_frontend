@@ -268,6 +268,49 @@ const PvManager = () => {
     setIsSaving(false);
   };
 
+  // Sequential loop over every classe of the section for the annual PV - same shape as
+  // handlePrintAll, just building annual rows/exporting via exportPvAnnualToPdf instead.
+  const handlePrintAllAnnual = async () => {
+    if (classes.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    let anyPrinted = false;
+    try {
+      const total = classes.length;
+      for (let i = 0; i < classes.length; i++) {
+        const classe = classes[i];
+        setPrintProgress({
+          current: i,
+          total,
+          label: "Chargement des données",
+          overall: `Classe ${i + 1}/${total}: ${classe.classe_name}`,
+        });
+        const isApc = apcLevels.get(classe.level) === true;
+        const rows = await buildAnnualRowsForClasse(classe.classe_id, isApc);
+        if (rows.length === 0) {
+          continue;
+        }
+        anyPrinted = true;
+        const filename = buildTimestampedFilename(
+          `PV Annuel ${classe.classe_name}`,
+          [`Section ${capitalizeSectionName(section)}`],
+          "pdf",
+        );
+        await exportPvAnnualToPdf(classe.classe_name, schoolYear, rows, schoolHeader, filename);
+      }
+      showToast(
+        anyPrinted ? "PV annuels générés avec succès." : "Aucune classe avec des élèves cette année.",
+        { type: anyPrinted ? "info" : "warning" },
+      );
+    } catch (error) {
+      console.error("PvManager.handlePrintAllAnnual(): Error", error);
+      showToast("Échec de la génération des PV annuels.", { type: "danger" });
+    }
+    setIsSaving(false);
+    setPrintProgress(null);
+  };
+
   const handleExportExcel = async () => {
     if (!selectedClasse) {
       return;
@@ -393,6 +436,7 @@ const PvManager = () => {
             <button
               type="button"
               className="btn btn-primary gap-2"
+              title="Imprimer le PV du trimestre sélectionné pour la classe sélectionnée"
               disabled={isSaving || !selectedClasse}
               onClick={handlePrint}
             >
@@ -402,6 +446,7 @@ const PvManager = () => {
             <button
               type="button"
               className="btn btn-secondary gap-2"
+              title="Imprimer le PV du trimestre sélectionné pour toutes les classes"
               disabled={isSaving || classes.length === 0}
               onClick={handlePrintAll}
             >
@@ -411,6 +456,7 @@ const PvManager = () => {
             <button
               type="button"
               className="btn btn-outline gap-2"
+              title="Imprimer le PV annuel de la classe sélectionnée"
               disabled={isSaving || !selectedClasse}
               onClick={handlePrintAnnual}
             >
@@ -419,7 +465,18 @@ const PvManager = () => {
             </button>
             <button
               type="button"
+              className="btn btn-secondary btn-outline gap-2"
+              title="Imprimer le PV annuel de toutes les classes"
+              disabled={isSaving || classes.length === 0}
+              onClick={handlePrintAllAnnual}
+            >
+              <Printer className="w-4 h-4" />
+              Tous les PV annuel
+            </button>
+            <button
+              type="button"
               className="btn btn-success gap-2"
+              title="Exporter le PV annuel de la classe sélectionnée vers Excel"
               disabled={isSaving || !selectedClasse}
               onClick={handleExportExcelAnnual}
             >
@@ -429,6 +486,7 @@ const PvManager = () => {
             <button
               type="button"
               className="btn btn-success gap-2"
+              title="Exporter le PV du trimestre sélectionné pour la classe sélectionnée vers Excel"
               disabled={isSaving || !selectedClasse}
               onClick={handleExportExcel}
             >

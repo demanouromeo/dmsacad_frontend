@@ -550,6 +550,12 @@ const StudentManager = () => {
       body: students.map((row, index) =>
         pdfExportColumns.map((c) => String(c.accessor(row, index))),
       ),
+      // Body text defaults to the "striped" theme's dark gray otherwise - force pure black, and
+      // keep the head row's white text explicit too (a bare `styles.textColor` merges in after
+      // the theme's own head color and would flip it to black-on-blue - see exportData.ts's
+      // exportRowsToPdf for the same fix).
+      styles: { textColor: [0, 0, 0] },
+      headStyles: { textColor: [255, 255, 255] },
     });
     const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
       .lastAutoTable.finalY;
