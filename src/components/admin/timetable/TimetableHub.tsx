@@ -535,7 +535,7 @@ const TimetableHub = () => {
           <div className="tooltip" data-tip={t.exportAllStaffExcelTooltip}>
             <button
               type="button"
-              className="btn btn-outline btn-success btn-sm btn-square"
+              className="btn btn-success btn-sm btn-square"
               disabled={isLoading || isExportingTimetable}
               onClick={handleExportAllStaffExcel}
             >
@@ -545,7 +545,7 @@ const TimetableHub = () => {
           <div className="tooltip" data-tip={t.exportAllStaffPdfTooltip}>
             <button
               type="button"
-              className="btn btn-outline btn-error btn-sm btn-square"
+              className="btn btn-error btn-sm btn-square"
               disabled={isLoading || isExportingTimetable}
               onClick={handleExportAllStaffPdf}
             >
