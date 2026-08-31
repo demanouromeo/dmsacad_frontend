@@ -3459,6 +3459,12 @@ export const timetableHubTranslations = {
     individualStaffExportAllPdfBtn: "Tout le personnel (PDF)",
     individualStaffExportAllExcelBtn: "Tout le personnel (Excel)",
     cancelBtn: "Annuler",
+    staffHoursMenuBtn: "Voir les heures du personnel",
+    staffHoursDialogTitle: "Heures du personnel",
+    staffHoursTableHeaderPersonnel: "Personnel",
+    exportPdfBtn: "PDF",
+    exportExcelBtn: "Excel",
+    closeBtn: "Fermer",
   },
   en: {
     title: "Time table",
@@ -3523,6 +3529,12 @@ export const timetableHubTranslations = {
     individualStaffExportAllPdfBtn: "Every staff member (PDF)",
     individualStaffExportAllExcelBtn: "Every staff member (Excel)",
     cancelBtn: "Cancel",
+    staffHoursMenuBtn: "View staff hours",
+    staffHoursDialogTitle: "Staff hours",
+    staffHoursTableHeaderPersonnel: "Staff",
+    exportPdfBtn: "PDF",
+    exportExcelBtn: "Excel",
+    closeBtn: "Close",
   },
 };
 
@@ -3622,6 +3634,10 @@ export const staffMaxPeriodsManagerTranslations = {
     saveFailure: "Échec de l'enregistrement de la charge horaire.",
     emptyState: "Aucun enseignant trouvé pour cette année.",
     closeBtn: "Fermer",
+    saveAllTooltip: "Enregistrer la charge horaire de tout le personnel",
+    saveAllSuccess: "Charge horaire enregistrée avec succès pour tout le personnel.",
+    saveAllPartialFailure: (failedCount: number) =>
+      `Échec de l'enregistrement pour ${failedCount} enseignant(s). Les autres ont été enregistrés.`,
   },
   en: {
     title: "Teacher weekly load",
@@ -3631,6 +3647,10 @@ export const staffMaxPeriodsManagerTranslations = {
     saveFailure: "Failed to save the weekly load.",
     emptyState: "No teacher found for this year.",
     closeBtn: "Close",
+    saveAllTooltip: "Save every staff member's weekly load",
+    saveAllSuccess: "Weekly load saved successfully for every staff member.",
+    saveAllPartialFailure: (failedCount: number) =>
+      `Failed to save for ${failedCount} staff member(s). The others were saved.`,
   },
 };
 

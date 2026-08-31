@@ -9,6 +9,7 @@ import type { StaffMaxPeriods } from "../../../interfaces/Timetable";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 
 const MIN_MAX_PERIODS = 1;
 const MAX_MAX_PERIODS = 60;
@@ -25,6 +26,7 @@ const StaffMaxPeriodsManager = () => {
   const [editedValues, setEditedValues] = useState<Record<number, number>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [savingStaffId, setSavingStaffId] = useState<number | null>(null);
+  const [isSavingAll, setIsSavingAll] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -56,9 +58,32 @@ const StaffMaxPeriodsManager = () => {
     });
   };
 
+  // Floating "save all" button - saves every row's currently edited value at once (bounded
+  // concurrency, same DEFAULT_REPORT_CONCURRENCY convention as every other whole-list loop in this
+  // app), rather than requiring the admin to click each row's own save icon individually.
+  const handleSaveAll = async () => {
+    setIsSavingAll(true);
+    const results = await mapWithConcurrency(staffList, DEFAULT_REPORT_CONCURRENCY, (s) =>
+      TimetableReader.updateStaffMaxPeriods(
+        accessToken,
+        connection,
+        schoolYear,
+        s.staff_id,
+        editedValues[s.staff_id] ?? s.max_periods_per_week,
+      ),
+    );
+    setIsSavingAll(false);
+    const failedCount = results.filter((r) => !r.status).length;
+    if (failedCount === 0) {
+      showToast(t.saveAllSuccess, { type: "info" });
+    } else {
+      showToast(t.saveAllPartialFailure(failedCount), { type: "danger" });
+    }
+  };
+
   return (
     <div className="page-shell flex flex-col items-center">
-      {savingStaffId !== null && <LoadingOverlay />}
+      {(savingStaffId !== null || isSavingAll) && <LoadingOverlay />}
       <div className="page-header w-full max-w-2xl">
         <h1 className="page-title">{t.title}</h1>
         <CloseButton />
@@ -102,7 +127,7 @@ const StaffMaxPeriodsManager = () => {
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
-                        disabled={savingStaffId !== null}
+                        disabled={savingStaffId !== null || isSavingAll}
                         onClick={() => handleSave(s.staff_id)}
                       >
                         <Save className="w-4 h-4" />
@@ -120,6 +145,23 @@ const StaffMaxPeriodsManager = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {!isLoading && staffList.length > 0 && (
+        <div
+          className="tooltip tooltip-right fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-[calc(1.5rem+var(--safe-left))] z-40"
+          data-tip={t.saveAllTooltip}
+        >
+          <button
+            type="button"
+            aria-label={t.saveAllTooltip}
+            className="btn btn-circle btn-lg btn-primary shadow-lg shadow-primary/30 transition-all duration-300 ease-out hover:scale-110 hover:shadow-xl"
+            disabled={savingStaffId !== null || isSavingAll}
+            onClick={handleSaveAll}
+          >
+            <Save className="w-6 h-6" />
+          </button>
         </div>
       )}
     </div>

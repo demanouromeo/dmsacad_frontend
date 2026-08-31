@@ -8,6 +8,7 @@ import {
   FileText,
   MoreHorizontal,
   Users,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -63,6 +64,18 @@ import { exportAllStaffTimetablesToXlsx } from "../../../utils/exportAllStaffTim
 const formatStaffLabel = (staff: { name: string; surname: string | null }): string =>
   `${staff.name} ${staff.surname ?? ""}`.trim();
 
+// Backs "Voir les heures du personnel" (More options menu) - one row per staff member, reusing the
+// exact StaffHours figures (dues/faites/supplementaires/sousEmployees) already computed by
+// computeStaffHours for the per-staff PDF/Excel export, just flattened into a single whole-school
+// table instead of scattered across each staff member's own page/sheet.
+interface StaffHoursRow {
+  staffFullName: string;
+  dues: number;
+  faites: number;
+  supplementaires: number;
+  sousEmployees: number;
+}
+
 // Landing page for the "Time table" dashboard card - Generate (confirm-gated, regenerates the whole
 // school's time table for the current year) and Time table settings buttons, plus a per-class list
 // linking into TimetableGridView (viewing the whole school means flipping through classes, same as a
@@ -74,6 +87,7 @@ const TimetableHub = () => {
   const [language] = useLanguage();
   const t = timetableHubTranslations[language];
   const gridLabels = timetableGridViewTranslations[language];
+  const mt = myTimetableTranslations[language];
   const schoolHeader = useSchoolHeader();
 
   const [classes, setClasses] = useState<Classe[]>([]);
@@ -89,6 +103,12 @@ const TimetableHub = () => {
   const individualDialogRef = useRef<HTMLDialogElement>(null);
   const [staffList, setStaffList] = useState<StaffMaxPeriods[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<number | "">("");
+
+  // "Voir les heures du personnel" dialog (More options menu) - fetched once on open and cached in
+  // state, so the dialog's own Export PDF/Excel buttons reuse it instead of refetching.
+  const hoursDialogRef = useRef<HTMLDialogElement>(null);
+  const [staffHoursRows, setStaffHoursRows] = useState<StaffHoursRow[]>([]);
+  const [isLoadingStaffHours, setIsLoadingStaffHours] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -267,7 +287,6 @@ const TimetableHub = () => {
   // export - reused as-is so every individual page/sheet this bulk export produces reads identically
   // to what that staff member would get exporting "My Timetable" themselves.
   const buildStaffPdfLabels = (): MyTimetablePdfLabels => {
-    const mt = myTimetableTranslations[language];
     return {
       documentTitle: mt.documentTitle,
       fieldStaffName: mt.fieldStaffName,
@@ -382,6 +401,68 @@ const TimetableHub = () => {
       buildStaffPdfLabels(),
       buildTimestampedFilename(t.individualTimetablesTitle, [data.entries[0].header.staffFullName], "xlsx"),
     );
+  };
+
+  // "Voir les heures du personnel" (More options menu) - whole-school, one row per staff member;
+  // reuses buildAllStaffExportData (no staffId filter) purely for its already-computed
+  // header.hours figures, discarding the per-staff grid/columns this report doesn't need.
+  const staffHoursExportColumns: ExportColumn<StaffHoursRow>[] = [
+    { header: "#", accessor: (_r, index) => index + 1 },
+    { header: t.staffHoursTableHeaderPersonnel, accessor: (r) => r.staffFullName },
+    { header: mt.fieldHeuresDues, accessor: (r) => r.dues },
+    { header: mt.fieldHeuresFaites, accessor: (r) => r.faites },
+    { header: mt.fieldHeuresSupplementaires, accessor: (r) => r.supplementaires },
+    {
+      header: mt.fieldHeuresSousEmployees,
+      accessor: (r) => r.sousEmployees,
+      textColor: (r) => (r.sousEmployees > 0 ? [220, 38, 38] : undefined),
+    },
+  ];
+
+  const openStaffHoursDialog = async () => {
+    setIsLoadingStaffHours(true);
+    const data = await buildAllStaffExportData();
+    setIsLoadingStaffHours(false);
+    if (!data) {
+      return;
+    }
+    const rows: StaffHoursRow[] = data.entries
+      .map((e) => ({
+        staffFullName: e.header.staffFullName,
+        dues: e.header.hours.dues,
+        faites: e.header.hours.faites,
+        supplementaires: e.header.hours.supplementaires,
+        sousEmployees: e.header.hours.sousEmployees,
+      }))
+      .sort((a, b) => a.staffFullName.localeCompare(b.staffFullName));
+    setStaffHoursRows(rows);
+    hoursDialogRef.current?.showModal();
+  };
+
+  const closeStaffHoursDialog = () => {
+    hoursDialogRef.current?.close();
+  };
+
+  const handleExportStaffHoursPdf = async () => {
+    setIsExportingTimetable(true);
+    await exportRowsToPdf(
+      t.staffHoursDialogTitle,
+      buildTimestampedFilename(t.staffHoursDialogTitle, [], "pdf"),
+      staffHoursExportColumns,
+      staffHoursRows,
+      schoolHeader,
+    );
+    setIsExportingTimetable(false);
+  };
+
+  const handleExportStaffHoursExcel = async () => {
+    setIsExportingTimetable(true);
+    await exportRowsToCsv(
+      buildTimestampedFilename(t.staffHoursDialogTitle, [], "csv"),
+      staffHoursExportColumns,
+      staffHoursRows,
+    );
+    setIsExportingTimetable(false);
   };
 
   const handleExportExcel = async () => {
@@ -554,7 +635,11 @@ const TimetableHub = () => {
 
   return (
     <div className="page-shell flex flex-col items-center">
-      {(isGenerating || isSendingEmails || isExportingTimetable || isExportingUnassigned) && (
+      {(isGenerating ||
+        isSendingEmails ||
+        isExportingTimetable ||
+        isExportingUnassigned ||
+        isLoadingStaffHours) && (
         <LoadingOverlay />
       )}
       <div className="page-header w-full max-w-3xl">
@@ -745,6 +830,12 @@ const TimetableHub = () => {
                 <span>{t.individualStaffMenuBtn}</span>
               </button>
             </li>
+            <li>
+              <button type="button" disabled={isLoadingStaffHours} onClick={openStaffHoursDialog}>
+                <Clock className="w-4 h-4 text-primary shrink-0" />
+                <span>{t.staffHoursMenuBtn}</span>
+              </button>
+            </li>
           </ul>
         </div>
       </div>
@@ -826,6 +917,78 @@ const TimetableHub = () => {
           <div className="modal-action">
             <button type="button" className="btn btn-ghost" onClick={closeIndividualStaffDialog}>
               {t.cancelBtn}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      <dialog ref={hoursDialogRef} className="modal">
+        <div className="modal-box max-w-2xl">
+          <h3 className="font-bold text-lg mb-4">{t.staffHoursDialogTitle}</h3>
+
+          <div className="overflow-x-auto mb-4">
+            <table className="table table-zebra table-sm data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t.staffHoursTableHeaderPersonnel}</th>
+                  <th>{mt.fieldHeuresDues}</th>
+                  <th>{mt.fieldHeuresFaites}</th>
+                  <th>{mt.fieldHeuresSupplementaires}</th>
+                  <th>{mt.fieldHeuresSousEmployees}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffHoursRows.map((r, index) => (
+                  <tr key={r.staffFullName + index}>
+                    <td>{index + 1}</td>
+                    <td>{r.staffFullName}</td>
+                    <td>{r.dues}</td>
+                    <td>{r.faites}</td>
+                    <td>{r.supplementaires}</td>
+                    <td className={r.sousEmployees > 0 ? "text-error font-semibold" : ""}>
+                      {r.sousEmployees}
+                    </td>
+                  </tr>
+                ))}
+                {staffHoursRows.length === 0 && (
+                  <tr>
+                    <td colSpan={6}>
+                      <p className="empty-state">{t.staffEmptyState}</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-outline btn-error btn-sm gap-2"
+              disabled={staffHoursRows.length === 0 || isExportingTimetable}
+              onClick={handleExportStaffHoursPdf}
+            >
+              <FileText className="w-4 h-4" />
+              {t.exportPdfBtn}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-success btn-sm gap-2"
+              disabled={staffHoursRows.length === 0 || isExportingTimetable}
+              onClick={handleExportStaffHoursExcel}
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              {t.exportExcelBtn}
+            </button>
+          </div>
+
+          <div className="modal-action">
+            <button type="button" className="btn btn-ghost" onClick={closeStaffHoursDialog}>
+              {t.closeBtn}
             </button>
           </div>
         </div>

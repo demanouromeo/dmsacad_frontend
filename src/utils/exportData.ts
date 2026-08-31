@@ -9,6 +9,10 @@ import { saveOrShareBlob } from "./nativeFileSave";
 export interface ExportColumn<T> {
   header: string;
   accessor: (row: T, index: number) => string | number;
+  // Optional per-cell text color override (RGB triple) for exportRowsToPdf only - e.g. flagging an
+  // under-staffed teacher's "Heures sous-employées" figure in red at a glance (TimetableHub's staff
+  // hours report). CSV has no concept of cell color, so exportRowsToCsv ignores this.
+  textColor?: (row: T, index: number) => [number, number, number] | undefined;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
@@ -103,7 +107,11 @@ export const exportRowsToPdf = async <T>(
     startY: y + 5,
     head: [columns.map((c) => c.header)],
     body: rows.map((row, index) =>
-      columns.map((c) => formatCellValue(c.accessor(row, index))),
+      columns.map((c) => {
+        const value = formatCellValue(c.accessor(row, index));
+        const color = c.textColor?.(row, index);
+        return color ? { content: value, styles: { textColor: color } } : value;
+      }),
     ),
     // jspdf-autotable's default "striped" theme renders body text in a dark gray, not pure black -
     // force it explicitly, matching every other PDF exporter in the app (exportMyTimetablePdf,
