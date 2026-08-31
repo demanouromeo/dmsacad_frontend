@@ -1,5 +1,5 @@
 import type { jsPDF } from "jspdf";
-import { drawPdfFooters, drawPdfLetterhead, drawPdfSignature, type SchoolHeader } from "./exportHeader";
+import { drawPdfFooters, drawPdfLetterhead, type SchoolHeader } from "./exportHeader";
 import { saveOrShareBlob } from "./nativeFileSave";
 import type { ClasseTimetableExport } from "./timetableGrid";
 
@@ -45,6 +45,20 @@ const truncateCellText = (doc: jsPDF, cellText: string, maxWidth: number): strin
     .map((line) => truncateToWidth(doc, line, maxWidth))
     .join("\n");
 
+// Leaves room for the school head to physically sign the printed timetable - fixed just above the
+// footer rule (not relative to the table's own finalY) so it lands in the same spot on every page
+// regardless of how many periods that particular class has. Replaces exportHeader.ts's generic
+// drawPdfSignature here: that one only draws when the school has a configured signature place/date
+// (often unset, leaving this spot blank) and, being a single post-loop call, would only ever land on
+// the last class's page - this export needs the label on every page instead.
+const SIGNATURE_LABEL = "Signature du chef d'établissement";
+
+const drawSignatureLabel = (doc: jsPDF, pageWidth: number, pageHeight: number): void => {
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(10);
+  doc.text(SIGNATURE_LABEL, pageWidth - TABLE_MARGIN, pageHeight - 24, { align: "right" });
+};
+
 // One page per class, each with its own copy of the shared letterhead (drawPdfLetterhead - the
 // same one used for the student/staff list PDFs) since every page here is its own standalone
 // document, unlike a single continuous table where the letterhead only needs to appear once at the
@@ -62,6 +76,7 @@ export const exportTimetablesToPdf = async (
   ]);
   const doc = new jsPDF({ orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const centerX = pageWidth / 2;
 
   classeExports.forEach((classe, index) => {
@@ -98,12 +113,10 @@ export const exportTimetablesToPdf = async (
       styles: { fontSize: CELL_FONT_SIZE, cellPadding: CELL_PADDING, textColor: [0, 0, 0] },
       headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
     });
+
+    drawSignatureLabel(doc, pageWidth, pageHeight);
   });
 
-  if (classeExports.length > 0) {
-    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
-    drawPdfSignature(doc, schoolHeader, finalY);
-  }
   drawPdfFooters(doc, schoolHeader);
   await saveOrShareBlob(doc.output("blob"), filename);
 };
