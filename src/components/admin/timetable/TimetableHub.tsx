@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, Settings2, Mail, FileSpreadsheet, FileText } from "lucide-react";
+import {
+  CalendarClock,
+  Settings2,
+  Mail,
+  FileSpreadsheet,
+  FileText,
+  MoreHorizontal,
+} from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -14,12 +21,23 @@ import {
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { TimetableReader } from "../../../dbmanger/TimetableReader";
 import type { Classe } from "../../../interfaces/Classe";
-import type { Jour, TtConfig, AllStaffCell } from "../../../interfaces/Timetable";
+import type {
+  Jour,
+  TtConfig,
+  AllStaffCell,
+  UnassignedTeacherPeriodEntry,
+} from "../../../interfaces/Timetable";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
-import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
+import {
+  buildTimestampedFilename,
+  capitalizeSectionName,
+  exportRowsToCsv,
+  exportRowsToPdf,
+  type ExportColumn,
+} from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import type { TimelineEntry } from "../../../utils/timetableTime";
 import {
@@ -58,6 +76,7 @@ const TimetableHub = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [isExportingTimetable, setIsExportingTimetable] = useState(false);
+  const [isExportingUnassigned, setIsExportingUnassigned] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -360,9 +379,111 @@ const TimetableHub = () => {
     );
   };
 
+  // One display row per (classe, subject) pair - groups the backend's per-period rows and renders
+  // the gaps as "<count>(<day> <start>-<end>, ...)" in the same cell, e.g. "2(Lundi 07H30-08H30,
+  // Mercredi 09H30-10H30)", so the admin sees exactly which slots the algorithm/an edit left without
+  // a teacher instead of just a bare count.
+  interface UnassignedTeacherReportRow {
+    section_name: string;
+    classe_name: string;
+    subject_title: string;
+    periodsLabel: string;
+  }
+
+  const capitalizeFirst = (s: string): string => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  const formatMissingPeriods = (
+    periods: UnassignedTeacherPeriodEntry[],
+    timeline: TimelineEntry[],
+  ): string => {
+    const parts = periods.map((p) => {
+      const dayLabel = capitalizeFirst(p.jour_label);
+      const entry = timeline.find((e) => e.type === "period" && e.period_number === p.period_number);
+      return entry && entry.type === "period" && entry.start
+        ? `${dayLabel} ${entry.start}-${entry.end}`
+        : dayLabel;
+    });
+    return `${periods.length}(${parts.join(", ")})`;
+  };
+
+  const groupUnassignedTeacherPeriods = (
+    entries: UnassignedTeacherPeriodEntry[],
+    timeline: TimelineEntry[],
+  ): UnassignedTeacherReportRow[] => {
+    const groups = new Map<string, UnassignedTeacherPeriodEntry[]>();
+    entries.forEach((e) => {
+      const key = `${e.classe_id}-${e.subject_id}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.push(e);
+      } else {
+        groups.set(key, [e]);
+      }
+    });
+    return Array.from(groups.values()).map((periods) => ({
+      section_name: periods[0].section_name,
+      classe_name: periods[0].classe_name,
+      subject_title: periods[0].subject_title,
+      periodsLabel: formatMissingPeriods(periods, timeline),
+    }));
+  };
+
+  // Whole-school report (both sections - see fetchUnassignedTeacherSubjects), so the section column
+  // is worth keeping even though every other export column set on this screen doesn't need one.
+  const unassignedTeacherExportColumns: ExportColumn<UnassignedTeacherReportRow>[] = [
+    { header: t.unassignedTeacherTableHeaderSection, accessor: (r) => capitalizeSectionName(r.section_name) },
+    { header: t.unassignedTeacherTableHeaderClasse, accessor: (r) => r.classe_name },
+    { header: t.unassignedTeacherTableHeaderSubject, accessor: (r) => r.subject_title },
+    { header: t.unassignedTeacherTableHeaderCount, accessor: (r) => r.periodsLabel },
+  ];
+
+  // Shared by both "More options" report buttons below - a null result means the fetch came back
+  // empty (already toasted here), so the caller can bail out without exporting a blank document.
+  const loadUnassignedTeacherSubjects = async (): Promise<UnassignedTeacherReportRow[] | null> => {
+    const entries = await TimetableReader.fetchUnassignedTeacherSubjects(accessToken, connection, schoolYear);
+    if (entries.length === 0) {
+      showToast(t.unassignedTeacherEmptyState, { type: "info" });
+      return null;
+    }
+    const basics = await loadTimetableBasics();
+    return groupUnassignedTeacherPeriods(entries, basics?.timeline ?? []);
+  };
+
+  const handleExportUnassignedPdf = async () => {
+    setIsExportingUnassigned(true);
+    const rows = await loadUnassignedTeacherSubjects();
+    setIsExportingUnassigned(false);
+    if (!rows) {
+      return;
+    }
+    await exportRowsToPdf(
+      t.unassignedTeacherReportTitle,
+      buildTimestampedFilename(t.unassignedTeacherReportTitle, [], "pdf"),
+      unassignedTeacherExportColumns,
+      rows,
+      schoolHeader,
+    );
+  };
+
+  const handleExportUnassignedExcel = async () => {
+    setIsExportingUnassigned(true);
+    const rows = await loadUnassignedTeacherSubjects();
+    setIsExportingUnassigned(false);
+    if (!rows) {
+      return;
+    }
+    await exportRowsToCsv(
+      buildTimestampedFilename(t.unassignedTeacherReportTitle, [], "csv"),
+      unassignedTeacherExportColumns,
+      rows,
+    );
+  };
+
   return (
     <div className="page-shell flex flex-col items-center">
-      {(isGenerating || isSendingEmails || isExportingTimetable) && <LoadingOverlay />}
+      {(isGenerating || isSendingEmails || isExportingTimetable || isExportingUnassigned) && (
+        <LoadingOverlay />
+      )}
       <div className="page-header w-full max-w-3xl">
         <h1 className="page-title">{t.title}</h1>
         <div className="flex items-center gap-2">
@@ -502,6 +623,51 @@ const TimetableHub = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Page-scoped "More options" menu (unlike MagicAssistant's global bottom-right FAB, this one
+          only exists on this screen) - reuses the same floating-button visual language (circular,
+          hover-scale, ring-ping) for consistency, mirrored to the bottom-left so the two never
+          overlap. */}
+      <div className="fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-[calc(1.5rem+var(--safe-left))] z-40">
+        <div className="dropdown dropdown-top">
+          <div className="tooltip tooltip-right" data-tip={t.moreOptionsTooltip}>
+            <div
+              tabIndex={0}
+              role="button"
+              aria-label={t.moreOptionsTooltip}
+              className="more-options-fab group relative btn btn-circle btn-lg btn-primary shadow-lg shadow-primary/30 transition-all duration-300 ease-out hover:scale-110 hover:shadow-xl"
+            >
+              <span className="absolute inset-0 rounded-full bg-primary/40 opacity-0 group-hover:opacity-100 group-hover:animate-ping" />
+              <MoreHorizontal className="relative w-6 h-6 transition-transform duration-300 ease-out group-hover:rotate-90" />
+            </div>
+          </div>
+          <ul
+            tabIndex={0}
+            className="dropdown-content menu bg-base-100 border border-base-content/10 rounded-box z-10 w-80 p-2 shadow-xl mb-2"
+          >
+            <li>
+              <button
+                type="button"
+                disabled={isExportingUnassigned}
+                onClick={handleExportUnassignedPdf}
+              >
+                <FileText className="w-4 h-4 text-error shrink-0" />
+                <span>{t.unassignedTeacherPdfBtn}</span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                disabled={isExportingUnassigned}
+                onClick={handleExportUnassignedExcel}
+              >
+                <FileSpreadsheet className="w-4 h-4 text-success shrink-0" />
+                <span>{t.unassignedTeacherExcelBtn}</span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );

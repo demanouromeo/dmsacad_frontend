@@ -13,6 +13,7 @@ import type {
   SendEmailsResult,
   TeacherAssignmentPreview,
   TeacherAssignmentResult,
+  UnassignedTeacherPeriodEntry,
 } from "../interfaces/Timetable";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
@@ -289,6 +290,23 @@ export class TimetableReader {
         overrides,
       },
       "assignTeacherToSubjectClasse",
+    );
+  };
+
+  // TimetableHub's "More options" floating menu - one row per already-placed period missing a
+  // teacher, across the whole school (both sections).
+  public static fetchUnassignedTeacherSubjects = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<UnassignedTeacherPeriodEntry[]> => {
+    return (
+      (await TimetableReader.getJson<UnassignedTeacherPeriodEntry[]>(
+        "api/timetable/getUnassignedTeacherSubjects",
+        accessToken,
+        { connection, year },
+        "fetchUnassignedTeacherSubjects",
+      )) ?? []
     );
   };
 

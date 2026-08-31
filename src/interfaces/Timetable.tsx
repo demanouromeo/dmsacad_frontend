@@ -111,6 +111,22 @@ export interface TeacherAssignmentResult {
   skipped_count?: number;
 }
 
+// Backs TimetableHub's "More options" floating menu report - one row PER MISSING PERIOD of the
+// WHOLE SCHOOL (both sections - not scoped to useAuth().section, same precedent as EffectifsManager)
+// (TimetableController::getUnassignedTeacherSubjects). Grouped client-side into one display row per
+// (classe, subject) pair with a formatted "count(day time-range, ...)" label - see TimetableHub.tsx.
+export interface UnassignedTeacherPeriodEntry {
+  classe_id: number;
+  classe_name: string;
+  level: number;
+  section_name: string;
+  subject_id: number;
+  subject_title: string;
+  jour_id: number;
+  jour_label: string;
+  period_number: number;
+}
+
 export interface GenerateWarningEntry {
   classe_name: string;
   subject_title: string;

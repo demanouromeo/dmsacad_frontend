@@ -3438,6 +3438,16 @@ export const timetableHubTranslations = {
     tableHeaderExport: "Export",
     viewBtn: "Voir",
     emptyState: "Aucune classe trouvée pour cette année.",
+    moreOptionsTooltip: "Plus d'options",
+    unassignedTeacherPdfBtn: "Voir les matières sans enseignant de chaque classe (PDF)",
+    unassignedTeacherExcelBtn: "Voir les matières sans enseignant de chaque classe (Excel)",
+    unassignedTeacherReportTitle: "Matières sans enseignant",
+    unassignedTeacherEmptyState:
+      "Aucune période sans enseignant : toutes les matières de l'emploi du temps ont un enseignant assigné.",
+    unassignedTeacherTableHeaderSection: "Section",
+    unassignedTeacherTableHeaderClasse: "Classe",
+    unassignedTeacherTableHeaderSubject: "Matière",
+    unassignedTeacherTableHeaderCount: "Périodes sans enseignant",
   },
   en: {
     title: "Time table",
@@ -3481,6 +3491,16 @@ export const timetableHubTranslations = {
     tableHeaderExport: "Export",
     viewBtn: "View",
     emptyState: "No class found for this year.",
+    moreOptionsTooltip: "More options",
+    unassignedTeacherPdfBtn: "View subjects with no teacher of each class (PDF)",
+    unassignedTeacherExcelBtn: "View subjects with no teacher of each class (Excel)",
+    unassignedTeacherReportTitle: "Subjects with no teacher",
+    unassignedTeacherEmptyState:
+      "No period without a teacher: every subject on the time table has a teacher assigned.",
+    unassignedTeacherTableHeaderSection: "Section",
+    unassignedTeacherTableHeaderClasse: "Class",
+    unassignedTeacherTableHeaderSubject: "Subject",
+    unassignedTeacherTableHeaderCount: "Periods with no teacher",
   },
 };
 
