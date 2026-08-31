@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarClock,
@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   FileText,
   MoreHorizontal,
+  Users,
 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -25,6 +26,7 @@ import type {
   Jour,
   TtConfig,
   AllStaffCell,
+  StaffMaxPeriods,
   UnassignedTeacherPeriodEntry,
 } from "../../../interfaces/Timetable";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
@@ -58,6 +60,9 @@ import {
 import { exportAllStaffTimetablesToPdf } from "../../../utils/exportAllStaffTimetablesPdf";
 import { exportAllStaffTimetablesToXlsx } from "../../../utils/exportAllStaffTimetablesXlsx";
 
+const formatStaffLabel = (staff: { name: string; surname: string | null }): string =>
+  `${staff.name} ${staff.surname ?? ""}`.trim();
+
 // Landing page for the "Time table" dashboard card - Generate (confirm-gated, regenerates the whole
 // school's time table for the current year) and Time table settings buttons, plus a per-class list
 // linking into TimetableGridView (viewing the whole school means flipping through classes, same as a
@@ -77,6 +82,13 @@ const TimetableHub = () => {
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [isExportingTimetable, setIsExportingTimetable] = useState(false);
   const [isExportingUnassigned, setIsExportingUnassigned] = useState(false);
+
+  // "Voir l'emploi de temps individuel du personnel" dialog (More options menu) - staffList is
+  // fetched lazily on first open rather than on mount, since it's only needed here (the toolbar's
+  // own bulk export buttons fetch it as part of buildAllStaffExportData instead).
+  const individualDialogRef = useRef<HTMLDialogElement>(null);
+  const [staffList, setStaffList] = useState<StaffMaxPeriods[]>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<number | "">("");
 
   useEffect(() => {
     const load = async () => {
@@ -186,23 +198,30 @@ const TimetableHub = () => {
     });
   };
 
-  // Backs the "print/export every staff member's individual time table at once" feature - two
-  // requests (getAllStaffCells/getAllStaffInfo) instead of looping the single-staff "My Timetable"
-  // endpoints once per staff member, then groups the flat cells list by staff_id and reduces each
-  // staff's own slice through the exact same buildStaffWeeklyGrid/computeStaffClasseHours/
-  // computeStaffHours pipeline MyTimetableManager already uses for the logged-in staff's own export.
-  const buildAllStaffExportData = async (): Promise<
-    { entries: StaffTimetableExportEntry[]; ttConfig: TtConfig | null } | null
-  > => {
+  // Backs both the "print/export every staff member's individual time table at once" toolbar
+  // buttons AND the "More options" single-staff dialog below - two requests (getAllStaffCells/
+  // getAllStaffInfo) instead of looping the single-staff "My Timetable" endpoints once per staff
+  // member, then groups the flat cells list by staff_id and reduces each staff's own slice through
+  // the exact same buildStaffWeeklyGrid/computeStaffClasseHours/computeStaffHours pipeline
+  // MyTimetableManager already uses for the logged-in staff's own export. `staffIdFilter` narrows
+  // the result to just that one staff member (still going through fetchAllStaffCells/Info rather
+  // than a new single-staff-by-id endpoint - filtering an already-fetched list client-side, same
+  // "compose existing bulk endpoints" precedent as CourseAssignmentManager's "Wipe section").
+  const buildAllStaffExportData = async (
+    staffIdFilter?: number,
+  ): Promise<{ entries: StaffTimetableExportEntry[]; ttConfig: TtConfig | null } | null> => {
     const basics = await loadTimetableBasics();
     if (!basics) {
       return null;
     }
     const { jours, ttConfig, timeline } = basics;
-    const [cells, staffInfoList] = await Promise.all([
+    const [cells, staffInfoListAll] = await Promise.all([
       TimetableReader.fetchAllStaffCells(accessToken, connection, schoolYear),
       TimetableReader.fetchAllStaffInfo(accessToken, connection, schoolYear),
     ]);
+    const staffInfoList = staffIdFilter
+      ? staffInfoListAll.filter((s) => s.staff_id === staffIdFilter)
+      : staffInfoListAll;
     if (staffInfoList.length === 0) {
       showToast(t.staffEmptyState, { type: "warning" });
       return null;
@@ -308,6 +327,60 @@ const TimetableHub = () => {
         [`Section ${capitalizeSectionName(section)}`],
         "xlsx",
       ),
+    );
+  };
+
+  // "Voir l'emploi de temps individuel du personnel" (More options menu) - staffList is fetched
+  // lazily on first open (see staffList state above), reusing the same StaffMaxPeriods shape/reader
+  // TimetableGridView's own staff picker already uses.
+  const openIndividualStaffDialog = async () => {
+    if (staffList.length === 0) {
+      const list = await TimetableReader.fetchStaffMaxPeriods(accessToken, connection, schoolYear);
+      setStaffList(list);
+    }
+    setSelectedStaffId("");
+    individualDialogRef.current?.showModal();
+  };
+
+  const closeIndividualStaffDialog = () => {
+    individualDialogRef.current?.close();
+  };
+
+  const handleExportSelectedStaffPdf = async () => {
+    if (selectedStaffId === "") {
+      return;
+    }
+    setIsExportingTimetable(true);
+    const data = await buildAllStaffExportData(selectedStaffId);
+    setIsExportingTimetable(false);
+    if (!data) {
+      return;
+    }
+    await exportAllStaffTimetablesToPdf(
+      data.entries,
+      data.ttConfig,
+      schoolHeader,
+      buildStaffPdfLabels(),
+      buildTimestampedFilename(t.individualTimetablesTitle, [data.entries[0].header.staffFullName], "pdf"),
+    );
+  };
+
+  const handleExportSelectedStaffExcel = async () => {
+    if (selectedStaffId === "") {
+      return;
+    }
+    setIsExportingTimetable(true);
+    const data = await buildAllStaffExportData(selectedStaffId);
+    setIsExportingTimetable(false);
+    if (!data) {
+      return;
+    }
+    await exportAllStaffTimetablesToXlsx(
+      myTimetableTranslations[language].documentTitle,
+      data.entries,
+      data.ttConfig,
+      buildStaffPdfLabels(),
+      buildTimestampedFilename(t.individualTimetablesTitle, [data.entries[0].header.staffFullName], "xlsx"),
     );
   };
 
@@ -666,9 +739,96 @@ const TimetableHub = () => {
                 <span>{t.unassignedTeacherExcelBtn}</span>
               </button>
             </li>
+            <li>
+              <button type="button" onClick={openIndividualStaffDialog}>
+                <Users className="w-4 h-4 text-primary shrink-0" />
+                <span>{t.individualStaffMenuBtn}</span>
+              </button>
+            </li>
           </ul>
         </div>
       </div>
+
+      <dialog ref={individualDialogRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">{t.individualStaffDialogTitle}</h3>
+
+          <label className="form-control mb-4">
+            <span className="label-text font-semibold">{t.individualStaffSelectLabel}</span>
+            <select
+              className="select select-bordered w-full"
+              value={selectedStaffId}
+              onChange={(e) => setSelectedStaffId(e.target.value === "" ? "" : Number(e.target.value))}
+            >
+              <option value="">{t.individualStaffNoSelection}</option>
+              {[...staffList]
+                .sort((a, b) => formatStaffLabel(a).localeCompare(formatStaffLabel(b)))
+                .map((s) => (
+                  <option key={s.staff_id} value={s.staff_id}>
+                    {formatStaffLabel(s)}
+                  </option>
+                ))}
+            </select>
+          </label>
+
+          <div className="mb-4">
+            <span className="label-text font-semibold block mb-2">{t.individualStaffExportOneLabel}</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-outline btn-error btn-sm gap-2"
+                disabled={selectedStaffId === "" || isExportingTimetable}
+                onClick={handleExportSelectedStaffPdf}
+              >
+                <FileText className="w-4 h-4" />
+                {t.individualStaffExportPdfBtn}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline btn-success btn-sm gap-2"
+                disabled={selectedStaffId === "" || isExportingTimetable}
+                onClick={handleExportSelectedStaffExcel}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                {t.individualStaffExportExcelBtn}
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-base-200 pt-4">
+            <span className="label-text font-semibold block mb-2">{t.individualStaffExportAllLabel}</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-error btn-sm gap-2"
+                disabled={isExportingTimetable}
+                onClick={handleExportAllStaffPdf}
+              >
+                <FileText className="w-4 h-4" />
+                {t.individualStaffExportAllPdfBtn}
+              </button>
+              <button
+                type="button"
+                className="btn btn-success btn-sm gap-2"
+                disabled={isExportingTimetable}
+                onClick={handleExportAllStaffExcel}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                {t.individualStaffExportAllExcelBtn}
+              </button>
+            </div>
+          </div>
+
+          <div className="modal-action">
+            <button type="button" className="btn btn-ghost" onClick={closeIndividualStaffDialog}>
+              {t.cancelBtn}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
   );
 };
