@@ -798,24 +798,28 @@ const TimetableHub = () => {
           <div className="border-t border-base-200 pt-4">
             <span className="label-text font-semibold block mb-2">{t.individualStaffExportAllLabel}</span>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-error btn-sm gap-2"
-                disabled={isExportingTimetable}
-                onClick={handleExportAllStaffPdf}
-              >
-                <FileText className="w-4 h-4" />
-                {t.individualStaffExportAllPdfBtn}
-              </button>
-              <button
-                type="button"
-                className="btn btn-success btn-sm gap-2"
-                disabled={isExportingTimetable}
-                onClick={handleExportAllStaffExcel}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                {t.individualStaffExportAllExcelBtn}
-              </button>
+              <div className="tooltip" data-tip={t.exportAllStaffPdfTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-error btn-sm gap-2"
+                  disabled={isExportingTimetable}
+                  onClick={handleExportAllStaffPdf}
+                >
+                  <FileText className="w-4 h-4" />
+                  {t.individualStaffExportAllPdfBtn}
+                </button>
+              </div>
+              <div className="tooltip" data-tip={t.exportAllStaffExcelTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-success btn-sm gap-2"
+                  disabled={isExportingTimetable}
+                  onClick={handleExportAllStaffExcel}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  {t.individualStaffExportAllExcelBtn}
+                </button>
+              </div>
             </div>
           </div>
 

@@ -3457,7 +3457,7 @@ export const timetableHubTranslations = {
     individualStaffExportExcelBtn: "Excel",
     individualStaffExportAllLabel: "Ou exporter tout le personnel en un seul fichier",
     individualStaffExportAllPdfBtn: "Tout le personnel (PDF)",
-    individualStaffExportAllExcelBtn: "Tout le personnel (Excel, un onglet par agent)",
+    individualStaffExportAllExcelBtn: "Tout le personnel (Excel)",
     cancelBtn: "Annuler",
   },
   en: {
@@ -3521,7 +3521,7 @@ export const timetableHubTranslations = {
     individualStaffExportExcelBtn: "Excel",
     individualStaffExportAllLabel: "Or export every staff member into a single file",
     individualStaffExportAllPdfBtn: "Every staff member (PDF)",
-    individualStaffExportAllExcelBtn: "Every staff member (Excel, one sheet per staff)",
+    individualStaffExportAllExcelBtn: "Every staff member (Excel)",
     cancelBtn: "Cancel",
   },
 };
