@@ -644,73 +644,91 @@ const TimetableHub = () => {
       )}
       <div className="page-header w-full max-w-3xl">
         <h1 className="page-title">{t.title}</h1>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm gap-2"
-            disabled={isGenerating || isSendingEmails}
-            onClick={handleGenerate}
-          >
-            <CalendarClock className="w-4 h-4" />
-            {t.generateBtn}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm gap-2"
-            disabled={isGenerating || isSendingEmails}
-            title={t.sendEmailsTooltip}
-            onClick={handleSendEmails}
-          >
-            <Mail className="w-4 h-4" />
-            {t.sendEmailsBtn}
-          </button>
-          <div className="tooltip" data-tip={t.settingsTooltip}>
-            <Link to="/admin/timetable/settings" className="btn btn-ghost btn-sm btn-square">
-              <Settings2 className="w-4 h-4" />
-            </Link>
+        {/* Two sub-groups (Generer/Envoyer/Settings, then the 4 export buttons + Close) wrapped as
+            whole units - `body { overflow-x: hidden }` (index.css) was clipping the export buttons
+            off-screen on narrow viewports when this was a single non-wrapping row, since they'd
+            overflow past the viewport edge with no way to scroll to them. Letting the outer flex
+            wrap drops the export group to its own line below the primary buttons on small widths,
+            while both stay on one row once there's enough space. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* w-full on mobile (each row wraps onto its own line, and justify-between pushes the
+              lone utility icon - Settings, then Close below - to the row's right edge) vs.
+              w-auto sm:up (content-sized, so justify-between is a no-op and both rows sit side by
+              side in the header exactly as before). */}
+          <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm gap-2"
+                disabled={isGenerating || isSendingEmails}
+                onClick={handleGenerate}
+              >
+                <CalendarClock className="w-4 h-4" />
+                {t.generateBtn}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm gap-2"
+                disabled={isGenerating || isSendingEmails}
+                title={t.sendEmailsTooltip}
+                onClick={handleSendEmails}
+              >
+                <Mail className="w-4 h-4" />
+                {t.sendEmailsBtn}
+              </button>
+            </div>
+            <div className="tooltip" data-tip={t.settingsTooltip}>
+              <Link to="/admin/timetable/settings" className="btn btn-ghost btn-sm btn-square">
+                <Settings2 className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
-          <div className="tooltip" data-tip={t.exportExcelTooltip}>
-            <button
-              type="button"
-              className="btn btn-outline btn-success btn-sm btn-square"
-              disabled={isLoading || isExportingTimetable}
-              onClick={handleExportExcel}
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-            </button>
+          <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="tooltip" data-tip={t.exportExcelTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-success btn-sm btn-square"
+                  disabled={isLoading || isExportingTimetable}
+                  onClick={handleExportExcel}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="tooltip" data-tip={t.exportPdfTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-error btn-sm btn-square"
+                  disabled={isLoading || isExportingTimetable}
+                  onClick={handleExportPdf}
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="w-px h-6 bg-base-300 mx-1" aria-hidden="true" />
+              <div className="tooltip" data-tip={t.exportAllStaffExcelTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-success btn-sm btn-square"
+                  disabled={isLoading || isExportingTimetable}
+                  onClick={handleExportAllStaffExcel}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="tooltip" data-tip={t.exportAllStaffPdfTooltip}>
+                <button
+                  type="button"
+                  className="btn btn-error btn-sm btn-square"
+                  disabled={isLoading || isExportingTimetable}
+                  onClick={handleExportAllStaffPdf}
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <CloseButton />
           </div>
-          <div className="tooltip" data-tip={t.exportPdfTooltip}>
-            <button
-              type="button"
-              className="btn btn-outline btn-error btn-sm btn-square"
-              disabled={isLoading || isExportingTimetable}
-              onClick={handleExportPdf}
-            >
-              <FileText className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="w-px h-6 bg-base-300 mx-1" aria-hidden="true" />
-          <div className="tooltip" data-tip={t.exportAllStaffExcelTooltip}>
-            <button
-              type="button"
-              className="btn btn-success btn-sm btn-square"
-              disabled={isLoading || isExportingTimetable}
-              onClick={handleExportAllStaffExcel}
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="tooltip" data-tip={t.exportAllStaffPdfTooltip}>
-            <button
-              type="button"
-              className="btn btn-error btn-sm btn-square"
-              disabled={isLoading || isExportingTimetable}
-              onClick={handleExportAllStaffPdf}
-            >
-              <FileText className="w-4 h-4" />
-            </button>
-          </div>
-          <CloseButton />
         </div>
       </div>
 
