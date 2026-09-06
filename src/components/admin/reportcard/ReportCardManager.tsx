@@ -37,6 +37,22 @@ import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 
 const TERMS = [1, 2, 3];
 
+type ClassementViewMode = "term" | "annual";
+
+// One row shape shared by the classement table's two view modes - term fields
+// (rang/moyenneTrim/isClassified) and annual fields (rangAnnuel/avgAnnual/isClassifiedAnnual, same
+// names across AnnualStudentData/AnnualStudentDataApc) are normalized into this before rendering,
+// so the table markup itself doesn't need to branch on the active mode.
+interface ClassementRow {
+  studId: number;
+  matricule: string;
+  name: string;
+  surname: string;
+  rang: number | null;
+  moyenne: number;
+  isClassified: boolean;
+}
+
 // "Bulletins" (Print report cards) - both term and annual RC, both APC and non-APC classes (see
 // the backend and frontend CLAUDE.md's "Classified / Not Classified (NC) parameter" section for the
 // classification algorithm this reuses, and src/utils/reportCard/ for the compute + PDF layers this
@@ -66,6 +82,14 @@ const ReportCardManager = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Classement table view toggle - defaults to term averages (the table's original behavior);
+  // switching to "annual" lazily loads that classe's annual RC data (same loaders the annual print
+  // buttons already use) just to read its avgAnnual/rangAnnuel/isClassifiedAnnual per student.
+  const [classementViewMode, setClassementViewMode] = useState<ClassementViewMode>("term");
+  const [annualClassementData, setAnnualClassementData] = useState<
+    AnnualReportCardData | AnnualReportCardDataApc | null
+  >(null);
 
   const selectedClasse = classes.find((c) => c.classe_id === selectedClasseId) ?? null;
   const isSelectedClasseApc = selectedClasse ? apcLevels.get(selectedClasse.level) === true : false;
@@ -169,8 +193,63 @@ const ReportCardManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClasseId, selectedTerm, isSelectedClasseApc]);
 
+  // Clears any previously-loaded classe's annual classement data immediately on classe change, so
+  // switching classe while already in "annual" view doesn't briefly render the old classe's rows
+  // before the fetch below resolves - annualClassementData === null doubles as "loading" for that view.
+  useEffect(() => {
+    setAnnualClassementData(null);
+  }, [selectedClasseId]);
+
+  useEffect(() => {
+    if (classementViewMode !== "annual" || selectedClasseId === null) {
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      const data = isSelectedClasseApc
+        ? await loadAnnualApcReportCardDataForClasse(selectedClasseId)
+        : await loadAnnualReportCardDataForClasse(selectedClasseId);
+      if (!cancelled) {
+        setAnnualClassementData(data);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    classementViewMode,
+    selectedClasseId,
+    isSelectedClasseApc,
+    loadAnnualReportCardDataForClasse,
+    loadAnnualApcReportCardDataForClasse,
+  ]);
+
   const students = reportCardData?.students ?? [];
-  const filteredStudents = students.filter((s) => {
+
+  const classementRows: ClassementRow[] =
+    classementViewMode === "annual"
+      ? (annualClassementData?.students ?? []).map((s) => ({
+          studId: s.studId,
+          matricule: s.matricule,
+          name: s.name,
+          surname: s.surname,
+          rang: s.rangAnnuel,
+          moyenne: s.avgAnnual,
+          isClassified: s.isClassifiedAnnual,
+        }))
+      : students.map((s) => ({
+          studId: s.studId,
+          matricule: s.matricule,
+          name: s.name,
+          surname: s.surname,
+          rang: s.rang,
+          moyenne: s.moyenneTrim,
+          isClassified: s.isClassified,
+        }));
+  const isAnnualDataPending = classementViewMode === "annual" && annualClassementData === null;
+
+  const filteredStudents = classementRows.filter((s) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) {
       return true;
@@ -932,7 +1011,7 @@ const ReportCardManager = () => {
             </div>
           </div>
 
-          {isLoadingData ? (
+          {isLoadingData || isAnnualDataPending ? (
             <TableSkeleton rows={7} columns={6} />
           ) : (
             <div className="surface-card overflow-hidden">
@@ -943,6 +1022,26 @@ const ReportCardManager = () => {
                   placeholder={t.searchPlaceholder}
                   className="input-sm w-full max-w-xs"
                 />
+                <div className="join">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${
+                      classementViewMode === "term" ? "btn-primary" : "btn-outline"
+                    }`}
+                    onClick={() => setClassementViewMode("term")}
+                  >
+                    {t.viewModeTermLabel}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item ${
+                      classementViewMode === "annual" ? "btn-primary" : "btn-outline"
+                    }`}
+                    onClick={() => setClassementViewMode("annual")}
+                  >
+                    {t.viewModeAnnualLabel}
+                  </button>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="table table-zebra data-table">
@@ -962,7 +1061,11 @@ const ReportCardManager = () => {
                       <th>{t.tableHeaderRang}</th>
                       <th>{t.tableHeaderName}</th>
                       <th>{t.tableHeaderMatricule}</th>
-                      <th>{t.tableHeaderMoyenne}</th>
+                      <th>
+                        {classementViewMode === "annual"
+                          ? t.tableHeaderMoyenneAnnual
+                          : t.tableHeaderMoyenne}
+                      </th>
                       <th>{t.tableHeaderClassified}</th>
                     </tr>
                   </thead>
@@ -982,18 +1085,18 @@ const ReportCardManager = () => {
                           {s.name} {s.surname}
                         </td>
                         <td>{s.matricule}</td>
-                        <td>{formatRcNumber(s.moyenneTrim)}</td>
+                        <td>{formatRcNumber(s.moyenne)}</td>
                         <td>{s.isClassified ? t.classifiedYes : t.classifiedNo}</td>
                       </tr>
                     ))}
-                    {students.length === 0 && (
+                    {classementRows.length === 0 && (
                       <tr>
                         <td colSpan={6}>
                           <p className="empty-state">{t.emptyStudents}</p>
                         </td>
                       </tr>
                     )}
-                    {students.length > 0 && filteredStudents.length === 0 && (
+                    {classementRows.length > 0 && filteredStudents.length === 0 && (
                       <tr>
                         <td colSpan={6}>
                           <p className="empty-state">{t.noSearchResults}</p>

@@ -108,12 +108,19 @@ const BasculementManager = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    // A stale response guard is required here: connection/schoolYear/section can change again
+    // (e.g. switching school year via TopBanner) while this load is still in flight, and without
+    // this an older, slower response could land after a newer one and clobber nextYearClasses/
+    // classes with data for the wrong year - surfacing as the right panel going empty/disabled
+    // even though the correct data did load a moment earlier.
+    let cancelled = false;
     const load = async () => {
       setIsLoadingClasses(true);
       const [classeList, apcLevelList] = await Promise.all([
         ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
         ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),
       ]);
+      if (cancelled) return;
       setClasses(classeList);
       setApcLevels(new Map(apcLevelList.map((entry) => [entry.level, entry.activated])));
       setSelectedLeftClasseId((prev) =>
@@ -124,10 +131,12 @@ const BasculementManager = () => {
 
       if (nextYear) {
         const years = await MyReader.fetchSchoolYears(connection);
+        if (cancelled) return;
         const exists = (years ?? []).some((y) => y.year === nextYear);
         setNextYearExists(exists);
         if (exists) {
           const nyClasses = await ClasseReader.fetchClasses(accessToken, connection, nextYear, section);
+          if (cancelled) return;
           setNextYearClasses(nyClasses);
         } else {
           setNextYearClasses([]);
@@ -142,6 +151,9 @@ const BasculementManager = () => {
     load();
     setLeftSearch("");
     setRightSearch("");
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
@@ -628,7 +640,7 @@ const BasculementManager = () => {
   const nothingLoaded = isLoadingClasses && classes.length === 0;
 
   return (
-    <div className="page-shell">
+    <div className="page-shell-wide px-10">
       {isSaving && <LoadingOverlay />}
       <div className="page-header">
         <div>
@@ -707,7 +719,7 @@ const BasculementManager = () => {
 
       {nothingLoaded ? (
         <div
-          className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-start"
+          className="grid grid-cols-1 lg:grid-cols-[60%_auto_1fr] gap-4 items-start"
           aria-hidden="true"
         >
           <TableSkeleton rows={6} columns={5} />
@@ -727,7 +739,7 @@ const BasculementManager = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[60%_auto_1fr] gap-4 items-start">
             {/* Left panel - current year source classe */}
             <div className="surface-card overflow-hidden">
               <div className="table-toolbar flex flex-wrap items-center justify-between gap-3">
@@ -820,7 +832,7 @@ const BasculementManager = () => {
                           </td>
                           <td>
                             <select
-                              className={`select select-sm ${row.isDismissed ? "text-error" : ""}`}
+                              className={`select select-sm w-18 ${row.isDismissed ? "text-error" : ""}`}
                               title={t.exclureSelectTooltip}
                               value={row.isDismissed ? 1 : 0}
                               onChange={(e) => handleExclureChange(row, Number(e.target.value) as 0 | 1)}
