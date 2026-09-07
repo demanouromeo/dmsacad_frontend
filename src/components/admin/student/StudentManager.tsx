@@ -28,7 +28,7 @@ import { stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
 } from "../../../utils/exportData";
 import {
   drawPdfLetterhead,
@@ -466,14 +466,14 @@ const StudentManager = () => {
     if (!selectedClasse) {
       return;
     }
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des élèves",
         [
           `Classe ${selectedClasse.classe_name}`,
           `Section ${capitalizeSectionName(section)}`,
         ],
-        "csv",
+        "xlsx",
       ),
       exportColumns,
       students,

@@ -84,6 +84,31 @@ export const exportRowsToCsv = async <T>(
   await saveOrShareBlob(blob, filename);
 };
 
+// Real single-sheet .xlsx workbook via ExcelJS - for a screen whose "Exporter en Excel" button
+// should hand back a genuine spreadsheet file rather than the CSV Excel merely happens to open
+// (exportRowsToCsv above). Same reasoning as exportMarksWorkbookToXlsx for using ExcelJS (already a
+// dependency, backing every *Import.ts reader) instead of the npm `xlsx`/SheetJS package this app's
+// CLAUDE.md documents avoiding for its unpatched advisories. Dynamically imported so ExcelJS stays
+// out of the main bundle, same as exportRowsToPdf's jspdf import below.
+export const exportRowsToXlsx = async <T>(
+  filename: string,
+  columns: ExportColumn<T>[],
+  rows: T[],
+): Promise<void> => {
+  const { default: ExcelJS } = await import("exceljs");
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Feuil1");
+  worksheet.addRow(columns.map((c) => c.header));
+  rows.forEach((row, index) => {
+    worksheet.addRow(columns.map((c) => c.accessor(row, index)));
+  });
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  await saveOrShareBlob(blob, filename);
+};
+
 export const exportRowsToPdf = async <T>(
   title: string,
   filename: string,
