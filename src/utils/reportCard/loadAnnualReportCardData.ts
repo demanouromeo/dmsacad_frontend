@@ -8,7 +8,7 @@ import { DisciplineReader } from "../../dbmanger/DisciplineReader";
 import { ThParamReader } from "../../dbmanger/ThParamReader";
 import { computeDbSequence } from "../markSequence";
 import { computeIsTechnique } from "../schoolTypes";
-import { mapWithConcurrencyLimit } from "../concurrencyLimit";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../concurrency";
 import type { SchoolHeader } from "../exportHeader";
 import type { Classe } from "../../interfaces/Classe";
 import type { Mark } from "../../interfaces/Mark";
@@ -27,12 +27,6 @@ import {
   type AnnualSubjectBundle,
   type AnnualSubjectBundleApc,
 } from "./annualReportCardCompute";
-
-// Caps how many concurrent MarkReader.fetch{Seq,Comp}Marks/fetchCompetences requests a single
-// report-card load can have in flight - see concurrencyLimit.ts's comment for why (a full annual
-// load fans out to dozens of these, which was enough to exceed the remote shared-hosting MySQL
-// connection limit).
-const MARK_FETCH_CONCURRENCY = 6;
 
 // Extracted from ReportCardManager.tsx so the Promotion module (PromotionManager.tsx) can reuse the
 // exact same "same data load as annual RC" fetch/compute pipeline instead of duplicating it - see
@@ -114,9 +108,9 @@ export const loadReportCardDataForClasse = async (params: TermLoaderParams): Pro
 
   let subjectsData: ReportCardSubjectBundle[];
   if (isApc) {
-    const withCompetences = await mapWithConcurrencyLimit(
+    const withCompetences = await mapWithConcurrency(
       subjectsSorted,
-      MARK_FETCH_CONCURRENCY,
+      DEFAULT_REPORT_CONCURRENCY,
       async (subject) => ({
         subject,
         competences: await SubjectReader.fetchCompetences(
@@ -134,9 +128,9 @@ export const loadReportCardDataForClasse = async (params: TermLoaderParams): Pro
     const competencePairs = eligible.flatMap(({ subject, competences }) =>
       competences.map((comp) => ({ subject, comp })),
     );
-    const marksByPair = await mapWithConcurrencyLimit(
+    const marksByPair = await mapWithConcurrency(
       competencePairs,
-      MARK_FETCH_CONCURRENCY,
+      DEFAULT_REPORT_CONCURRENCY,
       async ({ subject, comp }) => ({
         subjectId: subject.subject_id,
         competenceId: comp.subject_competence_id,
@@ -171,9 +165,9 @@ export const loadReportCardDataForClasse = async (params: TermLoaderParams): Pro
     const seqPairs = subjectsSorted.flatMap((subject) =>
       [1, 2].map((seq) => ({ subject, seq })),
     );
-    const marksByPair = await mapWithConcurrencyLimit(
+    const marksByPair = await mapWithConcurrency(
       seqPairs,
-      MARK_FETCH_CONCURRENCY,
+      DEFAULT_REPORT_CONCURRENCY,
       async ({ subject, seq }) => ({
         subjectId: subject.subject_id,
         seq,
@@ -279,13 +273,13 @@ export const loadAnnualReportCardDataForClasse = async (
 
   // One subject's whole-year marks, all 6 dbsequences - flattened into a single concurrency-limited
   // pool across every (subject, dbsequence) pair rather than nested Promise.all's, which used to
-  // fire all ~66 requests at once (see MARK_FETCH_CONCURRENCY's comment).
+  // fire all ~66 requests at once (see DEFAULT_REPORT_CONCURRENCY's comment).
   const dbsequencePairs = subjectsSorted.flatMap((subject) =>
     [1, 2, 3, 4, 5, 6].map((dbsequence) => ({ subject, dbsequence })),
   );
-  const marksByPair = await mapWithConcurrencyLimit(
+  const marksByPair = await mapWithConcurrency(
     dbsequencePairs,
-    MARK_FETCH_CONCURRENCY,
+    DEFAULT_REPORT_CONCURRENCY,
     async ({ subject, dbsequence }) => ({
       subjectId: subject.subject_id,
       dbsequence,
@@ -420,13 +414,13 @@ export const loadAnnualApcReportCardDataForClasse = async (
 
   // Each subject's competences + marks, all 3 terms - flattened into concurrency-limited pools
   // (first competences per (subject, term), then marks per (subject, term, competence)) instead of
-  // triple-nested Promise.all's (see MARK_FETCH_CONCURRENCY's comment).
+  // triple-nested Promise.all's (see DEFAULT_REPORT_CONCURRENCY's comment).
   const subjectTermPairs = subjectsSorted.flatMap((subject) =>
     [1, 2, 3].map((term) => ({ subject, term })),
   );
-  const competencesByPair = await mapWithConcurrencyLimit(
+  const competencesByPair = await mapWithConcurrency(
     subjectTermPairs,
-    MARK_FETCH_CONCURRENCY,
+    DEFAULT_REPORT_CONCURRENCY,
     async ({ subject, term }) => ({
       subject,
       term,
@@ -444,9 +438,9 @@ export const loadAnnualApcReportCardDataForClasse = async (
   const competenceTriples = competencesByPair.flatMap(({ subject, term, competences }) =>
     competences.map((comp) => ({ subject, term, comp })),
   );
-  const marksByTriple = await mapWithConcurrencyLimit(
+  const marksByTriple = await mapWithConcurrency(
     competenceTriples,
-    MARK_FETCH_CONCURRENCY,
+    DEFAULT_REPORT_CONCURRENCY,
     async ({ subject, term, comp }) => ({
       subjectId: subject.subject_id,
       term,

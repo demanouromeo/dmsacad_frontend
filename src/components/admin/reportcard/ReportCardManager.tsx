@@ -249,6 +249,15 @@ const ReportCardManager = () => {
         }));
   const isAnnualDataPending = classementViewMode === "annual" && annualClassementData === null;
 
+  // Drives both the print buttons' dispatch (term vs annual handler) and their disabled/tooltip
+  // state - reuses the same classementViewMode toggle the classement table already has, rather than
+  // separate term/annual buttons.
+  const isAnnualPrintMode = classementViewMode === "annual";
+  const isPrintDataPending = isAnnualPrintMode ? isAnnualDataPending : isLoadingData || !reportCardData;
+  const printableCount = isAnnualPrintMode
+    ? (annualClassementData?.students.length ?? 0)
+    : students.length;
+
   const filteredStudents = classementRows.filter((s) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) {
@@ -663,13 +672,25 @@ const ReportCardManager = () => {
     setPrintProgress(null);
   };
 
-  const handlePrintAll = () => handlePrint(students);
+  // Dispatch on classementViewMode (the same Trimestriel/Annuel toggle the classement table already
+  // uses) instead of having separate term/annual buttons - see the print button JSX below.
+  const handlePrintAll = () => {
+    if (classementViewMode === "annual") {
+      handlePrintAnnual(null);
+    } else {
+      handlePrint(students);
+    }
+  };
   const handlePrintSelection = () => {
     if (selectedIds.size === 0) {
       showToast(t.noSelectionWarning, { type: "warning" });
       return;
     }
-    handlePrint(students.filter((s) => selectedIds.has(s.studId)));
+    if (classementViewMode === "annual") {
+      handlePrintAnnual(selectedIds);
+    } else {
+      handlePrint(students.filter((s) => selectedIds.has(s.studId)));
+    }
   };
 
   // Annual RC ("Bulletin Annuel") - both APC and non-APC classes, branching on
@@ -746,15 +767,6 @@ const ReportCardManager = () => {
     }
     setIsSaving(false);
     setPrintProgress(null);
-  };
-
-  const handlePrintAllAnnual = () => handlePrintAnnual(null);
-  const handlePrintSelectionAnnual = () => {
-    if (selectedIds.size === 0) {
-      showToast(t.noSelectionWarning, { type: "warning" });
-      return;
-    }
-    handlePrintAnnual(selectedIds);
   };
 
   // Prints one annual PDF per classe of the current section - same load-then-export-then-loop
@@ -844,6 +856,13 @@ const ReportCardManager = () => {
     setPrintProgress(null);
   };
 
+  // Same term/annual dispatch as handlePrintAll/handlePrintSelection above, for the two
+  // whole-section buttons.
+  const handlePrintAllClassesClick = () =>
+    classementViewMode === "annual" ? handlePrintAllClassesAnnual() : handlePrintAllClasses();
+  const handlePrintThClick = () =>
+    classementViewMode === "annual" ? handlePrintAnnualTh() : handlePrintTh();
+
   return (
     <div className="page-shell">
       {isSaving && <LoadingOverlay progress={printProgress} />}
@@ -910,11 +929,14 @@ const ReportCardManager = () => {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <div className="tooltip tooltip-bottom" data-tip={t.printBtn}>
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={t.printBtnTooltip(isAnnualPrintMode)}
+              >
                 <button
                   type="button"
                   className="btn btn-primary gap-2"
-                  disabled={isLoadingData || !reportCardData || students.length === 0}
+                  disabled={isPrintDataPending || printableCount === 0}
                   onClick={handlePrintAll}
                 >
                   <Printer className="w-4 h-4" />
@@ -923,12 +945,12 @@ const ReportCardManager = () => {
               </div>
               <div
                 className="tooltip tooltip-bottom"
-                data-tip={t.printSelectionBtn(selectedIds.size)}
+                data-tip={t.printSelectionBtnTooltip(selectedIds.size, isAnnualPrintMode)}
               >
                 <button
                   type="button"
                   className="btn btn-outline gap-2"
-                  disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
+                  disabled={isPrintDataPending || selectedIds.size === 0}
                   onClick={handlePrintSelection}
                 >
                   <Printer className="w-4 h-4" />
@@ -937,75 +959,32 @@ const ReportCardManager = () => {
                   </span>
                 </button>
               </div>
-              <div className="tooltip tooltip-bottom" data-tip={t.printAllClassesBtn}>
+              <div
+                className="tooltip tooltip-bottom"
+                data-tip={t.printAllClassesBtnTooltip(isAnnualPrintMode)}
+              >
                 <button
                   type="button"
-                  className="btn btn-secondary gap-2"
+                  className="btn btn-secondary"
                   disabled={isLoadingClasses || classes.length === 0}
-                  onClick={handlePrintAllClasses}
+                  onClick={handlePrintAllClassesClick}
+                  aria-label={t.printAllClassesBtn}
                 >
                   <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.printAllClassesBtn}</span>
-                </button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip={t.printThBtn}>
-                <button
-                  type="button"
-                  className="btn btn-accent gap-2"
-                  disabled={classes.length === 0}
-                  onClick={handlePrintTh}
-                >
-                  <Award className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.printThBtn}</span>
-                </button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip={t.printAnnualThBtn}>
-                <button
-                  type="button"
-                  className="btn btn-accent gap-2"
-                  disabled={classes.length === 0}
-                  onClick={handlePrintAnnualTh}
-                >
-                  <Award className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.printAnnualThBtn}</span>
-                </button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip={t.printAnnualBtn}>
-                <button
-                  type="button"
-                  className="btn btn-outline gap-2"
-                  disabled={isLoadingData || !reportCardData || students.length === 0}
-                  onClick={handlePrintAllAnnual}
-                >
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.printAnnualBtn}</span>
                 </button>
               </div>
               <div
                 className="tooltip tooltip-bottom"
-                data-tip={t.printSelectionAnnualBtn(selectedIds.size)}
+                data-tip={t.printThBtnTooltip(isAnnualPrintMode)}
               >
                 <button
                   type="button"
-                  className="btn btn-outline gap-2"
-                  disabled={isLoadingData || !reportCardData || selectedIds.size === 0}
-                  onClick={handlePrintSelectionAnnual}
+                  className="btn btn-accent"
+                  disabled={classes.length === 0}
+                  onClick={handlePrintThClick}
+                  aria-label={t.printThBtn}
                 >
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">
-                    {t.printSelectionAnnualBtn(selectedIds.size)}
-                  </span>
-                </button>
-              </div>
-              <div className="tooltip tooltip-bottom" data-tip={t.printAllClassesAnnualBtn}>
-                <button
-                  type="button"
-                  className="btn btn-secondary gap-2"
-                  disabled={isLoadingClasses || classes.length === 0}
-                  onClick={handlePrintAllClassesAnnual}
-                >
-                  <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t.printAllClassesAnnualBtn}</span>
+                  <Award className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -1023,24 +1002,28 @@ const ReportCardManager = () => {
                   className="input-sm w-full max-w-xs"
                 />
                 <div className="join">
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${
-                      classementViewMode === "term" ? "btn-primary" : "btn-outline"
-                    }`}
-                    onClick={() => setClassementViewMode("term")}
-                  >
-                    {t.viewModeTermLabel}
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm join-item ${
-                      classementViewMode === "annual" ? "btn-primary" : "btn-outline"
-                    }`}
-                    onClick={() => setClassementViewMode("annual")}
-                  >
-                    {t.viewModeAnnualLabel}
-                  </button>
+                  <div className="tooltip tooltip-bottom" data-tip={t.viewModeTermTooltip}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm join-item ${
+                        classementViewMode === "term" ? "btn-primary" : "btn-outline"
+                      }`}
+                      onClick={() => setClassementViewMode("term")}
+                    >
+                      {t.viewModeTermLabel}
+                    </button>
+                  </div>
+                  <div className="tooltip tooltip-bottom" data-tip={t.viewModeAnnualTooltip}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm join-item ${
+                        classementViewMode === "annual" ? "btn-primary" : "btn-outline"
+                      }`}
+                      onClick={() => setClassementViewMode("annual")}
+                    >
+                      {t.viewModeAnnualLabel}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="overflow-x-auto">

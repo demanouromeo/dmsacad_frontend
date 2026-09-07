@@ -2984,9 +2984,10 @@ export const scholarshipManagerTranslations = {
   },
 };
 
-// "Bulletins" (Print report cards) - ADMIN-only, APC classes / term RC only for this phase (see
-// ReportCardManager.tsx). Annual RC is out of scope this phase - its two buttons render but stay
-// disabled ("coming soon").
+// "Bulletins" (Print report cards) - ADMIN-only, both term and annual RC, both APC and non-APC
+// classes (see ReportCardManager.tsx). The print buttons dispatch on the same Trimestriel/Annuel
+// toggle the classement table uses (classementViewMode) rather than having separate term/annual
+// buttons - only the tooltips change with the toggle, not the button labels.
 export const reportCardManagerTranslations = {
   fr: {
     title: "Impression des bulletins",
@@ -3001,6 +3002,8 @@ export const reportCardManagerTranslations = {
     searchPlaceholder: "Rechercher un élève (nom, prénom, matricule)...",
     viewModeTermLabel: "Trimestriel",
     viewModeAnnualLabel: "Annuel",
+    viewModeTermTooltip: "Classement et moyennes du trimestre",
+    viewModeAnnualTooltip: "Classement et moyennes annuelles",
     tableHeaderRang: "Rang",
     tableHeaderName: "Nom et prénom",
     tableHeaderMatricule: "Matricule",
@@ -3012,13 +3015,25 @@ export const reportCardManagerTranslations = {
     emptyStudents: "Aucun élève trouvé pour cette classe.",
     noSearchResults: "Aucun élève ne correspond à la recherche.",
     printBtn: "Imprimer",
+    printBtnTooltip: (isAnnual: boolean) =>
+      isAnnual
+        ? "Imprimer le bulletin annuel de la classe sélectionnée"
+        : "Imprimer les bulletins du trimestre en cours pour la classe sélectionnée",
     printSelectionBtn: (count: number) => `Imprimer la sélection (${count})`,
+    printSelectionBtnTooltip: (count: number, isAnnual: boolean) =>
+      isAnnual
+        ? `Imprimer le bulletin annuel des ${count} élève(s) sélectionné(s)`
+        : `Imprimer les bulletins du trimestre en cours des ${count} élève(s) sélectionné(s)`,
     printAllClassesBtn: "Imprimer toutes les classes de la section",
+    printAllClassesBtnTooltip: (isAnnual: boolean) =>
+      isAnnual
+        ? "Imprimer le bulletin annuel de toutes les classes de la section"
+        : "Imprimer les bulletins du trimestre en cours de toutes les classes de la section",
     printThBtn: "Imprimer le tableau d'honneur (toutes les classes)",
-    printAnnualThBtn: "Imprimer le tableau d'honneur annuel (toutes les classes)",
-    printAnnualBtn: "Imprimer le bulletin annuel",
-    printSelectionAnnualBtn: (count: number) => `Imprimer la sélection - bulletin annuel (${count})`,
-    printAllClassesAnnualBtn: "Imprimer le bulletin annuel de toutes les classes",
+    printThBtnTooltip: (isAnnual: boolean) =>
+      isAnnual
+        ? "Imprimer le tableau d'honneur annuel de toutes les classes de la section"
+        : "Imprimer le tableau d'honneur du trimestre en cours de toutes les classes de la section",
     printSuccess: "Bulletin(s) généré(s) avec succès.",
     printThSuccess: "Tableau(x) d'honneurs généré(s) avec succès.",
     printFailure: "Échec de la génération du/des bulletin(s).",
@@ -3047,6 +3062,8 @@ export const reportCardManagerTranslations = {
     searchPlaceholder: "Search a student (name, surname, matricule)...",
     viewModeTermLabel: "Term",
     viewModeAnnualLabel: "Annual",
+    viewModeTermTooltip: "Ranking and averages for the term",
+    viewModeAnnualTooltip: "Ranking and averages for the year",
     tableHeaderRang: "Rank",
     tableHeaderName: "Name and surname",
     tableHeaderMatricule: "Matricule",
@@ -3058,13 +3075,25 @@ export const reportCardManagerTranslations = {
     emptyStudents: "No student found for this classe.",
     noSearchResults: "No student matches the search.",
     printBtn: "Print",
+    printBtnTooltip: (isAnnual: boolean) =>
+      isAnnual
+        ? "Print the selected classe's annual report card"
+        : "Print the current term's report cards for the selected classe",
     printSelectionBtn: (count: number) => `Print selection (${count})`,
+    printSelectionBtnTooltip: (count: number, isAnnual: boolean) =>
+      isAnnual
+        ? `Print the annual report card for ${count} selected student(s)`
+        : `Print the current term's report cards for ${count} selected student(s)`,
     printAllClassesBtn: "Print all classes of the section",
+    printAllClassesBtnTooltip: (isAnnual: boolean) =>
+      isAnnual
+        ? "Print the annual report card for every classe of the section"
+        : "Print the current term's report cards for every classe of the section",
     printThBtn: "Print Honor Roll (all classes)",
-    printAnnualThBtn: "Print Annual Honor Roll (all classes)",
-    printAnnualBtn: "Print Annual RC",
-    printSelectionAnnualBtn: (count: number) => `Print Selection - Annual RC (${count})`,
-    printAllClassesAnnualBtn: "Print Annual RC of all classes",
+    printThBtnTooltip: (isAnnual: boolean) =>
+      isAnnual
+        ? "Print the annual Honor Roll for every classe of the section"
+        : "Print the current term's Honor Roll for every classe of the section",
     printSuccess: "Report card(s) generated successfully.",
     printThSuccess: "Honor Roll(s) generated successfully.",
     printFailure: "Failed to generate the report card(s).",
