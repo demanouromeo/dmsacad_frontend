@@ -421,9 +421,17 @@ export const buildAnnualReportCardData = (
     totalGeneral = round2(totalGeneral);
     coefSum = round2(coefSum);
 
+    // A term counts as "isTermAvgEmpty" (nonAPCannual.md's simpleComputeAnnualAverage precondition)
+    // when the student has no real mark at all that term - checking `s === undefined` alone never
+    // actually detects this, since termStudentMaps are built from the same whole-year roster for
+    // every term, so every student is always found there even when every one of their subjects came
+    // back with moy=null (moyenneTrim forced to 0 via buildReportCardData's `coefSum > 0 ? ... : 0`
+    // fallback). `coefSum === 0` is that already-computed "no subject had any mark this term"
+    // signal - without it, a genuinely blank term (e.g. not started yet) silently counted as a real
+    // 0 average instead of being excluded, dragging avgAnnual down.
     const termAvgInputs = termStudentMaps.map((m) => {
       const s = m.get(student.stud_id);
-      return { avg: s?.moyenneTrim ?? 0, isEmpty: s === undefined };
+      return { avg: s?.moyenneTrim ?? 0, isEmpty: s === undefined || s.coefSum === 0 };
     }) as [TermAvgInput, TermAvgInput, TermAvgInput];
 
     const { avgAnnual, isAnnualAvgEmpty } =
@@ -727,9 +735,12 @@ export const buildAnnualReportCardDataApc = (
     totalGeneral = round2(totalGeneral);
     coefSum = round2(coefSum);
 
+    // See the non-APC buildAnnualReportCardData's identical comment above - `s === undefined` alone
+    // never detects a genuinely blank term, since every student is always present in every term's
+    // roster; `coefSum === 0` is the real "no mark at all this term" signal.
     const termAvgInputs = termStudentMaps.map((m) => {
       const s = m.get(student.stud_id);
-      return { avg: s?.moyenneTrim ?? 0, isEmpty: s === undefined };
+      return { avg: s?.moyenneTrim ?? 0, isEmpty: s === undefined || s.coefSum === 0 };
     }) as [TermAvgInput, TermAvgInput, TermAvgInput];
 
     const { avgAnnual, isAnnualAvgEmpty } =

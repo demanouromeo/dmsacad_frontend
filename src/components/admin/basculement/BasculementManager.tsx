@@ -87,20 +87,24 @@ const BasculementManager = () => {
   const [apcLevels, setApcLevels] = useState<Map<number, boolean>>(new Map());
   const [nextYearClasses, setNextYearClasses] = useState<Classe[]>([]);
   const [nextYearExists, setNextYearExists] = useState<boolean | null>(null);
-  const [isLoadingClasses, setIsLoadingClasses] = useState(false);
+  // Default to true (not false) for every isLoading* flag below: the effect that resolves it only
+  // runs after the first paint, so a `false` default would flash an "empty"/"not found" state for
+  // one frame before the real fetch even starts - which is exactly what made this screen look like
+  // it needed a manual "Actualiser" click to load anything.
+  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
 
   const [selectedLeftClasseId, setSelectedLeftClasseId] = useState<number | null>(null);
   const [selectedRightClasseId, setSelectedRightClasseId] = useState<number | null>(null);
 
   const [leftRows, setLeftRows] = useState<LeftRow[]>([]);
-  const [isLoadingLeft, setIsLoadingLeft] = useState(false);
+  const [isLoadingLeft, setIsLoadingLeft] = useState(true);
   const [leftReloadToken, setLeftReloadToken] = useState(0);
   const [leftSelectedIds, setLeftSelectedIds] = useState<Set<number>>(new Set());
   const [leftSearch, setLeftSearch] = useState("");
   const [sortByMerit, setSortByMerit] = useState(false);
 
   const [rightRows, setRightRows] = useState<RightRow[]>([]);
-  const [isLoadingRight, setIsLoadingRight] = useState(false);
+  const [isLoadingRight, setIsLoadingRight] = useState(true);
   const [rightReloadToken, setRightReloadToken] = useState(0);
   const [rightSelectedIds, setRightSelectedIds] = useState<Set<number>>(new Set());
   const [rightSearch, setRightSearch] = useState("");
@@ -116,9 +120,13 @@ const BasculementManager = () => {
     let cancelled = false;
     const load = async () => {
       setIsLoadingClasses(true);
-      const [classeList, apcLevelList] = await Promise.all([
+      // fetchSchoolYears doesn't depend on classeList/apcLevelList - run it alongside them instead
+      // of after, so the right panel's dependency chain (nextYearClasses -> rightTargetClasses ->
+      // selectedRightClasseId -> roster fetch) starts one round trip sooner.
+      const [classeList, apcLevelList, years] = await Promise.all([
         ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
         ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),
+        nextYear ? MyReader.fetchSchoolYears(connection) : Promise.resolve(null),
       ]);
       if (cancelled) return;
       setClasses(classeList);
@@ -130,8 +138,6 @@ const BasculementManager = () => {
       );
 
       if (nextYear) {
-        const years = await MyReader.fetchSchoolYears(connection);
-        if (cancelled) return;
         const exists = (years ?? []).some((y) => y.year === nextYear);
         setNextYearExists(exists);
         if (exists) {
@@ -250,8 +256,17 @@ const BasculementManager = () => {
 
   useEffect(() => {
     const load = async () => {
+      // While the classes/nextYearClasses cascade above is still resolving, selectedRightClasseId
+      // is transiently null even for a classe that WILL end up with a valid target next-year
+      // classe - treating that as "nothing to show" here (before isLoadingClasses settles) is what
+      // made this panel render its empty state before the automatic fetch ever ran, requiring a
+      // manual "Actualiser" click to see the real roster.
+      if (isLoadingClasses) {
+        return;
+      }
       if (!selectedRightClasseId || !nextYear) {
         setRightRows([]);
+        setIsLoadingRight(false);
         return;
       }
       setIsLoadingRight(true);
@@ -277,7 +292,7 @@ const BasculementManager = () => {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRightClasseId, nextYear, rightReloadToken]);
+  }, [selectedRightClasseId, nextYear, rightReloadToken, isLoadingClasses]);
 
   const filteredLeftRows = useMemo(() => {
     const q = leftSearch.trim().toLowerCase();
@@ -962,7 +977,7 @@ const BasculementManager = () => {
                           </td>
                           <td>
                             <select
-                              className="select select-sm"
+                              className="select select-sm w-26.5"
                               title={t.rowClasseSelectTooltip}
                               value={selectedRightClasseId ?? ""}
                               onChange={(e) => handleRightClasseChange(row, Number(e.target.value))}
