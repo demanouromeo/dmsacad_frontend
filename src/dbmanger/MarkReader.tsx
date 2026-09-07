@@ -16,6 +16,42 @@ export interface MarkInput {
   isEmpty: number;
 }
 
+const MARK_FETCH_MAX_ATTEMPTS = 3;
+const MARK_FETCH_RETRY_DELAY_MS = 400;
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Report-card loads fire dozens of these concurrently (per subject x dbsequence/competence). Under
+// that concurrency, shared-hosting MySQL connection limits can intermittently refuse a new
+// connection - the backend then answers with HTTP 200 and a plain-text PHP error body instead of a
+// real error status (confirmed live against the remote API), which fails `response.json()` and
+// used to be indistinguishable from "this subject has no marks yet", silently corrupting computed
+// averages. Retrying a couple of times before giving up survives that kind of transient blip.
+const fetchMarksWithRetry = async (targetUrl: string, accessToken: string | null): Promise<Mark[]> => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MARK_FETCH_MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt < MARK_FETCH_MAX_ATTEMPTS) {
+        await delay(MARK_FETCH_RETRY_DELAY_MS * attempt);
+      }
+    }
+  }
+  throw lastError;
+};
+
 export class MarkReader {
   // Non-APC marks (student_subject) for one (classe, subject, dbsequence) - dbsequence is derived
   // client-side from (term, sequence) by MarkEntryManager, see StudentController::getSeqMarks.
@@ -35,17 +71,7 @@ export class MarkReader {
       `&subject_id=${subjectId}` +
       `&sequence=${dbsequence}`;
     try {
-      const response = await fetch(targetUrl, {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
+      return await fetchMarksWithRetry(targetUrl, accessToken);
     } catch (error) {
       console.error(`MarkReader.fetchSeqMarks(): Error fetching marks: ${error}`);
       return [];
@@ -72,17 +98,7 @@ export class MarkReader {
       `&term_id=${termId}` +
       `&subject_competence_id=${subjectCompetenceId}`;
     try {
-      const response = await fetch(targetUrl, {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
+      return await fetchMarksWithRetry(targetUrl, accessToken);
     } catch (error) {
       console.error(`MarkReader.fetchCompMarks(): Error fetching marks: ${error}`);
       return [];

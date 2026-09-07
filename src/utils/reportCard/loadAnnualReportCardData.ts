@@ -8,9 +8,11 @@ import { DisciplineReader } from "../../dbmanger/DisciplineReader";
 import { ThParamReader } from "../../dbmanger/ThParamReader";
 import { computeDbSequence } from "../markSequence";
 import { computeIsTechnique } from "../schoolTypes";
+import { mapWithConcurrencyLimit } from "../concurrencyLimit";
 import type { SchoolHeader } from "../exportHeader";
 import type { Classe } from "../../interfaces/Classe";
 import type { Mark } from "../../interfaces/Mark";
+import type { SubjectCompetence } from "../../interfaces/SubjectCompetence";
 import type { Staff } from "../../interfaces/Staff";
 import type { ReportCardData } from "../../interfaces/ReportCard";
 import type { AnnualReportCardData, AnnualReportCardDataApc } from "../../interfaces/AnnualReportCard";
@@ -25,6 +27,12 @@ import {
   type AnnualSubjectBundle,
   type AnnualSubjectBundleApc,
 } from "./annualReportCardCompute";
+
+// Caps how many concurrent MarkReader.fetch{Seq,Comp}Marks/fetchCompetences requests a single
+// report-card load can have in flight - see concurrencyLimit.ts's comment for why (a full annual
+// load fans out to dozens of these, which was enough to exceed the remote shared-hosting MySQL
+// connection limit).
+const MARK_FETCH_CONCURRENCY = 6;
 
 // Extracted from ReportCardManager.tsx so the Promotion module (PromotionManager.tsx) can reuse the
 // exact same "same data load as annual RC" fetch/compute pipeline instead of duplicating it - see
@@ -106,8 +114,10 @@ export const loadReportCardDataForClasse = async (params: TermLoaderParams): Pro
 
   let subjectsData: ReportCardSubjectBundle[];
   if (isApc) {
-    const withCompetences = await Promise.all(
-      subjectsSorted.map(async (subject) => ({
+    const withCompetences = await mapWithConcurrencyLimit(
+      subjectsSorted,
+      MARK_FETCH_CONCURRENCY,
+      async (subject) => ({
         subject,
         competences: await SubjectReader.fetchCompetences(
           accessToken,
@@ -118,64 +128,78 @@ export const loadReportCardDataForClasse = async (params: TermLoaderParams): Pro
           subject.subject_id,
           term,
         ),
-      })),
-    );
-    subjectsData = await Promise.all(
-      withCompetences
-        .filter(({ competences }) => competences.length > 0)
-        .map(async ({ subject, competences }) => {
-          const marksByCompetence = new Map<number, Map<number, Mark>>();
-          await Promise.all(
-            competences.map(async (comp) => {
-              const marks = await MarkReader.fetchCompMarks(
-                accessToken,
-                connection,
-                schoolYear,
-                classeId,
-                subject.subject_id,
-                term,
-                comp.subject_competence_id,
-              );
-              marksByCompetence.set(
-                comp.subject_competence_id,
-                new Map(marks.map((m) => [m.stud_id, m])),
-              );
-            }),
-          );
-          return {
-            kind: "apc" as const,
-            subject,
-            competences,
-            marksByCompetence,
-            staffLabel: findStaffLabel(subject.subject_id),
-          };
-        }),
-    );
-  } else {
-    subjectsData = await Promise.all(
-      subjectsSorted.map(async (subject) => {
-        const marksBySeq = new Map<number, Map<number, Mark>>();
-        await Promise.all(
-          [1, 2].map(async (seq) => {
-            const marks = await MarkReader.fetchSeqMarks(
-              accessToken,
-              connection,
-              schoolYear,
-              classeId,
-              subject.subject_id,
-              computeDbSequence(term, seq),
-            );
-            marksBySeq.set(seq, new Map(marks.map((m) => [m.stud_id, m])));
-          }),
-        );
-        return {
-          kind: "nonApc" as const,
-          subject,
-          marksBySeq,
-          staffLabel: findStaffLabel(subject.subject_id),
-        };
       }),
     );
+    const eligible = withCompetences.filter(({ competences }) => competences.length > 0);
+    const competencePairs = eligible.flatMap(({ subject, competences }) =>
+      competences.map((comp) => ({ subject, comp })),
+    );
+    const marksByPair = await mapWithConcurrencyLimit(
+      competencePairs,
+      MARK_FETCH_CONCURRENCY,
+      async ({ subject, comp }) => ({
+        subjectId: subject.subject_id,
+        competenceId: comp.subject_competence_id,
+        marks: await MarkReader.fetchCompMarks(
+          accessToken,
+          connection,
+          schoolYear,
+          classeId,
+          subject.subject_id,
+          term,
+          comp.subject_competence_id,
+        ),
+      }),
+    );
+    const marksByCompetenceBySubjectId = new Map<number, Map<number, Map<number, Mark>>>();
+    for (const { subjectId, competenceId, marks } of marksByPair) {
+      if (!marksByCompetenceBySubjectId.has(subjectId)) {
+        marksByCompetenceBySubjectId.set(subjectId, new Map());
+      }
+      marksByCompetenceBySubjectId
+        .get(subjectId)!
+        .set(competenceId, new Map(marks.map((m) => [m.stud_id, m])));
+    }
+    subjectsData = eligible.map(({ subject, competences }) => ({
+      kind: "apc" as const,
+      subject,
+      competences,
+      marksByCompetence: marksByCompetenceBySubjectId.get(subject.subject_id) ?? new Map(),
+      staffLabel: findStaffLabel(subject.subject_id),
+    }));
+  } else {
+    const seqPairs = subjectsSorted.flatMap((subject) =>
+      [1, 2].map((seq) => ({ subject, seq })),
+    );
+    const marksByPair = await mapWithConcurrencyLimit(
+      seqPairs,
+      MARK_FETCH_CONCURRENCY,
+      async ({ subject, seq }) => ({
+        subjectId: subject.subject_id,
+        seq,
+        marks: await MarkReader.fetchSeqMarks(
+          accessToken,
+          connection,
+          schoolYear,
+          classeId,
+          subject.subject_id,
+          computeDbSequence(term, seq),
+        ),
+      }),
+    );
+    const marksBySeqBySubjectId = new Map<number, Map<number, Map<number, Mark>>>();
+    for (const { subjectId, seq, marks } of marksByPair) {
+      if (!marksBySeqBySubjectId.has(subjectId)) {
+        marksBySeqBySubjectId.set(subjectId, new Map());
+      }
+      marksBySeqBySubjectId.get(subjectId)!.set(seq, new Map(marks.map((m) => [m.stud_id, m])));
+    }
+    subjectsData = subjectsSorted.map((subject) => ({
+      kind: "nonApc" as const,
+      subject,
+      marksBySeq: marksBySeqBySubjectId.get(subject.subject_id) ?? new Map(),
+      staffLabel: findStaffLabel(subject.subject_id),
+    }));
   }
 
   const disciplineByStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
@@ -253,26 +277,40 @@ export const loadAnnualReportCardDataForClasse = async (
     return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
   };
 
-  // One subject's whole-year marks, all 6 dbsequences at once.
-  const subjectsData: AnnualSubjectBundle[] = await Promise.all(
-    subjectsSorted.map(async (subject) => {
-      const marksBySeq = new Map<number, Map<number, Mark>>();
-      await Promise.all(
-        [1, 2, 3, 4, 5, 6].map(async (dbsequence) => {
-          const marks = await MarkReader.fetchSeqMarks(
-            accessToken,
-            connection,
-            schoolYear,
-            classeId,
-            subject.subject_id,
-            dbsequence,
-          );
-          marksBySeq.set(dbsequence, new Map(marks.map((m) => [m.stud_id, m])));
-        }),
-      );
-      return { subject, staffLabel: findStaffLabel(subject.subject_id), marksBySeq };
+  // One subject's whole-year marks, all 6 dbsequences - flattened into a single concurrency-limited
+  // pool across every (subject, dbsequence) pair rather than nested Promise.all's, which used to
+  // fire all ~66 requests at once (see MARK_FETCH_CONCURRENCY's comment).
+  const dbsequencePairs = subjectsSorted.flatMap((subject) =>
+    [1, 2, 3, 4, 5, 6].map((dbsequence) => ({ subject, dbsequence })),
+  );
+  const marksByPair = await mapWithConcurrencyLimit(
+    dbsequencePairs,
+    MARK_FETCH_CONCURRENCY,
+    async ({ subject, dbsequence }) => ({
+      subjectId: subject.subject_id,
+      dbsequence,
+      marks: await MarkReader.fetchSeqMarks(
+        accessToken,
+        connection,
+        schoolYear,
+        classeId,
+        subject.subject_id,
+        dbsequence,
+      ),
     }),
   );
+  const marksBySeqBySubjectId = new Map<number, Map<number, Map<number, Mark>>>();
+  for (const { subjectId, dbsequence, marks } of marksByPair) {
+    if (!marksBySeqBySubjectId.has(subjectId)) {
+      marksBySeqBySubjectId.set(subjectId, new Map());
+    }
+    marksBySeqBySubjectId.get(subjectId)!.set(dbsequence, new Map(marks.map((m) => [m.stud_id, m])));
+  }
+  const subjectsData: AnnualSubjectBundle[] = subjectsSorted.map((subject) => ({
+    subject,
+    staffLabel: findStaffLabel(subject.subject_id),
+    marksBySeq: marksBySeqBySubjectId.get(subject.subject_id) ?? new Map(),
+  }));
 
   // Term 1/2/3 full ReportCardData - sliced from the already-fetched 6-sequence data (no refetch),
   // each term's own discipline fetched separately.
@@ -380,53 +418,84 @@ export const loadAnnualApcReportCardDataForClasse = async (
     return attribution ? buildStaffLabel(staffById.get(attribution.staff_id)) : "";
   };
 
-  // Each subject's competences + marks, all 3 terms.
-  const subjectsData: AnnualSubjectBundleApc[] = await Promise.all(
-    subjectsSorted.map(async (subject) => {
-      const perTerm = await Promise.all(
-        [1, 2, 3].map(async (term) => {
-          const competences = await SubjectReader.fetchCompetences(
-            accessToken,
-            connection,
-            schoolYear,
-            section,
-            classeId,
-            subject.subject_id,
-            term,
-          );
-          const marksByCompetence = new Map<number, Map<number, Mark>>();
-          await Promise.all(
-            competences.map(async (comp) => {
-              const marks = await MarkReader.fetchCompMarks(
-                accessToken,
-                connection,
-                schoolYear,
-                classeId,
-                subject.subject_id,
-                term,
-                comp.subject_competence_id,
-              );
-              marksByCompetence.set(
-                comp.subject_competence_id,
-                new Map(marks.map((m) => [m.stud_id, m])),
-              );
-            }),
-          );
-          return { competences, marksByCompetence };
-        }),
-      );
-      return {
-        subject,
-        staffLabel: findStaffLabel(subject.subject_id),
-        competencesByTerm: [perTerm[0].competences, perTerm[1].competences, perTerm[2].competences],
-        marksByCompetenceByTerm: [
-          perTerm[0].marksByCompetence,
-          perTerm[1].marksByCompetence,
-          perTerm[2].marksByCompetence,
-        ],
-      } as AnnualSubjectBundleApc;
+  // Each subject's competences + marks, all 3 terms - flattened into concurrency-limited pools
+  // (first competences per (subject, term), then marks per (subject, term, competence)) instead of
+  // triple-nested Promise.all's (see MARK_FETCH_CONCURRENCY's comment).
+  const subjectTermPairs = subjectsSorted.flatMap((subject) =>
+    [1, 2, 3].map((term) => ({ subject, term })),
+  );
+  const competencesByPair = await mapWithConcurrencyLimit(
+    subjectTermPairs,
+    MARK_FETCH_CONCURRENCY,
+    async ({ subject, term }) => ({
+      subject,
+      term,
+      competences: await SubjectReader.fetchCompetences(
+        accessToken,
+        connection,
+        schoolYear,
+        section,
+        classeId,
+        subject.subject_id,
+        term,
+      ),
     }),
   );
+  const competenceTriples = competencesByPair.flatMap(({ subject, term, competences }) =>
+    competences.map((comp) => ({ subject, term, comp })),
+  );
+  const marksByTriple = await mapWithConcurrencyLimit(
+    competenceTriples,
+    MARK_FETCH_CONCURRENCY,
+    async ({ subject, term, comp }) => ({
+      subjectId: subject.subject_id,
+      term,
+      competenceId: comp.subject_competence_id,
+      marks: await MarkReader.fetchCompMarks(
+        accessToken,
+        connection,
+        schoolYear,
+        classeId,
+        subject.subject_id,
+        term,
+        comp.subject_competence_id,
+      ),
+    }),
+  );
+  const marksByCompetenceBySubjectIdByTerm: Map<number, Map<number, Map<number, Mark>>>[] = [
+    new Map(),
+    new Map(),
+    new Map(),
+  ];
+  for (const { subjectId, term, competenceId, marks } of marksByTriple) {
+    const perTerm = marksByCompetenceBySubjectIdByTerm[term - 1];
+    if (!perTerm.has(subjectId)) {
+      perTerm.set(subjectId, new Map());
+    }
+    perTerm.get(subjectId)!.set(competenceId, new Map(marks.map((m) => [m.stud_id, m])));
+  }
+  const competencesBySubjectIdByTerm: Map<number, SubjectCompetence[]>[] = [
+    new Map(),
+    new Map(),
+    new Map(),
+  ];
+  for (const { subject, term, competences } of competencesByPair) {
+    competencesBySubjectIdByTerm[term - 1].set(subject.subject_id, competences);
+  }
+  const subjectsData: AnnualSubjectBundleApc[] = subjectsSorted.map((subject) => {
+    const competencesByTerm = [1, 2, 3].map(
+      (term) => competencesBySubjectIdByTerm[term - 1].get(subject.subject_id) ?? [],
+    ) as AnnualSubjectBundleApc["competencesByTerm"];
+    const marksByCompetenceByTerm = [1, 2, 3].map(
+      (term) => marksByCompetenceBySubjectIdByTerm[term - 1].get(subject.subject_id) ?? new Map(),
+    ) as AnnualSubjectBundleApc["marksByCompetenceByTerm"];
+    return {
+      subject,
+      staffLabel: findStaffLabel(subject.subject_id),
+      competencesByTerm,
+      marksByCompetenceByTerm,
+    };
+  });
 
   // Term 1/2/3 full ReportCardData, via the existing buildReportCardData with "apc" bundles - sliced
   // from the already-fetched per-term competences/marks (no refetch).
