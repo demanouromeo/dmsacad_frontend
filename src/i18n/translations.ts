@@ -2835,6 +2835,9 @@ export const basculementManagerTranslations = {
     statsRedoublantsLabel: "Redoublants",
     statsCloseBtn: "Fermer",
     statsEmpty: "Aucun élève dans cette classe.",
+    progressClasse: (current: number, total: number, name: string) => `Classe ${current}/${total} : ${name}`,
+    initProgressLabel: "Traitement des données annuelles en cours",
+    initProgressClearingExclus: "Retrait des élèves exclus de l'année suivante en cours",
   },
   en: {
     title: "Basculement management",
@@ -2923,6 +2926,9 @@ export const basculementManagerTranslations = {
     statsRedoublantsLabel: "Repeaters",
     statsCloseBtn: "Close",
     statsEmpty: "No student in this classe.",
+    progressClasse: (current: number, total: number, name: string) => `Classe ${current}/${total}: ${name}`,
+    initProgressLabel: "Processing annual data",
+    initProgressClearingExclus: "Removing dismissed students from the next school year",
   },
 };
 

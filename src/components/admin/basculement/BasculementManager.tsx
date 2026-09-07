@@ -35,7 +35,7 @@ import {
 } from "../../../utils/exportData";
 import { exportProvisionalListToPdf, type ProvisionalListBlock } from "../../../utils/exportProvisionalList";
 import type { Classe } from "../../../interfaces/Classe";
-import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
+import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -122,6 +122,8 @@ const BasculementManager = () => {
   const [rightSearch, setRightSearch] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [initProgress, setInitProgress] = useState<LoadingOverlayProgress | null>(null);
 
   useEffect(() => {
     // A stale response guard is required here: connection/schoolYear/section can change again
@@ -536,10 +538,14 @@ const BasculementManager = () => {
     if (!(await confirm(t.initConfirmMessage, { danger: true }))) {
       return;
     }
-    setIsSaving(true);
+    setIsInitializing(true);
     let allOk = true;
+    const total = classes.length;
     const dismissedAll: { stud_id: number; classe_id: number }[] = [];
-    for (const classe of classes) {
+    for (let i = 0; i < classes.length; i++) {
+      const classe = classes[i];
+      const overall = t.progressClasse(i + 1, total, classe.classe_name);
+      setInitProgress({ current: i, total, label: t.initProgressLabel, overall });
       const isApc = apcLevels.get(classe.level) === true;
       const params = {
         accessToken,
@@ -596,12 +602,14 @@ const BasculementManager = () => {
       }
     }
     if (dismissedAll.length > 0) {
+      setInitProgress({ current: total, total, label: t.initProgressClearingExclus });
       const result = await ClasseReader.clearExclus(accessToken, connection, nextYear, dismissedAll);
       if (!result.status) {
         allOk = false;
       }
     }
-    setIsSaving(false);
+    setIsInitializing(false);
+    setInitProgress(null);
     showToast(allOk ? t.initSuccess : t.initFailure, { type: allOk ? "info" : "danger" });
     setLeftReloadToken((n) => n + 1);
     setRightReloadToken((n) => n + 1);
@@ -679,6 +687,7 @@ const BasculementManager = () => {
   return (
     <div className="page-shell-wide px-10">
       {isSaving && <LoadingOverlay />}
+      {isInitializing && <LoadingOverlay progress={initProgress} />}
       <div className="page-header">
         <div>
           <h1 className="page-title">{t.title}</h1>
@@ -689,7 +698,7 @@ const BasculementManager = () => {
             type="button"
             className="btn btn-ghost btn-sm gap-2"
             title={t.initBtn}
-            disabled={isSaving || !nextYearExists}
+            disabled={isSaving || isInitializing || !nextYearExists}
             onClick={handleInit}
           >
             <img src={iconInitBasculement} alt="" className="w-7 h-7 transition-transform hover:scale-110" />
