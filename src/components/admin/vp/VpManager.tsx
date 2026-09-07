@@ -17,7 +17,7 @@ import SearchInput from "../../sharedcomp/SearchInput";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -188,11 +188,11 @@ const VpManager = () => {
   ];
 
   const handleExportClassesExcel = () => {
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des classes et censeurs",
         [`Section ${capitalizeSectionName(section)}`],
-        "csv",
+        "xlsx",
       ),
       buildVpColumns(),
       classes,

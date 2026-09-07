@@ -24,7 +24,7 @@ import {
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
@@ -210,11 +210,11 @@ const StatGroupeesManager = () => {
     try {
       const rows = await buildTermRows();
       rows.push(buildStatGroupeesBilanRow(rows));
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           `Stat groupees - Trim ${selectedTerm}`,
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         rows,
@@ -235,11 +235,11 @@ const StatGroupeesManager = () => {
     try {
       const rows = await buildAnnualRows();
       rows.push(buildStatGroupeesBilanRow(rows));
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           "Stat groupees - Annuelles",
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         rows,

@@ -15,7 +15,7 @@ import {
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import LoadingOverlay, { type LoadingOverlayProgress } from "../../sharedcomp/LoadingOverlay";
@@ -152,11 +152,11 @@ const StatMatiereManager = () => {
         term: selectedTerm,
         onProgress,
       });
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           `Stat par matiere - Trim ${selectedTerm}`,
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         flattenBlocksToCsvRows(blocks),
@@ -173,11 +173,11 @@ const StatMatiereManager = () => {
     setIsSaving(true);
     try {
       const blocks = await loadStatMatiereAnnualData({ accessToken, connection, schoolYear, section, onProgress });
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           "Stat par matiere - Annuelle",
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         flattenBlocksToCsvRows(blocks),

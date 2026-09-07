@@ -37,7 +37,7 @@ import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
 } from "../../../utils/exportData";
@@ -457,8 +457,8 @@ const TimetableHub = () => {
 
   const handleExportStaffHoursExcel = async () => {
     setIsExportingTimetable(true);
-    await exportRowsToCsv(
-      buildTimestampedFilename(t.staffHoursDialogTitle, [], "csv"),
+    await exportRowsToXlsx(
+      buildTimestampedFilename(t.staffHoursDialogTitle, [], "xlsx"),
       staffHoursExportColumns,
       staffHoursRows,
     );
@@ -626,8 +626,8 @@ const TimetableHub = () => {
     if (!rows) {
       return;
     }
-    await exportRowsToCsv(
-      buildTimestampedFilename(t.unassignedTeacherReportTitle, [], "csv"),
+    await exportRowsToXlsx(
+      buildTimestampedFilename(t.unassignedTeacherReportTitle, [], "xlsx"),
       unassignedTeacherExportColumns,
       rows,
     );

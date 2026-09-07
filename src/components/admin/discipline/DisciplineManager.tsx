@@ -15,7 +15,7 @@ import {
 import { sanitizeSubjectTitle } from "../../../utils/subjectImport";
 import {
   buildTimestampedFilename,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
 } from "../../../utils/exportData";
@@ -339,7 +339,7 @@ const DisciplineManager = () => {
 
   const handleExportExcel = () => {
     const title = t.pdfTitle(selectedClasse?.classe_name ?? "", selectedTerm);
-    exportRowsToCsv(buildTimestampedFilename(title, [], "csv"), exportColumns, roster);
+    exportRowsToXlsx(buildTimestampedFilename(title, [], "xlsx"), exportColumns, roster);
   };
 
   const handleExportPdf = async () => {

@@ -36,7 +36,7 @@ import { sanitizeMarkInput, isMarkInRange, formatMarkValue } from "../../../util
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { parseMarkImportFile } from "../../../utils/markImport";
@@ -581,13 +581,13 @@ const MarkEntryManager = () => {
     const filename = buildTimestampedFilename(
       selectedClasse?.classe_name ?? "",
       [selectedSubject?.subject_title ?? "", `Trim ${selectedTerm}`, periodFilenameSegment],
-      "csv",
+      "xlsx",
     );
     // Always the full roster, never filteredRoster - matches every other manager's "export ignores
     // the active search filter" convention. The mark cell is re-parsed to a plain Number rather than
     // exported as the displayed "XX.YY" string, so re-importing the same file round-trips exactly
     // and a whole mark doesn't carry a misleading ".00".
-    exportRowsToCsv(
+    exportRowsToXlsx(
       filename,
       [
         { header: t.exportMarksColIndex, accessor: (_row: Student, index: number) => index + 1 },

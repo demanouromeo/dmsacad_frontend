@@ -26,7 +26,7 @@ import {
 import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -492,8 +492,8 @@ const StaffManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
-      buildTimestampedFilename("Liste du personnel", [], "csv"),
+    exportRowsToXlsx(
+      buildTimestampedFilename("Liste du personnel", [], "xlsx"),
       exportColumns,
       staffList,
     );

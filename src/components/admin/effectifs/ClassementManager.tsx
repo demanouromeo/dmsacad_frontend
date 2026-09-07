@@ -29,7 +29,7 @@ import {
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
@@ -261,31 +261,31 @@ const ClassementManager = () => {
       const classeRows = await buildClasseRows(isAnnual);
       const flatRows = classeRows.flatMap((c) => c.rows);
       if (activeTab === "premiers") {
-        exportRowsToCsv(
+        exportRowsToXlsx(
           buildTimestampedFilename(
             isAnnual ? "Liste des premiers - Annuelle" : `Liste des premiers - Trim ${selectedTerm}`,
             [`Section ${capitalizeSectionName(section)}`],
-            "csv",
+            "xlsx",
           ),
           premiersCsvColumns,
           buildPremiersList(flatRows),
         );
       } else if (activeTab === "trois") {
-        exportRowsToCsv(
+        exportRowsToXlsx(
           buildTimestampedFilename(
             isAnnual ? "Liste des 3 premiers - Annuelle" : `Liste des 3 premiers - Trim ${selectedTerm}`,
             [`Section ${capitalizeSectionName(section)}`],
-            "csv",
+            "xlsx",
           ),
           troisPremiersCsvColumns,
           flattenTroisPremiers(buildTroisPremiersGroups(classeRows)),
         );
       } else {
-        exportRowsToCsv(
+        exportRowsToXlsx(
           buildTimestampedFilename(
             isAnnual ? "Classement general - Annuel" : `Classement general - Trim ${selectedTerm}`,
             [`Section ${capitalizeSectionName(section)}`],
-            "csv",
+            "xlsx",
           ),
           generalCsvColumns,
           buildClassementGeneral(flatRows),

@@ -29,7 +29,7 @@ import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -586,11 +586,11 @@ const ClasseManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste de classes",
         [`Section ${capitalizeSectionName(section)}`],
-        "csv",
+        "xlsx",
       ),
       exportColumns,
       classes,

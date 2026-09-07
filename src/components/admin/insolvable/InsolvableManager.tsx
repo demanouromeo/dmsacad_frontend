@@ -9,7 +9,7 @@ import { StudentReader } from "../../../dbmanger/StudentReader";
 import type { Classe } from "../../../interfaces/Classe";
 import {
   buildTimestampedFilename,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
 } from "../../../utils/exportData";
@@ -196,7 +196,7 @@ const InsolvableManager = () => {
 
   const handleExportExcel = () => {
     const title = t.pdfTitle(selectedClasse?.classe_name ?? "");
-    exportRowsToCsv(buildTimestampedFilename(title, [], "csv"), exportColumns, roster);
+    exportRowsToXlsx(buildTimestampedFilename(title, [], "xlsx"), exportColumns, roster);
   };
 
   const handleExportPdf = async () => {

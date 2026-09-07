@@ -13,7 +13,7 @@ import {
   loadAnnualApcReportCardDataForClasse,
 } from "../../../utils/reportCard/loadAnnualReportCardData";
 import {
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
   buildTimestampedFilename,
   capitalizeSectionName,
@@ -181,7 +181,7 @@ const ScholarshipManager = () => {
 
   const handleExportBoursiersCsv = () => {
     const title = t.pdfTitleBoursiers(schoolYear);
-    exportRowsToCsv(buildTimestampedFilename(title, sectionSegment, "csv"), exportColumns, boursiers);
+    exportRowsToXlsx(buildTimestampedFilename(title, sectionSegment, "xlsx"), exportColumns, boursiers);
   };
 
   const handleExportBoursiersPdf = async () => {
@@ -197,7 +197,7 @@ const ScholarshipManager = () => {
 
   const handleExportBoursieresCsv = () => {
     const title = t.pdfTitleBoursieres(schoolYear);
-    exportRowsToCsv(buildTimestampedFilename(title, sectionSegment, "csv"), exportColumns, boursieres);
+    exportRowsToXlsx(buildTimestampedFilename(title, sectionSegment, "xlsx"), exportColumns, boursieres);
   };
 
   const handleExportBoursieresPdf = async () => {

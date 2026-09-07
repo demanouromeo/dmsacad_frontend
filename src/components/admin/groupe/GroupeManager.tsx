@@ -20,7 +20,7 @@ import { isDuplicateNameError } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -212,11 +212,11 @@ const GroupeManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des groupes",
         [`Section ${capitalizeSectionName(section)}`],
-        "csv",
+        "xlsx",
       ),
       exportColumns,
       groupes,

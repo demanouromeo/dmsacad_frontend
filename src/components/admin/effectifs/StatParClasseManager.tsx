@@ -25,7 +25,7 @@ import {
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
@@ -228,11 +228,11 @@ const StatParClasseManager = () => {
     setIsSaving(true);
     try {
       const blocks = await buildClasseBlocks(isAnnual);
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           isAnnual ? "Statistiques par classe - Annuelle" : `Statistiques par classe - Trim ${selectedTerm}`,
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         flattenForCsv(blocks),

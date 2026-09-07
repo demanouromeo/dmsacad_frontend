@@ -21,7 +21,7 @@ import CloseButton from "../../sharedcomp/CloseButton";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
 } from "../../../utils/exportData";
 import {
   drawPdfLetterhead,
@@ -391,20 +391,20 @@ const CourseAssignmentManager = () => {
   };
 
   // Exports the right panel exactly as shown (the selected teacher's own courses) - a plain
-  // header row + data rows, same exportRowsToCsv convention as every other admin screen. Separate
+  // header row + data rows, same exportRowsToXlsx convention as every other admin screen. Separate
   // from Print, which is a different, whole-section document grouped by classe rather than staff.
   const handleExportExcel = () => {
     if (!selectedStaff) {
       return;
     }
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des attributions",
         [
           formatStaffLabel(selectedStaff, false),
           `Section ${capitalizeSectionName(section)}`,
         ],
-        "csv",
+        "xlsx",
       ),
       [
         {

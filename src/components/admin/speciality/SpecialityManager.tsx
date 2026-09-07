@@ -25,7 +25,7 @@ import { isDuplicateNameError } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -271,11 +271,11 @@ const SpecialityManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des specialités",
         [`Section ${capitalizeSectionName(section)}`],
-        "csv",
+        "xlsx",
       ),
       exportColumns,
       specialities,

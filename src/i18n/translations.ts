@@ -1711,7 +1711,7 @@ export const vpManagerTranslations = {
     removeSelectionTooltip: (vpLabel: string) =>
       `Retirer les classes sélectionnées de '${vpLabel}'.`,
     exportExcelTooltip:
-      "Exporter la liste de toutes les classes de la section avec le nom de leur censeur (CSV). Une classe sans censeur apparaît avec une cellule vide.",
+      "Exporter la liste de toutes les classes de la section avec le nom de leur censeur (Excel). Une classe sans censeur apparaît avec une cellule vide.",
     exportPdfTooltip:
       "Exporter la liste de toutes les classes de la section avec le nom de leur censeur (PDF). Une classe sans censeur apparaît avec une cellule vide.",
     noVpToolboxBtn: "Classes sans censeur",
@@ -1767,7 +1767,7 @@ export const vpManagerTranslations = {
     removeSelectionTooltip: (vpLabel: string) =>
       `Remove the selected classes from '${vpLabel}'.`,
     exportExcelTooltip:
-      "Export the list of every class in this section with its vice principal's name (CSV). A class with no vice principal shows an empty cell.",
+      "Export the list of every class in this section with its vice principal's name (Excel). A class with no vice principal shows an empty cell.",
     exportPdfTooltip:
       "Export the list of every class in this section with its vice principal's name (PDF). A class with no vice principal shows an empty cell.",
     noVpToolboxBtn: "Classes without a VP",

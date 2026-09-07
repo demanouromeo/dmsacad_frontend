@@ -22,7 +22,7 @@ import { isDuplicateNameError } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -212,11 +212,11 @@ const FiliereManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des filière",
         [`Section ${capitalizeSectionName(section)}`],
-        "csv",
+        "xlsx",
       ),
       exportColumns,
       filieres,

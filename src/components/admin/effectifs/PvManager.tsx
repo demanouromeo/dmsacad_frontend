@@ -22,7 +22,7 @@ import { exportPvAnnualToPdf, exportPvTermToPdf } from "../../../utils/pv/export
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import PickerSkeleton from "../../sharedcomp/skeletons/PickerSkeleton";
@@ -319,11 +319,11 @@ const PvManager = () => {
     try {
       const rows = await buildTermRowsForClasse(selectedClasse.classe_id, isSelectedClasseApc);
       const columns = isSelectedClasseApc ? termCsvColumnsApc : termCsvColumnsNonApc;
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           `PV ${selectedClasse.classe_name} TRIM${selectedTerm}`,
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         columns,
         rows,
@@ -342,11 +342,11 @@ const PvManager = () => {
     setIsSaving(true);
     try {
       const rows = await buildAnnualRowsForClasse(selectedClasse.classe_id, isSelectedClasseApc);
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           `PV Annuel ${selectedClasse.classe_name}`,
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         annualCsvColumns,
         rows,

@@ -25,7 +25,7 @@ import { STAT_GROUPEES_TERM_ORDINAL } from "../../../utils/statGroupees/exportSt
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
@@ -234,11 +234,11 @@ const SyntheseGlobaleManager = () => {
     try {
       const thParam = await ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear);
       const rows = await buildTermRows(thParam);
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           `Synthese globale - Trim ${selectedTerm}`,
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         rows,
@@ -259,11 +259,11 @@ const SyntheseGlobaleManager = () => {
     try {
       const thParam = await ThParamReader.fetchThParamOfYear(accessToken, connection, schoolYear);
       const rows = await buildAnnualRows(thParam);
-      exportRowsToCsv(
+      exportRowsToXlsx(
         buildTimestampedFilename(
           "Synthese globale - Annuelle",
           [`Section ${capitalizeSectionName(section)}`],
-          "csv",
+          "xlsx",
         ),
         csvColumns,
         rows,

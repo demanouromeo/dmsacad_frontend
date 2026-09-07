@@ -8,7 +8,7 @@ import { StudentReader } from "../../../dbmanger/StudentReader";
 import { buildSectionEffectif, sumSections, type SectionEffectif } from "../../../utils/effectifs";
 import {
   buildTimestampedFilename,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   type ExportColumn,
 } from "../../../utils/exportData";
 import { exportEffectifsToPdf } from "../../../utils/exportEffectifs";
@@ -134,8 +134,8 @@ const EffectifsManager = () => {
   const grandTotal = sumSections(sections);
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
-      buildTimestampedFilename("Effectifs par classe", [], "csv"),
+    exportRowsToXlsx(
+      buildTimestampedFilename("Effectifs par classe", [], "xlsx"),
       csvColumns,
       buildFlatRows(sections),
     );

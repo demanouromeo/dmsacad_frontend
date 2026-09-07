@@ -23,7 +23,7 @@ import { isDuplicateNameError, stripHtmlTags } from "../../../utils/apiErrors";
 import {
   buildTimestampedFilename,
   capitalizeSectionName,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
@@ -345,11 +345,11 @@ const SubjectManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
+    exportRowsToXlsx(
       buildTimestampedFilename(
         "Liste des matières",
         [`Section ${capitalizeSectionName(section)}`],
-        "csv",
+        "xlsx",
       ),
       exportColumns,
       subjects,

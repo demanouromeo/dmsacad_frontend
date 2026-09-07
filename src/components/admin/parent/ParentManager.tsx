@@ -14,7 +14,7 @@ import ExportButtons from "../../sharedcomp/ExportButtons";
 import CloseButton from "../../sharedcomp/CloseButton";
 import { MIN_STAFF_NAME_LENGTH, MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH, sanitizePhoneNumber } from "../../../utils/textValidation";
 import { isDuplicateNameError } from "../../../utils/apiErrors";
-import { buildTimestampedFilename, exportRowsToCsv, exportRowsToPdf } from "../../../utils/exportData";
+import { buildTimestampedFilename, exportRowsToXlsx, exportRowsToPdf } from "../../../utils/exportData";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import ParentPhotoCell from "./ParentPhotoCell";
 import ParentPhotoDialog from "./ParentPhotoDialog";
@@ -315,7 +315,7 @@ const ParentManager = () => {
   ];
 
   const handleExportExcel = () => {
-    exportRowsToCsv(buildTimestampedFilename("Liste des parents", [], "csv"), exportColumns, parentList);
+    exportRowsToXlsx(buildTimestampedFilename("Liste des parents", [], "xlsx"), exportColumns, parentList);
   };
 
   const handleExportPdf = () => {

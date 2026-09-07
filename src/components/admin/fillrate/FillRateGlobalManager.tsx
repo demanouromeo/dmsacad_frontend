@@ -20,7 +20,7 @@ import {
 } from "../../../utils/fillRateAggregation";
 import {
   buildTimestampedFilename,
-  exportRowsToCsv,
+  exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
 } from "../../../utils/exportData";
@@ -201,8 +201,8 @@ const FillRateGlobalManager = () => {
   };
 
   const handleExportExcel = () => {
-    exportRowsToCsv(
-      buildTimestampedFilename(t.title, buildExportSegments(), "csv"),
+    exportRowsToXlsx(
+      buildTimestampedFilename(t.title, buildExportSegments(), "xlsx"),
       exportColumns,
       sortedRows,
     );
