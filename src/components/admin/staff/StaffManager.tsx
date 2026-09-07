@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, IdCard, Upload, Wand2 } from "lucide-react";
+import { Eye, EyeOff, IdCard, Stamp, Upload, Wand2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useToast } from "../../../toast/useToast";
@@ -36,6 +36,10 @@ import {
   type ImportedStaff,
   type StaffImportError,
 } from "../../../utils/staffImport";
+import {
+  exportServiceCertificatesToPdf,
+  type ServiceCertificateKind,
+} from "../../../utils/exportServiceCertificates";
 
 const mapStaffImportErrorToMessage = (
   error: StaffImportError,
@@ -509,6 +513,32 @@ const StaffManager = () => {
     );
   };
 
+  const serviceCertificateTitles: Record<ServiceCertificateKind, string> = {
+    reprise: "Reprise de service",
+    prise: "Prise de service",
+    presence: "Présence effective",
+  };
+
+  const handlePrintServiceCertificate = (kind: ServiceCertificateKind) => {
+    const selectedStaff = staffList.filter((s) => selectedIds.has(s.staff_id));
+    if (selectedStaff.length === 0) {
+      showToast(t.serviceCertNoSelection, { type: "warning" });
+      return;
+    }
+    const title = serviceCertificateTitles[kind];
+    const nameSegment =
+      selectedStaff.length === 1
+        ? [`${selectedStaff[0].name} ${selectedStaff[0].surname ?? ""}`.trim()]
+        : [];
+    exportServiceCertificatesToPdf(
+      kind,
+      selectedStaff,
+      functionLabel,
+      schoolHeader,
+      buildTimestampedFilename(title, nameSegment, "pdf"),
+    );
+  };
+
   return (
     <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
@@ -516,6 +546,34 @@ const StaffManager = () => {
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
         <div className="flex flex-wrap gap-2 items-center">
+          <div className="dropdown dropdown-end">
+            <button
+              type="button"
+              tabIndex={0}
+              className="btn btn-outline btn-sm gap-2"
+              title={t.serviceCertBtnTooltip}
+            >
+              <Stamp className="w-4 h-4" />
+              {t.serviceCertBtn}
+            </button>
+            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow z-10 w-64 p-2">
+              <li>
+                <button type="button" onClick={() => handlePrintServiceCertificate("presence")}>
+                  {t.serviceCertPresence}
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => handlePrintServiceCertificate("prise")}>
+                  {t.serviceCertPrise}
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => handlePrintServiceCertificate("reprise")}>
+                  {t.serviceCertReprise}
+                </button>
+              </li>
+            </ul>
+          </div>
           <ExportButtons
             onExportExcel={handleExportExcel}
             onExportPdf={handleExportPdf}

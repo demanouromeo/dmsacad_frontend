@@ -594,6 +594,13 @@ export const staffManagerTranslations = {
     detailsDate1erePriseLabel: "Date de 1ère prise de service",
     detailsSaveSuccess: "Fiche du personnel mise à jour avec succès.",
     detailsSaveFailure: "Échec de la mise à jour de la fiche du personnel.",
+    serviceCertBtn: "Certificats de service",
+    serviceCertBtnTooltip:
+      "Imprimer un certificat de service pour les membres du personnel sélectionnés",
+    serviceCertPresence: "Présence effective",
+    serviceCertPrise: "Prise de service",
+    serviceCertReprise: "Reprise de service",
+    serviceCertNoSelection: "Sélectionnez au moins un membre du personnel.",
   },
   en: {
     title: "Staff",
@@ -699,6 +706,12 @@ export const staffManagerTranslations = {
     detailsDate1erePriseLabel: "First appointment date",
     detailsSaveSuccess: "Staff profile updated successfully.",
     detailsSaveFailure: "Failed to update the staff profile.",
+    serviceCertBtn: "Service certificates",
+    serviceCertBtnTooltip: "Print a service certificate for the selected staff members",
+    serviceCertPresence: "Effective service",
+    serviceCertPrise: "Assumption of duties",
+    serviceCertReprise: "Resumption of duties",
+    serviceCertNoSelection: "Select at least one staff member.",
   },
 };
 
