@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ArrowLeft, RefreshCw, Undo2, HelpCircle, Wrench, Printer, XCircle } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowLeft,
+  RefreshCw,
+  Undo2,
+  HelpCircle,
+  Wrench,
+  Printer,
+  XCircle,
+  BarChart3,
+} from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -29,6 +39,7 @@ import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
 import SearchInput from "../../sharedcomp/SearchInput";
+import BasculementStatsDialog from "./BasculementStatsDialog";
 import iconInitBasculement from "../../../assets/compo/basculement/init_basculement.svg";
 
 interface LeftRow {
@@ -102,6 +113,7 @@ const BasculementManager = () => {
   const [leftSelectedIds, setLeftSelectedIds] = useState<Set<number>>(new Set());
   const [leftSearch, setLeftSearch] = useState("");
   const [sortByMerit, setSortByMerit] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   const [rightRows, setRightRows] = useState<RightRow[]>([]);
   const [isLoadingRight, setIsLoadingRight] = useState(true);
@@ -316,6 +328,16 @@ const BasculementManager = () => {
         r.matricule.toLowerCase().includes(q),
     );
   }, [rightRows, rightSearch]);
+
+  // A student still in leftRows is by design either dismissed or a repeater-in-place (a promoted
+  // student gets moved out via "Basculer") - see BasculementStatsDialog's own comment. Computed
+  // from the full leftRows, not filteredLeftRows, so an active search doesn't skew the stats -
+  // same "stats ignore the search filter" convention as StudentManager's headcount bar.
+  const leftStats = useMemo(() => {
+    const total = leftRows.length;
+    const exclus = leftRows.filter((r) => r.isDismissed).length;
+    return { total, exclus, redoublants: total - exclus };
+  }, [leftRows]);
 
   const toggleLeftSelect = (studId: number) =>
     setLeftSelectedIds((prev) => {
@@ -732,6 +754,15 @@ const BasculementManager = () => {
         </form>
       </dialog>
 
+      <BasculementStatsDialog
+        isOpen={isStatsOpen}
+        onClose={() => setIsStatsOpen(false)}
+        classeName={selectedLeftClasse?.classe_name ?? ""}
+        total={leftStats.total}
+        exclus={leftStats.exclus}
+        redoublants={leftStats.redoublants}
+      />
+
       {nothingLoaded ? (
         <div
           className="grid grid-cols-1 lg:grid-cols-[60%_auto_1fr] gap-4 items-start"
@@ -774,6 +805,15 @@ const BasculementManager = () => {
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs gap-1"
+                    title={t.statsBtnTooltip}
+                    disabled={!selectedLeftClasse || isLoadingLeft}
+                    onClick={() => setIsStatsOpen(true)}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </button>
                   <button
                     type="button"
                     className="btn btn-ghost btn-xs gap-1"

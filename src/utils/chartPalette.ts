@@ -4,6 +4,7 @@ export const CHART_COLOR_GARCONS = "#3987e5"; // blue
 export const CHART_COLOR_FILLES = "#9085e9"; // violet
 export const CHART_COLOR_NOUVEAUX = "#3987e5"; // blue
 export const CHART_COLOR_REDOUBLANTS = "#d95926"; // orange
+export const CHART_COLOR_EXCLUS = "#e66767"; // red - dismissed/excluded students (Basculement stats)
 export const CHART_COLOR_CYCLE_1 = "#3987e5"; // blue
 export const CHART_COLOR_CYCLE_2 = "#9085e9"; // violet
 

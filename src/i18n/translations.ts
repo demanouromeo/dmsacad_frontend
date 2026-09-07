@@ -2828,6 +2828,13 @@ export const basculementManagerTranslations = {
     emptyStudents: "Aucun élève trouvé pour cette classe.",
     emptyRightStudents: "Aucun élève basculé pour cette classe.",
     noSearchResults: "Aucun élève ne correspond à la recherche.",
+    statsBtnTooltip: "Statistiques de la classe",
+    statsTitle: (classeName: string) => `Statistiques - ${classeName}`,
+    statsTotalLabel: "Total",
+    statsExclusLabel: "Exclus",
+    statsRedoublantsLabel: "Redoublants",
+    statsCloseBtn: "Fermer",
+    statsEmpty: "Aucun élève dans cette classe.",
   },
   en: {
     title: "Basculement management",
@@ -2909,6 +2916,13 @@ export const basculementManagerTranslations = {
     emptyStudents: "No student found for this classe.",
     emptyRightStudents: "No transferred student for this classe.",
     noSearchResults: "No student matches the search.",
+    statsBtnTooltip: "Classe statistics",
+    statsTitle: (classeName: string) => `Statistics - ${classeName}`,
+    statsTotalLabel: "Total",
+    statsExclusLabel: "Dismissed",
+    statsRedoublantsLabel: "Repeaters",
+    statsCloseBtn: "Close",
+    statsEmpty: "No student in this classe.",
   },
 };
 
