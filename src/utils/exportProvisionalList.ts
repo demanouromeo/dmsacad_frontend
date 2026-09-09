@@ -16,7 +16,7 @@ export const exportProvisionalListToPdf = async (
   blocks: ProvisionalListBlock[],
   schoolHeader: SchoolHeader,
   filename: string,
-  columnHeaders: { matricule: string; name: string; surname: string; sexe: string; repeating: string },
+  columnHeaders: { matricule: string; nameSurname: string; sexe: string; repeating: string },
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -53,8 +53,7 @@ export const exportProvisionalListToPdf = async (
         [
           "No",
           columnHeaders.matricule,
-          columnHeaders.name,
-          columnHeaders.surname,
+          columnHeaders.nameSurname,
           columnHeaders.sexe,
           columnHeaders.repeating,
         ],
@@ -62,8 +61,7 @@ export const exportProvisionalListToPdf = async (
       body: block.rows.map((row, index) => [
         index + 1,
         row.matricule,
-        row.name,
-        row.surname,
+        `${row.name} ${row.surname}`.trim(),
         row.sexe,
         row.repeatingLabel,
       ]),
@@ -73,6 +71,10 @@ export const exportProvisionalListToPdf = async (
       // exportRowsToPdf for the same fix).
       styles: { fontSize: 9, textColor: [0, 0, 0] },
       headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
+      // Name+surname share one wider column (index 2) instead of two cramped ones - "ellipsize"
+      // truncates with "…" rather than wrapping to a second line if it still doesn't fit, so every
+      // row stays a single line even for an unusually long name.
+      columnStyles: { 2: { overflow: "ellipsize" } },
     });
   });
 

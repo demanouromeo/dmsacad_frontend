@@ -455,11 +455,24 @@ const StudentManager = () => {
     },
   ];
 
-  // Same columns as exportColumns, with the row index prepended - only the printed PDF needs a
-  // visible Nº column, CSV/Excel already has an implicit row number via the spreadsheet itself.
+  // Mostly the same columns as exportColumns (CSV/Excel keeps Name and Surname separate), but the
+  // printed PDF prepends a visible Nº column (CSV/Excel already has an implicit row number via the
+  // spreadsheet itself) and merges Name+Surname into one wider "Nom/Prénom" column so a student's
+  // full name has more room to fit on a single row of the table.
   const pdfExportColumns = [
     { header: t.tableHeaderIndex, accessor: (_s: Student, index: number) => index + 1 },
-    ...exportColumns,
+    { header: t.tableHeaderMatricule, accessor: (s: Student) => s.matricule ?? "" },
+    {
+      header: t.tableHeaderNameSurname,
+      accessor: (s: Student) => `${s.name} ${s.surname ?? ""}`.trim(),
+    },
+    { header: t.tableHeaderBday, accessor: (s: Student) => s.bday ?? "" },
+    { header: t.tableHeaderBplace, accessor: (s: Student) => s.bplace ?? "" },
+    { header: t.tableHeaderSexe, accessor: (s: Student) => s.sexe },
+    {
+      header: t.tableHeaderRepeating,
+      accessor: (s: Student) => (s.repeating === 1 ? t.repeatingYes : t.repeatingNo),
+    },
   ];
 
   const handleExportExcel = () => {
@@ -556,6 +569,10 @@ const StudentManager = () => {
       // exportRowsToPdf for the same fix).
       styles: { textColor: [0, 0, 0] },
       headStyles: { textColor: [255, 255, 255] },
+      // Nom/Prénom (column index 2) gets the freed-up room from merging Name+Surname into one
+      // column - "ellipsize" truncates with "…" instead of wrapping to a second line if an
+      // unusually long name still doesn't fit, so every row stays a single line.
+      columnStyles: { 2: { overflow: "ellipsize" } },
     });
     const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
       .lastAutoTable.finalY;
