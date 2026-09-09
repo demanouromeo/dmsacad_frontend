@@ -442,6 +442,29 @@ const StudentManager = () => {
   };
   const nouveaux = stats.total - stats.redoublants;
 
+  // Some student records store bday as a full ISO datetime ("2008-07-14T00:00:00.000Z") instead of
+  // a plain date - strip the time/zone portion for the printed PDF so it always reads as just
+  // "2008-07-14". Already-plain values ("16/08/2012", "2011-01-01") have no "T" and pass through
+  // untouched.
+  const formatBdayForPdf = (bday: string | null | undefined): string => {
+    if (!bday) {
+      return "";
+    }
+    const isoDateMatch = bday.match(/^(\d{4}-\d{2}-\d{2})T/);
+    return isoDateMatch ? isoDateMatch[1] : bday;
+  };
+
+  // Birth place has no fixed-width column of its own in the PDF (unlike Nom/Prénom's autotable
+  // "ellipsize" style) - cap it at 15 characters here instead, trimming to 14 + "…" so the shown
+  // value (ellipsis included) never exceeds 15.
+  const MAX_BPLACE_LENGTH_PDF = 15;
+  const formatBplaceForPdf = (bplace: string | null | undefined): string => {
+    const value = bplace ?? "";
+    return value.length > MAX_BPLACE_LENGTH_PDF
+      ? `${value.slice(0, MAX_BPLACE_LENGTH_PDF - 1)}…`
+      : value;
+  };
+
   const exportColumns = [
     { header: t.tableHeaderMatricule, accessor: (s: Student) => s.matricule ?? "" },
     { header: t.tableHeaderName, accessor: (s: Student) => s.name },
@@ -466,8 +489,8 @@ const StudentManager = () => {
       header: t.tableHeaderNameSurname,
       accessor: (s: Student) => `${s.name} ${s.surname ?? ""}`.trim(),
     },
-    { header: t.tableHeaderBday, accessor: (s: Student) => s.bday ?? "" },
-    { header: t.tableHeaderBplace, accessor: (s: Student) => s.bplace ?? "" },
+    { header: t.tableHeaderBday, accessor: (s: Student) => formatBdayForPdf(s.bday) },
+    { header: t.tableHeaderBplace, accessor: (s: Student) => formatBplaceForPdf(s.bplace) },
     { header: t.tableHeaderSexe, accessor: (s: Student) => s.sexe },
     {
       header: t.tableHeaderRepeating,

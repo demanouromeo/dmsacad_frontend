@@ -657,7 +657,7 @@ const BasculementManager = () => {
       blocks,
       schoolHeader,
       buildTimestampedFilename(t.printProvisoireTitle(nextYear), [`Section ${capitalizeSectionName(section)}`], "pdf"),
-      { matricule: "Matricule", nameSurname: "Nom/Prénom", sexe: "Sexe", repeating: "Redouble" },
+      { matricule: "Matricule", nameSurname: "Nom & Prénom", sexe: "Sexe", repeating: "Redouble" },
     );
   };
 
