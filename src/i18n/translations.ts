@@ -742,7 +742,7 @@ export const studentManagerTranslations = {
     tableHeaderName: "Nom",
     tableHeaderSurname: "Prénom",
     tableHeaderNameSurname: "Nom & Prénom",
-    tableHeaderBday: "Date naiss.",
+    tableHeaderBday: "Date nai.",
     tableHeaderBplace: "Lieu naiss.",
     tableHeaderSexe: "Sexe",
     tableHeaderRepeating: "Redouble",
