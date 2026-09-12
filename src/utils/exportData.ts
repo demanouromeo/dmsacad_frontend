@@ -13,6 +13,12 @@ export interface ExportColumn<T> {
   // under-staffed teacher's "Heures sous-employées" figure in red at a glance (TimetableHub's staff
   // hours report). CSV has no concept of cell color, so exportRowsToCsv ignores this.
   textColor?: (row: T, index: number) => [number, number, number] | undefined;
+  // Optional per-column overflow behavior for exportRowsToPdf only (jspdf-autotable's own
+  // "ellipsize" cell style) - for a column merging multiple fields into one wider cell (e.g. a
+  // combined "Nom & Prénom"), truncates with "…" instead of wrapping onto a second line so a long
+  // value still keeps every row to a single line. CSV/Excel ignore this - a spreadsheet cell has no
+  // such limit.
+  overflow?: "ellipsize";
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
@@ -149,6 +155,12 @@ export const exportRowsToPdf = async <T>(
     // striped theme's blue head fill (exportMyTimetablePdf, exportTimetablePdf) already carves out
     // this same headStyles exception - this generic exporter was missing it.
     headStyles: { textColor: [255, 255, 255] },
+    columnStyles: columns.reduce<Record<number, { overflow: "ellipsize" }>>((acc, c, index) => {
+      if (c.overflow) {
+        acc[index] = { overflow: c.overflow };
+      }
+      return acc;
+    }, {}),
   });
   if (includeSignature && schoolHeader) {
     // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own

@@ -14,6 +14,7 @@ interface StaffDetailsDialogProps {
 }
 
 type FieldKey =
+  | "matricule"
   | "grade"
   | "diplome"
   | "specilitee"
@@ -24,6 +25,8 @@ type FieldKey =
   | "arrodissement"
   | "numeroRecrutement"
   | "provenantDe"
+  | "pob"
+  | "dob"
   | "dateReprise"
   | "dateEntree"
   | "date1erePrise";
@@ -56,6 +59,7 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
   // so a fresh initializer run is exactly the "reset state for a new prop" React itself recommends
   // over deriving it in an effect (see the react-hooks/set-state-in-effect rule this sidesteps).
   const [fields, setFields] = useState<Record<FieldKey, string>>(() => ({
+    matricule: staff?.matricule ?? "",
     grade: staff?.grade ?? "",
     diplome: staff?.diplome ?? "",
     specilitee: staff?.specilitee ?? "",
@@ -66,6 +70,8 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
     arrodissement: staff?.arrodissement ?? "",
     numeroRecrutement: staff?.numeroRecrutement ?? "",
     provenantDe: staff?.provenantDe ?? "",
+    pob: staff?.pob ?? "",
+    dob: toDateInputValue(staff?.dob),
     dateReprise: toDateInputValue(staff?.dateReprise),
     dateEntree: toDateInputValue(staff?.dateEntree),
     date1erePrise: toDateInputValue(staff?.date1erePrise),
@@ -88,6 +94,7 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
   }, [staff]);
 
   const textFields: { key: FieldKey; label: string }[] = [
+    { key: "matricule", label: t.detailsMatriculeLabel },
     { key: "grade", label: t.detailsGradeLabel },
     { key: "diplome", label: t.detailsDiplomeLabel },
     { key: "specilitee", label: t.detailsSpecialiteLabel },
@@ -98,6 +105,7 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
     { key: "arrodissement", label: t.detailsArrondissementLabel },
     { key: "numeroRecrutement", label: t.detailsNumeroRecrutementLabel },
     { key: "provenantDe", label: t.detailsProvenantDeLabel },
+    { key: "pob", label: t.detailsPobLabel },
   ];
 
   // Stored as plain varchar on `staff` (no DATE column, no format validation server-side) - same
@@ -105,6 +113,7 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
   // already uses, chosen over adding real DATE columns since these are pure display/print fields
   // with no date arithmetic anywhere in the app.
   const dateFields: { key: FieldKey; label: string }[] = [
+    { key: "dob", label: t.detailsDobLabel },
     { key: "dateReprise", label: t.detailsDateRepriseLabel },
     { key: "dateEntree", label: t.detailsDateEntreeLabel },
     { key: "date1erePrise", label: t.detailsDate1erePriseLabel },
@@ -122,6 +131,7 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
     setIsSaving(true);
     const result = await StaffReader.modifyStaff(accessToken, connection, {
       staff_id: staff.staff_id,
+      matricule: trimmed.matricule,
       grade: trimmed.grade,
       diplome: trimmed.diplome,
       specilitee: trimmed.specilitee,
@@ -133,6 +143,8 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
       arrodissement: trimmed.arrodissement,
       numeroRecrutement: trimmed.numeroRecrutement,
       provenantDe: trimmed.provenantDe,
+      pob: trimmed.pob,
+      dob: trimmed.dob,
       dateReprise: trimmed.dateReprise,
       dateEntree: trimmed.dateEntree,
       date1erePrise: trimmed.date1erePrise,
@@ -143,6 +155,7 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
     });
     if (result.status) {
       onSaved(staff.staff_id, {
+        matricule: trimmed.matricule || null,
         grade: trimmed.grade || null,
         diplome: trimmed.diplome || null,
         specilitee: trimmed.specilitee || null,
@@ -154,6 +167,8 @@ const StaffDetailsDialog = ({ staff, onClose, onSaved }: StaffDetailsDialogProps
         arrodissement: trimmed.arrodissement || null,
         numeroRecrutement: trimmed.numeroRecrutement || null,
         provenantDe: trimmed.provenantDe || null,
+        pob: trimmed.pob || null,
+        dob: trimmed.dob || null,
         dateReprise: trimmed.dateReprise || null,
         dateEntree: trimmed.dateEntree || null,
         date1erePrise: trimmed.date1erePrise || null,

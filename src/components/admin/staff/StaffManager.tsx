@@ -485,14 +485,21 @@ const StaffManager = () => {
     { header: t.tableHeaderLogin, accessor: (s: Staff) => s.login },
   ];
 
-  // PDF-only: prepends a row-index column, same convention as StudentManager's own
-  // pdfExportColumns - CSV relies on the spreadsheet's own implicit row numbers instead.
+  // Mostly the same columns as exportColumns (CSV/Excel keeps Name and Surname separate), but the
+  // printed PDF prepends a row-index column and merges Name+Surname into one wider "Nom & Prénom"
+  // column, same convention as StudentManager's own pdfExportColumns - CSV relies on the
+  // spreadsheet's own implicit row numbers instead, and has no per-column width limit to work around.
   const pdfExportColumns = [
     {
       header: t.tableHeaderIndex,
       accessor: (_s: Staff, index: number) => index + 1,
     },
-    ...exportColumns,
+    {
+      header: t.tableHeaderNameSurname,
+      accessor: (s: Staff) => `${s.name} ${s.surname ?? ""}`.trim(),
+      overflow: "ellipsize" as const,
+    },
+    ...exportColumns.slice(2),
   ];
 
   const handleExportExcel = () => {

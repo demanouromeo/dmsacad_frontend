@@ -6,6 +6,7 @@ import { useLanguage } from "../../../i18n/useLanguage";
 import { classeSubjectSettingsManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { TimetableReader } from "../../../dbmanger/TimetableReader";
+import { mapWithConcurrency, DEFAULT_REPORT_CONCURRENCY } from "../../../utils/concurrency";
 import type { Classe } from "../../../interfaces/Classe";
 import type { ClasseSubjectSetting } from "../../../interfaces/Timetable";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
@@ -39,6 +40,7 @@ const ClasseSubjectSettingsManager = () => {
   const [edited, setEdited] = useState<Record<number, EditedSetting>>({});
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [isSavingAll, setIsSavingAll] = useState(false);
   const weightHelpDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -107,12 +109,51 @@ const ClasseSubjectSettingsManager = () => {
     });
   };
 
+  // Saves every row's currently edited values in one action instead of clicking each row's own
+  // Save button in turn - bounded concurrency (see CLAUDE.md's fan-out guidance) rather than a bare
+  // Promise.all, since a classe can have a couple dozen subjects.
+  const handleSaveAll = async () => {
+    setIsSavingAll(true);
+    const results = await mapWithConcurrency(settings, DEFAULT_REPORT_CONCURRENCY, (row) => {
+      const values = edited[row.subject_classe_id] ?? {
+        weight: row.weight,
+        numnber_of_period_per_week: row.numnber_of_period_per_week,
+        commoncourse: row.commoncourse === 1,
+      };
+      return TimetableReader.updateClasseSubjectSetting(
+        accessToken,
+        connection,
+        row.subject_classe_id,
+        values.weight,
+        values.numnber_of_period_per_week,
+        values.commoncourse,
+      );
+    });
+    setIsSavingAll(false);
+    const allOk = results.every((r) => r.status);
+    showToast(allOk ? t.saveAllSuccess : t.saveAllFailure, {
+      type: allOk ? "info" : "danger",
+    });
+  };
+
   return (
     <div className="page-shell flex flex-col items-center">
-      {savingId !== null && <LoadingOverlay />}
+      {(savingId !== null || isSavingAll) && <LoadingOverlay />}
       <div className="page-header w-full max-w-4xl">
         <h1 className="page-title">{t.title}</h1>
-        <CloseButton />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm gap-2"
+            title={t.saveAllTooltip}
+            disabled={isLoadingSettings || settings.length === 0 || savingId !== null || isSavingAll}
+            onClick={handleSaveAll}
+          >
+            <Save className="w-4 h-4" />
+            {t.saveAllBtn}
+          </button>
+          <CloseButton />
+        </div>
       </div>
 
       <div className="w-full max-w-4xl flex items-center gap-3 mb-4 flex-nowrap">

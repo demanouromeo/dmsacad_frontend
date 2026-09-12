@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Eraser, Plus, Save, Trash2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -10,6 +10,7 @@ import type { Jour } from "../../../interfaces/Timetable";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 
 const MIN_NUM = 1;
 const MAX_NUM = 7;
@@ -106,6 +107,48 @@ const JoursManager = () => {
     if (result.status) {
       setReloadToken((n) => n + 1);
     }
+  };
+
+  // Floating "save all" button - saves every row's currently edited label/periods at once (bounded
+  // concurrency, same convention as StaffMaxPeriodsManager's own save-all), rather than requiring the
+  // admin to click each row's own save icon individually.
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    const results = await mapWithConcurrency(jours, DEFAULT_REPORT_CONCURRENCY, (j) =>
+      TimetableReader.saveJour(
+        accessToken,
+        connection,
+        schoolYear,
+        editedLabels[j.jour_id] ?? j.label,
+        j.num,
+        editedPeriods[j.jour_id] ?? j.number_of_periods,
+      ),
+    );
+    setIsSaving(false);
+    const failedCount = results.filter((r) => !r.status).length;
+    showToast(failedCount === 0 ? t.saveAllSuccess : t.saveAllPartialFailure(failedCount), {
+      type: failedCount === 0 ? "info" : "danger",
+    });
+    setReloadToken((n) => n + 1);
+  };
+
+  // Floating "delete all" button - confirm-gated (danger) like every other destructive bulk action in
+  // this app, then removes every day (and, per the backend's own cascading deleteJour, every period
+  // already scheduled on those days) at once.
+  const handleDeleteAll = async () => {
+    if (!(await confirm(t.deleteAllConfirmMessage, { danger: true }))) {
+      return;
+    }
+    setIsSaving(true);
+    const results = await mapWithConcurrency(jours, DEFAULT_REPORT_CONCURRENCY, (j) =>
+      TimetableReader.deleteJour(accessToken, connection, j.jour_id),
+    );
+    setIsSaving(false);
+    const failedCount = results.filter((r) => !r.status).length;
+    showToast(failedCount === 0 ? t.deleteAllSuccess : t.deleteAllPartialFailure(failedCount), {
+      type: failedCount === 0 ? "info" : "danger",
+    });
+    setReloadToken((n) => n + 1);
   };
 
   return (
@@ -234,6 +277,33 @@ const JoursManager = () => {
             >
               <Plus className="w-4 h-4" />
               {t.addBtn}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && jours.length > 0 && (
+        <div className="fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-1/2 -translate-x-1/2 flex gap-4 z-40">
+          <div className="tooltip tooltip-top" data-tip={t.saveAllTooltip}>
+            <button
+              type="button"
+              aria-label={t.saveAllTooltip}
+              className="btn btn-circle btn-lg btn-primary shadow-lg shadow-primary/30 transition-all duration-300 ease-out hover:scale-110 hover:shadow-xl"
+              disabled={isSaving}
+              onClick={handleSaveAll}
+            >
+              <Save className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="tooltip tooltip-top" data-tip={t.deleteAllTooltip}>
+            <button
+              type="button"
+              aria-label={t.deleteAllTooltip}
+              className="btn btn-circle btn-lg btn-error shadow-lg shadow-error/30 transition-all duration-300 ease-out hover:scale-110 hover:shadow-xl"
+              disabled={isSaving}
+              onClick={handleDeleteAll}
+            >
+              <Eraser className="w-6 h-6" />
             </button>
           </div>
         </div>

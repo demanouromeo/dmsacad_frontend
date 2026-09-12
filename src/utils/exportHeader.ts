@@ -18,8 +18,16 @@ const MOTTO_FR = "Paix - Travail - Patrie";
 const REPUBLIC_EN = "REPUBLIC OF CAMEROON";
 const MOTTO_EN = "Peace - Work - Fatherland";
 
-const formatPhone = (phone: SchoolHeaderConfig["phone1"] | undefined): string =>
-  phone !== null && phone !== undefined && phone !== "" ? String(phone) : "";
+// A school with no phone on file stores it as 0 (or "0") just as often as null/"" - basic_school_config
+// .phone1 is numeric, so an unset value round-trips as 0 rather than staying null. Treat every one of
+// those as "no phone" so the letterhead never prints a meaningless "Tel.: 0".
+const formatPhone = (phone: SchoolHeaderConfig["phone1"] | undefined): string => {
+  if (phone === null || phone === undefined) {
+    return "";
+  }
+  const text = String(phone).trim();
+  return text === "" || Number(text) === 0 ? "" : text;
+};
 
 export interface DrawPdfLetterheadOptions {
   // Report cards/bulletins omit the phone line - every other export keeps it (default true).
@@ -105,11 +113,12 @@ export const drawPdfLetterhead = (
   if (includePhone) {
     y += 5;
     doc.setFont("helvetica", "normal");
+    // The labels stay put even with no phone on file (rendering "Tel.:" / "Phone:" with nothing after
+    // them) - the reserved row is drawn either way, so keeping them preserves the letterhead's fixed
+    // bilingual shape rather than leaving a bare gap.
     const phone = formatPhone(config?.phone1);
-    if (phone) {
-      doc.text(`Tel.: ${phone}`, leftBlockCenterX, y, { align: "center" });
-      doc.text(`Phone: ${phone}`, rightBlockCenterX, y, { align: "center" });
-    }
+    doc.text(`Tel.: ${phone}`, leftBlockCenterX, y, { align: "center" });
+    doc.text(`Phone: ${phone}`, rightBlockCenterX, y, { align: "center" });
   }
 
   const logoSize = 18;

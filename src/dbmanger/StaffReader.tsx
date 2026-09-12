@@ -213,6 +213,9 @@ export class StaffReader {
       dateReprise: string;
       dateEntree: string;
       date1erePrise: string;
+      dob: string;
+      pob: string;
+      matricule: string;
     },
   ): Promise<ApiResult> => {
     return StaffReader.postJson(
