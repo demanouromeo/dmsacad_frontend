@@ -21,7 +21,10 @@ import ExportButtons from "../../sharedcomp/ExportButtons";
 import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
-import { sanitizeStudentName, parseStudentImportFile } from "../../../utils/studentImport";
+import {
+  sanitizeStudentName,
+  parseStudentImportFile,
+} from "../../../utils/studentImport";
 import { findClasseByName } from "../../../utils/classeMatch";
 import { generateUniqueMatricule } from "../../../utils/matricule";
 import { stripHtmlTags } from "../../../utils/apiErrors";
@@ -55,7 +58,8 @@ interface EditableFields {
 // linkage is deliberately out of scope - there's no backend parent module yet (no StudParentController/
 // routes), so unlike the reference mockup this screen has no Phone filter/column.
 const StudentManager = () => {
-  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } =
+    useAuth();
   const showToast = useToast();
   const confirm = useConfirm();
   const location = useLocation();
@@ -86,25 +90,40 @@ const StudentManager = () => {
   const [isGeneratingMatricule, setIsGeneratingMatricule] = useState(false);
 
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingFields, setEditingFields] = useState<EditableFields | null>(null);
+  const [editingFields, setEditingFields] = useState<EditableFields | null>(
+    null,
+  );
   const [editingMatricule, setEditingMatricule] = useState("");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
-  const [photoDialogStudent, setPhotoDialogStudent] = useState<Student | null>(null);
-  const [photoVersions, setPhotoVersions] = useState<Record<number, number>>({});
+  const [photoDialogStudent, setPhotoDialogStudent] = useState<Student | null>(
+    null,
+  );
+  const [photoVersions, setPhotoVersions] = useState<Record<number, number>>(
+    {},
+  );
   const bumpPhotoVersion = (studId: number) => {
-    setPhotoVersions((prev) => ({ ...prev, [studId]: (prev[studId] ?? 0) + 1 }));
+    setPhotoVersions((prev) => ({
+      ...prev,
+      [studId]: (prev[studId] ?? 0) + 1,
+    }));
   };
 
-  const selectedClasse = classes.find((c) => c.classe_id === selectedClasseId) ?? null;
+  const selectedClasse =
+    classes.find((c) => c.classe_id === selectedClasseId) ?? null;
 
   useEffect(() => {
     const load = async () => {
       setIsLoadingClasses(true);
-      const list = await ClasseReader.fetchClasses(accessToken, connection, schoolYear, section);
+      const list = await ClasseReader.fetchClasses(
+        accessToken,
+        connection,
+        schoolYear,
+        section,
+      );
       // CENSEUR can only manage students of the classes they're assigned to as VP (Classe.vp_id,
       // matched against the JWT's user_id) - same precedent as DisciplineManager's SG scoping.
       // ADMIN sees every classe.
@@ -141,8 +160,18 @@ const StudentManager = () => {
   const loadStudents = async (classeId: number) => {
     setIsLoadingStudents(true);
     const [studentRows, pivotRows] = await Promise.all([
-      StudentReader.fetchStudentsOfClasse(accessToken, connection, schoolYear, classeId),
-      StudentReader.fetchStudentClasseOfClasse(accessToken, connection, schoolYear, classeId),
+      StudentReader.fetchStudentsOfClasse(
+        accessToken,
+        connection,
+        schoolYear,
+        classeId,
+      ),
+      StudentReader.fetchStudentClasseOfClasse(
+        accessToken,
+        connection,
+        schoolYear,
+        classeId,
+      ),
     ]);
     const pivotByStudId = new Map(pivotRows.map((p) => [p.stud_id, p]));
     const merged = studentRows
@@ -187,13 +216,22 @@ const StudentManager = () => {
       return;
     }
     setIsGeneratingMatricule(true);
-    const all = await StudentReader.fetchAllStudentsOfYear(accessToken, connection, schoolYear);
+    const all = await StudentReader.fetchAllStudentsOfYear(
+      accessToken,
+      connection,
+      schoolYear,
+    );
     const existing = new Set(
       all.map((s) => s.matricule).filter((m): m is string => Boolean(m)),
     );
     setIsGeneratingMatricule(false);
     setNewMatricule(
-      generateUniqueMatricule(schoolYear, selectedClasse.classe_name, section, existing),
+      generateUniqueMatricule(
+        schoolYear,
+        selectedClasse.classe_name,
+        section,
+        existing,
+      ),
     );
   };
 
@@ -208,17 +246,23 @@ const StudentManager = () => {
       return;
     }
     setIsSaving(true);
-    const result = await StudentReader.saveAStudent(accessToken, connection, schoolYear, selectedClasseId, {
-      name: trimmedName,
-      surname: newFields.surname.trim(),
-      bday: newFields.bday,
-      bplace: newFields.bplace.trim(),
-      sexe: newFields.sexe,
-      repeating: newFields.repeating,
-      handicape: newFields.handicape,
-      cas_social: false,
-      matricule: newMatricule.trim(),
-    });
+    const result = await StudentReader.saveAStudent(
+      accessToken,
+      connection,
+      schoolYear,
+      selectedClasseId,
+      {
+        name: trimmedName,
+        surname: newFields.surname.trim(),
+        bday: newFields.bday,
+        bplace: newFields.bplace.trim(),
+        sexe: newFields.sexe,
+        repeating: newFields.repeating,
+        handicape: newFields.handicape,
+        cas_social: false,
+        matricule: newMatricule.trim(),
+      },
+    );
     setIsSaving(false);
     showToast(result.status ? t.addSuccess : t.addFailure, {
       type: result.status ? "info" : "danger",
@@ -259,20 +303,25 @@ const StudentManager = () => {
       return;
     }
     setIsSaving(true);
-    const result = await StudentReader.updateStudents(accessToken, connection, schoolYear, [
-      {
-        stud_id: student.stud_id,
-        name: trimmedName,
-        surname: editingFields.surname.trim(),
-        bday: editingFields.bday,
-        bplace: editingFields.bplace.trim(),
-        sexe: editingFields.sexe,
-        repeating: editingFields.repeating,
-        handicape: editingFields.handicape,
-        cas_social: student.cas_social === 1,
-        matricule: editingMatricule.trim(),
-      },
-    ]);
+    const result = await StudentReader.updateStudents(
+      accessToken,
+      connection,
+      schoolYear,
+      [
+        {
+          stud_id: student.stud_id,
+          name: trimmedName,
+          surname: editingFields.surname.trim(),
+          bday: editingFields.bday,
+          bplace: editingFields.bplace.trim(),
+          sexe: editingFields.sexe,
+          repeating: editingFields.repeating,
+          handicape: editingFields.handicape,
+          cas_social: student.cas_social === 1,
+          matricule: editingMatricule.trim(),
+        },
+      ],
+    );
     setIsSaving(false);
     showToast(result.status ? t.updateSuccess : t.updateFailure, {
       type: result.status ? "info" : "danger",
@@ -316,7 +365,9 @@ const StudentManager = () => {
     if (selectedIds.size === 0) {
       return;
     }
-    const confirmed = await confirm(t.deleteConfirm(selectedIds.size), { danger: true });
+    const confirmed = await confirm(t.deleteConfirm(selectedIds.size), {
+      danger: true,
+    });
     if (!confirmed) {
       return;
     }
@@ -337,7 +388,15 @@ const StudentManager = () => {
   };
 
   const persistImportedStudents = async (
-    rows: { name: string; surname: string; matricule: string; sexe: "M" | "F"; bday: string; bplace: string; repeating: boolean }[],
+    rows: {
+      name: string;
+      surname: string;
+      matricule: string;
+      sexe: "M" | "F";
+      bday: string;
+      bplace: string;
+      repeating: boolean;
+    }[],
     override: boolean,
   ) => {
     if (selectedClasseId === null) {
@@ -374,7 +433,9 @@ const StudentManager = () => {
     }
   };
 
-  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || selectedClasseId === null) {
@@ -466,7 +527,10 @@ const StudentManager = () => {
   };
 
   const exportColumns = [
-    { header: t.tableHeaderMatricule, accessor: (s: Student) => s.matricule ?? "" },
+    {
+      header: t.tableHeaderMatricule,
+      accessor: (s: Student) => s.matricule ?? "",
+    },
     { header: t.tableHeaderName, accessor: (s: Student) => s.name },
     { header: t.tableHeaderSurname, accessor: (s: Student) => s.surname ?? "" },
     { header: t.tableHeaderBday, accessor: (s: Student) => s.bday ?? "" },
@@ -474,7 +538,8 @@ const StudentManager = () => {
     { header: t.tableHeaderSexe, accessor: (s: Student) => s.sexe },
     {
       header: t.tableHeaderRepeating,
-      accessor: (s: Student) => (s.repeating === 1 ? t.repeatingYes : t.repeatingNo),
+      accessor: (s: Student) =>
+        s.repeating === 1 ? t.repeatingYes : t.repeatingNo,
     },
   ];
 
@@ -483,18 +548,31 @@ const StudentManager = () => {
   // spreadsheet itself) and merges Name+Surname into one wider "Nom/Prénom" column so a student's
   // full name has more room to fit on a single row of the table.
   const pdfExportColumns = [
-    { header: t.tableHeaderIndex, accessor: (_s: Student, index: number) => index + 1 },
-    { header: t.tableHeaderMatricule, accessor: (s: Student) => s.matricule ?? "" },
+    {
+      header: t.tableHeaderIndex,
+      accessor: (_s: Student, index: number) => index + 1,
+    },
+    {
+      header: t.tableHeaderMatricule,
+      accessor: (s: Student) => s.matricule ?? "",
+    },
     {
       header: t.tableHeaderNameSurname,
       accessor: (s: Student) => `${s.name} ${s.surname ?? ""}`.trim(),
     },
-    { header: t.tableHeaderBday, accessor: (s: Student) => formatBdayForPdf(s.bday) },
-    { header: t.tableHeaderBplace, accessor: (s: Student) => formatBplaceForPdf(s.bplace) },
+    {
+      header: t.tableHeaderBday,
+      accessor: (s: Student) => formatBdayForPdf(s.bday),
+    },
+    {
+      header: t.tableHeaderBplace,
+      accessor: (s: Student) => formatBplaceForPdf(s.bplace),
+    },
     { header: t.tableHeaderSexe, accessor: (s: Student) => s.sexe },
     {
       header: t.tableHeaderRepeating,
-      accessor: (s: Student) => (s.repeating === 1 ? t.repeatingYes : t.repeatingNo),
+      accessor: (s: Student) =>
+        s.repeating === 1 ? t.repeatingYes : t.repeatingNo,
     },
   ];
 
@@ -533,31 +611,31 @@ const StudentManager = () => {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text(t.printTitle, 14, blockTop + 6);
+    doc.text(t.printTitle, 14, blockTop + 0);
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text(t.printYearLabel, 14, blockTop + 14);
+    doc.text(t.printYearLabel, 14, blockTop + 8);
     doc.setFont("helvetica", "bold");
     doc.text(
       schoolYear,
       14 + doc.getTextWidth(`${t.printYearLabel} `),
-      blockTop + 14,
+      blockTop + 8,
     );
 
     const classeBlockX = pageWidth * 0.42;
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(t.printClasseLabel, classeBlockX, blockTop + 10);
+    doc.text(t.printClasseLabel, classeBlockX, blockTop + 4);
     doc.setFont("helvetica", "bold");
     doc.text(
       selectedClasse.classe_name,
       classeBlockX + doc.getTextWidth(`${t.printClasseLabel} `),
-      blockTop + 10,
+      blockTop + 4,
     );
 
     autoTable(doc, {
-      startY: blockTop,
+      startY: blockTop - 6,
       margin: { left: pageWidth - 60 },
       tableWidth: 46,
       theme: "grid",
@@ -571,7 +649,9 @@ const StudentManager = () => {
       },
       headStyles: { fontStyle: "bold" },
       head: [["G", "F", "T"]],
-      body: [[String(stats.garcons), String(stats.filles), String(stats.total)]],
+      body: [
+        [String(stats.garcons), String(stats.filles), String(stats.total)],
+      ],
     });
     // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime - its published
     // types don't expose this on the plain jsPDF type this project imports, hence the cast.
@@ -579,7 +659,7 @@ const StudentManager = () => {
       doc as unknown as { lastAutoTable: { finalY: number } }
     ).lastAutoTable.finalY;
 
-    const listStartY = Math.max(blockTop + 18, statsTableFinalY) + 6;
+    const listStartY = Math.max(blockTop + 11, statsTableFinalY) + 0;
     autoTable(doc, {
       startY: listStartY,
       head: [pdfExportColumns.map((c) => c.header)],
@@ -696,7 +776,9 @@ const StudentManager = () => {
                 type="button"
                 className="btn btn-outline btn-sm gap-2"
                 disabled={isLoadingStudents || selectedClasseId === null}
-                onClick={() => selectedClasseId && loadStudents(selectedClasseId)}
+                onClick={() =>
+                  selectedClasseId && loadStudents(selectedClasseId)
+                }
               >
                 <RefreshCw className="w-4 h-4" />
                 {t.refreshBtn}
@@ -758,7 +840,9 @@ const StudentManager = () => {
                           className="checkbox"
                           checked={
                             filteredStudents.length > 0 &&
-                            filteredStudents.every((s) => selectedIds.has(s.stud_id))
+                            filteredStudents.every((s) =>
+                              selectedIds.has(s.stud_id),
+                            )
                           }
                           onChange={toggleSelectAll}
                         />
@@ -793,7 +877,9 @@ const StudentManager = () => {
                           <td>
                             <StudentPhotoCell
                               studId={student.stud_id}
-                              refreshVersion={photoVersions[student.stud_id] ?? 0}
+                              refreshVersion={
+                                photoVersions[student.stud_id] ?? 0
+                              }
                               onClick={() => setPhotoDialogStudent(student)}
                             />
                           </td>
@@ -804,7 +890,9 @@ const StudentManager = () => {
                                 className="input input-sm w-full"
                                 title={t.matriculeTooltip}
                                 value={editingMatricule}
-                                onChange={(e) => setEditingMatricule(e.target.value)}
+                                onChange={(e) =>
+                                  setEditingMatricule(e.target.value)
+                                }
                               />
                             ) : (
                               student.matricule || ""
@@ -839,7 +927,9 @@ const StudentManager = () => {
                                 onChange={(e) =>
                                   setEditingFields({
                                     ...editingFields,
-                                    surname: sanitizeStudentName(e.target.value),
+                                    surname: sanitizeStudentName(
+                                      e.target.value,
+                                    ),
                                   })
                                 }
                               />
@@ -855,7 +945,10 @@ const StudentManager = () => {
                                 title={t.bdayHint}
                                 value={editingFields.bday}
                                 onChange={(e) =>
-                                  setEditingFields({ ...editingFields, bday: e.target.value })
+                                  setEditingFields({
+                                    ...editingFields,
+                                    bday: e.target.value,
+                                  })
                                 }
                               />
                             ) : (
@@ -937,7 +1030,12 @@ const StudentManager = () => {
                                 }
                               />
                             ) : (
-                              <input type="checkbox" className="checkbox" checked={student.handicape === 1} disabled />
+                              <input
+                                type="checkbox"
+                                className="checkbox"
+                                checked={student.handicape === 1}
+                                disabled
+                              />
                             )}
                           </td>
                           <td className="text-right">
@@ -992,7 +1090,10 @@ const StudentManager = () => {
           )}
 
           <div className="surface-card p-4 md:p-5">
-            <form onSubmit={handleAdd} className="flex flex-wrap gap-2 items-start">
+            <form
+              onSubmit={handleAdd}
+              className="flex flex-wrap gap-2 items-start"
+            >
               <div className="tooltip" data-tip={t.nameHint}>
                 <input
                   type="text"
@@ -1000,7 +1101,10 @@ const StudentManager = () => {
                   placeholder={t.addPlaceholderName}
                   value={newFields.name}
                   onChange={(e) =>
-                    setNewFields({ ...newFields, name: sanitizeStudentName(e.target.value) })
+                    setNewFields({
+                      ...newFields,
+                      name: sanitizeStudentName(e.target.value),
+                    })
                   }
                 />
               </div>
@@ -1011,7 +1115,10 @@ const StudentManager = () => {
                   placeholder={t.addPlaceholderSurname}
                   value={newFields.surname}
                   onChange={(e) =>
-                    setNewFields({ ...newFields, surname: sanitizeStudentName(e.target.value) })
+                    setNewFields({
+                      ...newFields,
+                      surname: sanitizeStudentName(e.target.value),
+                    })
                   }
                 />
               </div>
@@ -1020,7 +1127,9 @@ const StudentManager = () => {
                   type="date"
                   className="input"
                   value={newFields.bday}
-                  onChange={(e) => setNewFields({ ...newFields, bday: e.target.value })}
+                  onChange={(e) =>
+                    setNewFields({ ...newFields, bday: e.target.value })
+                  }
                 />
               </div>
               <div className="tooltip" data-tip={t.bplaceHint}>
@@ -1030,7 +1139,10 @@ const StudentManager = () => {
                   placeholder={t.addPlaceholderBplace}
                   value={newFields.bplace}
                   onChange={(e) =>
-                    setNewFields({ ...newFields, bplace: sanitizeStudentName(e.target.value) })
+                    setNewFields({
+                      ...newFields,
+                      bplace: sanitizeStudentName(e.target.value),
+                    })
                   }
                 />
               </div>
@@ -1039,7 +1151,10 @@ const StudentManager = () => {
                   className="select"
                   value={newFields.sexe}
                   onChange={(e) =>
-                    setNewFields({ ...newFields, sexe: e.target.value === "F" ? "F" : "M" })
+                    setNewFields({
+                      ...newFields,
+                      sexe: e.target.value === "F" ? "F" : "M",
+                    })
                   }
                 >
                   <option value="M">{t.sexeMale}</option>
@@ -1051,7 +1166,10 @@ const StudentManager = () => {
                   className="select"
                   value={newFields.repeating ? "1" : "0"}
                   onChange={(e) =>
-                    setNewFields({ ...newFields, repeating: e.target.value === "1" })
+                    setNewFields({
+                      ...newFields,
+                      repeating: e.target.value === "1",
+                    })
                   }
                 >
                   <option value="0">{t.repeatingNo}</option>
@@ -1065,7 +1183,12 @@ const StudentManager = () => {
                     type="checkbox"
                     className="checkbox"
                     checked={newFields.handicape}
-                    onChange={(e) => setNewFields({ ...newFields, handicape: e.target.checked })}
+                    onChange={(e) =>
+                      setNewFields({
+                        ...newFields,
+                        handicape: e.target.checked,
+                      })
+                    }
                   />
                 </label>
               </div>

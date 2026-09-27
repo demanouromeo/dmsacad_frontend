@@ -21,7 +21,9 @@ const MOTTO_EN = "Peace - Work - Fatherland";
 // A school with no phone on file stores it as 0 (or "0") just as often as null/"" - basic_school_config
 // .phone1 is numeric, so an unset value round-trips as 0 rather than staying null. Treat every one of
 // those as "no phone" so the letterhead never prints a meaningless "Tel.: 0".
-const formatPhone = (phone: SchoolHeaderConfig["phone1"] | undefined): string => {
+const formatPhone = (
+  phone: SchoolHeaderConfig["phone1"] | undefined,
+): string => {
   if (phone === null || phone === undefined) {
     return "";
   }
@@ -87,7 +89,9 @@ export const drawPdfLetterhead = (
     doc.text(config.del_regionale_fr, leftBlockCenterX, y, { align: "center" });
   }
   if (config?.del_regionale_en) {
-    doc.text(config.del_regionale_en, rightBlockCenterX, y, { align: "center" });
+    doc.text(config.del_regionale_en, rightBlockCenterX, y, {
+      align: "center",
+    });
   }
 
   y += 5;
@@ -186,7 +190,7 @@ export const drawPdfSignature = (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const blockX = pageWidth * SIGNATURE_BLOCK_X_RATIO;
-  let y = currentY + 14;
+  let y = currentY + 5;
   // Footer rule sits at pageHeight - 16 (see drawPdfFooters) - push to a new page rather than
   // overlapping it if the last content block ran close to the bottom.
   if (y > pageHeight - 40) {
@@ -345,7 +349,10 @@ export const buildCsvLetterheadLines = (header: SchoolHeader): string[] => {
   if (!config) {
     return [];
   }
-  const lines: string[] = [`${REPUBLIC_FR} / ${REPUBLIC_EN}`, `${MOTTO_FR} / ${MOTTO_EN}`];
+  const lines: string[] = [
+    `${REPUBLIC_FR} / ${REPUBLIC_EN}`,
+    `${MOTTO_FR} / ${MOTTO_EN}`,
+  ];
 
   const region = [config.del_regionale_fr, config.del_regionale_en]
     .filter(Boolean)
@@ -353,7 +360,9 @@ export const buildCsvLetterheadLines = (header: SchoolHeader): string[] => {
   if (region) {
     lines.push(region);
   }
-  const dept = [config.del_dept_fr, config.del_dept_en].filter(Boolean).join(" / ");
+  const dept = [config.del_dept_fr, config.del_dept_en]
+    .filter(Boolean)
+    .join(" / ");
   if (dept) {
     lines.push(dept);
   }
