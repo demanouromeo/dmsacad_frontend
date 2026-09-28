@@ -670,7 +670,10 @@ const StudentManager = () => {
       // keep the head row's white text explicit too (a bare `styles.textColor` merges in after
       // the theme's own head color and would flip it to black-on-blue - see exportData.ts's
       // exportRowsToPdf for the same fix).
-      styles: { textColor: [0, 0, 0] },
+      styles: {
+        textColor: [0, 0, 0],
+        cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+      },
       headStyles: { textColor: [255, 255, 255] },
       // Nom/Prénom (column index 2) gets the freed-up room from merging Name+Surname into one
       // column - "ellipsize" truncates with "…" instead of wrapping to a second line if an
