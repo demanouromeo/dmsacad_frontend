@@ -659,7 +659,7 @@ const StudentManager = () => {
       doc as unknown as { lastAutoTable: { finalY: number } }
     ).lastAutoTable.finalY;
 
-    const listStartY = Math.max(blockTop + 11, statsTableFinalY) + 0;
+    const listStartY = Math.max(blockTop + 11, statsTableFinalY) + 1.5;
     autoTable(doc, {
       startY: listStartY,
       head: [pdfExportColumns.map((c) => c.header)],

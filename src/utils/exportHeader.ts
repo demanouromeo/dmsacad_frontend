@@ -74,7 +74,7 @@ export const drawPdfLetterhead = (
   let y = startY;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.text(REPUBLIC_FR, leftBlockCenterX, y, { align: "center" });
   doc.text(REPUBLIC_EN, rightBlockCenterX, y, { align: "center" });
 
@@ -147,13 +147,13 @@ export const drawPdfLetterhead = (
     }
   }
   if (config?.school_matricule) {
-    doc.setFontSize(9);
+    doc.setFontSize(7.5);
     doc.text(config.school_matricule, centerX, logoY + logoSize + 4, {
       align: "center",
     });
   }
 
-  y += 4;
+  y += 2;
   if (includeLine) {
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);
@@ -166,7 +166,7 @@ export const drawPdfLetterhead = (
   // Report cards sit closer under the separator rule than every other export (which uses the
   // full 8mm gap below) - saves vertical space on a document that must fit one student per page.
   return y + (includePhone ? 8 : 4);
-};
+}; //END drawPdfLetterhead
 
 // Every exported PDF except report cards/bulletins/livrets (built directly against
 // basic_school_config's own print layout, not this generic table exporter) ends with this
@@ -190,7 +190,7 @@ export const drawPdfSignature = (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const blockX = pageWidth * SIGNATURE_BLOCK_X_RATIO;
-  let y = currentY + 5;
+  let y = currentY + 7;
   // Footer rule sits at pageHeight - 16 (see drawPdfFooters) - push to a new page rather than
   // overlapping it if the last content block ran close to the bottom.
   if (y > pageHeight - 40) {
@@ -220,7 +220,7 @@ export const drawPdfSignature = (
   doc.setFont("helvetica", "bold");
   doc.text(`Le ${responsable.fr}`, blockX, y);
 
-  y += 4;
+  y += 5;
   doc.setFont("helvetica", "italic");
   doc.text(`The ${responsable.en}`, blockX, y);
 
