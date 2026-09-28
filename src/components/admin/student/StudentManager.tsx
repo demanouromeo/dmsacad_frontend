@@ -610,7 +610,7 @@ const StudentManager = () => {
     const blockTop = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.text(t.printTitle, 14, blockTop + 0);
 
     doc.setFontSize(11);

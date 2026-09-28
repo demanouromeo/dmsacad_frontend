@@ -216,11 +216,11 @@ export const drawPdfSignature = (
   doc.setFont("helvetica", "bold");
   doc.text(date, x, y);
 
-  y += 7;
+  y += 5;
   doc.setFont("helvetica", "bold");
   doc.text(`Le ${responsable.fr}`, blockX, y);
 
-  y += 6;
+  y += 4;
   doc.setFont("helvetica", "italic");
   doc.text(`The ${responsable.en}`, blockX, y);
 
