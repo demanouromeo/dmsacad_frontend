@@ -61,7 +61,7 @@ const buildFlatRows = (sections: SectionEffectif[]): FlatEffectifRow[] => {
     });
   });
   return rows;
-};
+}; 
 
 const csvColumns: ExportColumn<FlatEffectifRow>[] = [
   { header: "N°", accessor: (r) => r.index },

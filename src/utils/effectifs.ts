@@ -33,7 +33,8 @@ export interface SectionEffectif extends EffectifTotals {
 // Cycle 1 = levels 1-4 (6ème..3ème), Cycle 2 = levels 5-7 (2nde..Tle) - per the school's own
 // "EFFECTIFS PAR CLASSE" report convention (see the sample PDF this report replicates). Any level
 // outside that isn't expected in practice, but falls back to cycle 1 rather than being dropped.
-export const cycleOfLevel = (level: number): 1 | 2 => (level >= 5 && level <= 7 ? 2 : 1);
+export const cycleOfLevel = (level: number): 1 | 2 =>
+  level >= 5 && level <= 7 ? 2 : 1;
 
 const sumTotals = (items: EffectifTotals[]): EffectifTotals =>
   items.reduce(
@@ -68,8 +69,9 @@ export const buildClasseEffectifs = (
 
   return classes.map((classe) => {
     const rows = byClasse.get(classe.classe_id) ?? [];
-    const garcons = rows.filter((r) => r.sexe === "M").length;
+    //const garcons = rows.filter((r) => r.sexe === "M").length;
     const filles = rows.filter((r) => r.sexe === "F").length;
+    const garcons = rows.length - rows.filter((r) => r.sexe === "F").length; //If student is not a female, then he is male
     const redoublants = rows.filter((r) => r.repeating === 1).length;
     const total = rows.length;
     return {
@@ -87,7 +89,9 @@ export const buildClasseEffectifs = (
 
 // Groups an already-computed classe list into Cycle 1 / Cycle 2, each carrying its own subtotal -
 // cycles with no classes at all are omitted rather than rendered empty.
-export const groupByCycle = (classeEffectifs: ClasseEffectif[]): CycleEffectif[] => {
+export const groupByCycle = (
+  classeEffectifs: ClasseEffectif[],
+): CycleEffectif[] => {
   const cycles: Record<1 | 2, ClasseEffectif[]> = { 1: [], 2: [] };
   classeEffectifs.forEach((c) => {
     cycles[cycleOfLevel(c.level)].push(c);
