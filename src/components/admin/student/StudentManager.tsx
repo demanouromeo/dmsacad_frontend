@@ -495,7 +495,8 @@ const StudentManager = () => {
 
   const stats = {
     filles: students.filter((s) => s.sexe === "F").length,
-    garcons: students.filter((s) => s.sexe === "M").length,
+    //garcons: students.filter((s) => s.sexe === "M").length,
+    garcons: students.length - students.filter((s) => s.sexe === "F").length,
     total: students.length,
     redoublants: students.filter((s) => s.repeating === 1).length,
     handicapes: students.filter((s) => s.handicape === 1).length,
