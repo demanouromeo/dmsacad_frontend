@@ -1256,6 +1256,10 @@ export const subjectCompetenceManagerTranslations = {
     deleteSuccess: "Compétence(s) supprimée(s) avec succès.",
     deleteFailure: "Échec de la suppression d'au moins une compétence.",
     deleteNoMarksBtn: "Supprimer les compétences sans notes",
+    printBtn: "Imprimer",
+    printTooltip:
+      "Imprimer les compétences de chaque classe pour le trimestre sélectionné",
+    printEmpty: "Aucune compétence à imprimer pour ce trimestre.",
     deleteNoMarksTooltip:
       "Rechercher et supprimer, pour cette matière et ce trimestre, les compétences n'ayant reçu aucune note",
     deleteNoMarksNoneFound:
@@ -1310,6 +1314,9 @@ export const subjectCompetenceManagerTranslations = {
     deleteSuccess: "Competency(ies) deleted successfully.",
     deleteFailure: "Failed to delete at least one competency.",
     deleteNoMarksBtn: "Delete competencies with no marks",
+    printBtn: "Print",
+    printTooltip: "Print each classe's competencies for the selected term",
+    printEmpty: "No competency to print for this term.",
     deleteNoMarksTooltip:
       "Find and delete, for this subject and term, the competencies that have not received any mark",
     deleteNoMarksNoneFound:

@@ -225,7 +225,7 @@ const GroupeManager = () => {
 
   const handleExportPdf = () => {
     exportRowsToPdf(
-      t.title,
+      `Liste des Groupes - Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
       buildTimestampedFilename(
         "Liste des groupes",
         [`Section ${capitalizeSectionName(section)}`],

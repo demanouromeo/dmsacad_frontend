@@ -17,6 +17,22 @@ import SearchInput from "../../sharedcomp/SearchInput";
 import CloseButton from "../../sharedcomp/CloseButton";
 import { sanitizeSubjectTitle } from "../../../utils/subjectImport";
 import { MAX_COMPETENCE_TEXT_LENGTH } from "../../../utils/textValidation";
+import type { RowInput } from "jspdf-autotable";
+import {
+  buildTimestampedFilename,
+  capitalizeSectionName,
+} from "../../../utils/exportData";
+import {
+  drawPdfLetterhead,
+  drawPdfSignature,
+  drawPdfFooters,
+} from "../../../utils/exportHeader";
+import { saveOrShareBlob } from "../../../utils/nativeFileSave";
+import {
+  mapWithConcurrency,
+  DEFAULT_REPORT_CONCURRENCY,
+} from "../../../utils/concurrency";
+import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const TERMS = [1, 2, 3];
 
@@ -36,6 +52,7 @@ const SubjectCompetenceManager = () => {
   const confirm = useConfirm();
   const [language] = useLanguage();
   const t = subjectCompetenceManagerTranslations[language];
+  const schoolHeader = useSchoolHeader();
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [apcLevels, setApcLevels] = useState<Map<number, boolean>>(new Map());
@@ -313,6 +330,157 @@ const SubjectCompetenceManager = () => {
   // same stud_comp_mark lookup MarkEntryManager uses) and keep only the ones where every row is
   // isEmpty (or there are no rows at all) - a row can exist with isEmpty=1 from a prior "clear all"
   // without that meaning a mark was ever genuinely entered.
+  // Prints every competence of every APC classe's subjects for the currently selected term, one
+  // table per classe. Fetches (subjects per classe, then competences per classe+subject) go through
+  // the bounded-concurrency helper - this fans out across classe x subject.
+  const handlePrint = async () => {
+    if (apcClasses.length === 0) {
+      showToast(t.printEmpty, { type: "warning" });
+      return;
+    }
+    setIsSaving(true);
+    const subjectsPerClasse = await mapWithConcurrency(
+      apcClasses,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => ({
+        classe,
+        subjects: await SubjectReader.fetchSubjectsOfClasse(
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          classe.classe_id,
+        ),
+      }),
+    );
+    const pairs = subjectsPerClasse.flatMap(({ classe, subjects }) =>
+      subjects.map((subject) => ({ classe, subject })),
+    );
+    const withCompetences = await mapWithConcurrency(
+      pairs,
+      DEFAULT_REPORT_CONCURRENCY,
+      async ({ classe, subject }) => ({
+        classe,
+        subject,
+        competences: await SubjectReader.fetchCompetences(
+          accessToken,
+          connection,
+          schoolYear,
+          section,
+          classe.classe_id,
+          subject.subject_id,
+          selectedTerm,
+        ),
+      }),
+    );
+    const printable = apcClasses
+      .map((classe) => ({
+        classe,
+        subjects: withCompetences.filter(
+          (w) =>
+            w.classe.classe_id === classe.classe_id && w.competences.length > 0,
+        ),
+      }))
+      .filter((g) => g.subjects.length > 0);
+    if (printable.length === 0) {
+      setIsSaving(false);
+      showToast(t.printEmpty, { type: "warning" });
+      return;
+    }
+
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Liste des compétences - ${t.term(selectedTerm)}`, 14, y);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Année scolaire: ${schoolYear}`, pageWidth - 14, y, {
+      align: "right",
+    });
+    y += 8;
+
+    for (const { classe, subjects: classeSubjects } of printable) {
+      if (y > pageHeight - 40) {
+        doc.addPage();
+        y = 15;
+      }
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text("Classe:", 14, y);
+      const labelWidth = doc.getTextWidth("Classe: ");
+      doc.setFont("helvetica", "bold");
+      doc.text(classe.classe_name, 14 + labelWidth, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Section: ${capitalizeSectionName(section)}`, pageWidth - 14, y, {
+        align: "right",
+      });
+      y += 4;
+
+      const body: RowInput[] = classeSubjects.flatMap(
+        ({ subject, competences: list }) =>
+          list.map((c, index): RowInput =>
+            index === 0
+              ? [
+                  { content: subject.subject_title, rowSpan: list.length },
+                  String(index + 1),
+                  c.competence_text,
+                ]
+              : [String(index + 1), c.competence_text],
+          ),
+      );
+      autoTable(doc, {
+        startY: y,
+        head: [["Matière", "No.", "Compétence"]],
+        body,
+        theme: "grid",
+        styles: {
+          textColor: [0, 0, 0],
+          fontSize: 9,
+          cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+        },
+        headStyles: {
+          textColor: [255, 255, 255],
+          fillColor: [41, 128, 185],
+          lineWidth: 0,
+        },
+        bodyStyles: {
+          fillColor: [255, 255, 255],
+          lineColor: [190, 190, 190],
+          lineWidth: 0.1,
+        },
+        columnStyles: { 0: { cellWidth: 40, valign: "top" }, 1: { cellWidth: 12 } },
+      });
+      // jspdf-autotable patches `lastAutoTable` onto the doc at runtime; its types don't expose it.
+      y =
+        (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+          .finalY + 8;
+    }
+
+    if (schoolHeader) {
+      drawPdfSignature(doc, schoolHeader, y);
+    }
+    drawPdfFooters(doc, schoolHeader);
+    await saveOrShareBlob(
+      doc.output("blob"),
+      buildTimestampedFilename(
+        "Liste des compétences",
+        [
+          `Trimestre ${selectedTerm}`,
+          `Section ${capitalizeSectionName(section)}`,
+        ],
+        "pdf",
+      ),
+    );
+    setIsSaving(false);
+  };
+
   const handleDeleteWithNoMarks = async () => {
     if (selectedClasseId === null || selectedSubjectId === null || competences.length === 0) {
       return;
@@ -487,7 +655,7 @@ const SubjectCompetenceManager = () => {
                         placeholder={t.searchPlaceholder}
                         className="input-sm w-full max-w-xs"
                       />
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 w-full">
                         <button
                           type="button"
                           className="btn btn-error btn-sm"
@@ -505,6 +673,15 @@ const SubjectCompetenceManager = () => {
                         >
                           <Eraser className="w-4 h-4" />
                           {t.deleteNoMarksBtn}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm ml-auto"
+                          title={t.printTooltip}
+                          disabled={apcClasses.length === 0}
+                          onClick={handlePrint}
+                        >
+                          {t.printBtn}
                         </button>
                       </div>
                     </div>
