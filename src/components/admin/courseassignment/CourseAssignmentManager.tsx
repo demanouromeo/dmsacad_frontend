@@ -424,7 +424,9 @@ const CourseAssignmentManager = () => {
     );
   };
 
-  const handlePrint = async () => {
+  // `onePagePerClasse`: every classe starts on its own page (repeating the letterhead + title, and
+  // ending with its own signature block) instead of flowing continuously after the previous one.
+  const handlePrint = async (onePagePerClasse = false) => {
     if (allAttributions.length === 0) {
       showToast(t.printEmpty, { type: "warning" });
       return;
@@ -434,11 +436,14 @@ const CourseAssignmentManager = () => {
       import("jspdf-autotable"),
     ]);
     const doc = new jsPDF();
-    let y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(t.printTitle, 14, y);
-    y += 8;
+    const drawPageTitle = (): number => {
+      const top = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(t.printTitle, 14, top);
+      return top + 8;
+    };
+    let y = drawPageTitle();
 
     // Groups preserve AllAttributionsOfSection's own ORDER BY level, classe_name, subject_title -
     // no client-side re-sort needed, first-seen order of classe_id already matches it.
@@ -455,8 +460,11 @@ const CourseAssignmentManager = () => {
     }
 
     const pageHeight = doc.internal.pageSize.getHeight();
-    for (const group of grouped) {
-      if (y > pageHeight - 40) {
+    for (const [groupIndex, group] of grouped.entries()) {
+      if (onePagePerClasse && groupIndex > 0) {
+        doc.addPage();
+        y = drawPageTitle();
+      } else if (y > pageHeight - 40) {
         doc.addPage();
         y = 15;
       }
@@ -482,7 +490,12 @@ const CourseAssignmentManager = () => {
         // black - force it explicitly (and keep the head row's white text on the blue fill,
         // which the plain default already gets right and a bare `styles.textColor` would
         // otherwise flip to black too - see exportData.ts's exportRowsToPdf for the same fix).
-        styles: { textColor: [0, 0, 0] },
+        // Compact rows/font - same as exportRowsToPdf's `compact` (see exportData.ts).
+        styles: {
+          textColor: [0, 0, 0],
+          fontSize: 9,
+          cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+        },
         headStyles: { textColor: [255, 255, 255], fillColor: [41, 128, 185], lineWidth: 0 },
         theme: "grid",
         bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
@@ -493,9 +506,12 @@ const CourseAssignmentManager = () => {
       y =
         (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
           .finalY + 10;
+      if (onePagePerClasse && schoolHeader) {
+        drawPdfSignature(doc, schoolHeader, y);
+      }
     }
 
-    if (schoolHeader) {
+    if (!onePagePerClasse && schoolHeader) {
       drawPdfSignature(doc, schoolHeader, y);
     }
     drawPdfFooters(doc, schoolHeader);
@@ -733,9 +749,18 @@ const CourseAssignmentManager = () => {
               type="button"
               className="btn btn-neutral"
               disabled={allAttributions.length === 0}
-              onClick={handlePrint}
+              onClick={() => handlePrint()}
             >
               {t.printBtn}
+            </button>
+            <button
+              type="button"
+              className="btn btn-neutral"
+              title={t.printPerPageTooltip}
+              disabled={allAttributions.length === 0}
+              onClick={() => handlePrint(true)}
+            >
+              {t.printPerPageBtn}
             </button>
             <button
               type="button"

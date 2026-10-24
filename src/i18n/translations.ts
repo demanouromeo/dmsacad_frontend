@@ -1122,6 +1122,9 @@ export const subjectClasseManagerTranslations = {
     saveBtn: "Enregistrer",
     refreshBtn: "Actualiser",
     printBtn: "Imprimer",
+    printAllBtn: "Imprimer tout",
+    printAllTitle: "Liste des matières par classe",
+    printAllEmpty: "Aucune matière n'est assignée aux classes de cette section.",
     copyBtn: (classeName: string) => `Copier ${classeName}`,
     noGroupsHint:
       "Aucun groupe n'est défini pour cette section — créez-en un dans « Gestion des groupes » avant d'ajouter des matières.",
@@ -1172,6 +1175,9 @@ export const subjectClasseManagerTranslations = {
     saveBtn: "Save",
     refreshBtn: "Refresh",
     printBtn: "Print",
+    printAllBtn: "Print all",
+    printAllTitle: "Subjects per class",
+    printAllEmpty: "No subject is assigned to any class of this section.",
     copyBtn: (classeName: string) => `Copy ${classeName}`,
     noGroupsHint:
       "No group is defined for this section — create one under \"Manage groups\" before adding subjects.",
@@ -1647,6 +1653,9 @@ export const courseAssignmentTranslations = {
     printTableHeaderSubject: "Matières",
     printTableHeaderStaff: "Enseignants",
     printEmpty: "Aucune attribution à imprimer pour cette section et année.",
+    printPerPageBtn: "Imprimer une liste/page",
+    printPerPageTooltip:
+      "Imprimer la liste d'attribution de chaque classe sur une page",
   },
   en: {
     title: "Assign courses",
@@ -1694,6 +1703,8 @@ export const courseAssignmentTranslations = {
     printTableHeaderSubject: "Subjects",
     printTableHeaderStaff: "Staff",
     printEmpty: "No assignment to print for this section and year.",
+    printPerPageBtn: "Print a list per page",
+    printPerPageTooltip: "Print each classe's assignment list on its own page",
   },
 };
 

@@ -20,6 +20,16 @@ import {
   buildTimestampedFilename,
   capitalizeSectionName,
 } from "../../../utils/exportData";
+import {
+  drawPdfLetterhead,
+  drawPdfSignature,
+  drawPdfFooters,
+} from "../../../utils/exportHeader";
+import { saveOrShareBlob } from "../../../utils/nativeFileSave";
+import {
+  mapWithConcurrency,
+  DEFAULT_REPORT_CONCURRENCY,
+} from "../../../utils/concurrency";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 
 const byTitle = <T extends { subject_title: string }>(rows: T[]): T[] =>
@@ -301,6 +311,111 @@ const SubjectClasseManager = () => {
     );
   };
 
+  // Whole-section print: one table per classe (every classe of the loaded - i.e. role-visible -
+  // list), each classe's subjects fetched independently since only the selected one is in state.
+  const handlePrintAll = async () => {
+    if (classes.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    const perClasse = await mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => ({
+        classe,
+        rows: byTitle(
+          await SubjectReader.fetchSubjectsOfClasse(
+            accessToken,
+            connection,
+            schoolYear,
+            section,
+            classe.classe_id,
+          ),
+        ),
+      }),
+    );
+    const groups = perClasse.filter((g) => g.rows.length > 0);
+    if (groups.length === 0) {
+      setIsSaving(false);
+      showToast(t.printAllEmpty, { type: "warning" });
+      return;
+    }
+
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    const doc = new jsPDF();
+    let y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${t.printAllTitle} - ${schoolYear}`, 14, y);
+    y += 8;
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+    for (const group of groups) {
+      if (y > pageHeight - 40) {
+        doc.addPage();
+        y = 15;
+      }
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(group.classe.classe_name, 14, y);
+      y += 4;
+      autoTable(doc, {
+        startY: y,
+        head: [
+          [
+            t.tableHeaderIndex,
+            t.tableHeaderSubject,
+            t.tableHeaderCoef,
+            t.tableHeaderGroup,
+          ],
+        ],
+        body: group.rows.map((r, index) => [
+          String(index + 1),
+          r.subject_title,
+          String(r.coef),
+          r.groupe_name ?? "",
+        ]),
+        theme: "grid",
+        styles: {
+          textColor: [0, 0, 0],
+          fontSize: 9,
+          cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+        },
+        headStyles: {
+          textColor: [255, 255, 255],
+          fillColor: [41, 128, 185],
+          lineWidth: 0,
+        },
+        bodyStyles: {
+          fillColor: [255, 255, 255],
+          lineColor: [190, 190, 190],
+          lineWidth: 0.1,
+        },
+      });
+      // jspdf-autotable patches `lastAutoTable` onto the doc at runtime; its types don't expose it.
+      y =
+        (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable
+          .finalY + 8;
+    }
+
+    if (schoolHeader) {
+      drawPdfSignature(doc, schoolHeader, y);
+    }
+    drawPdfFooters(doc, schoolHeader);
+    await saveOrShareBlob(
+      doc.output("blob"),
+      buildTimestampedFilename(
+        "Liste des matières par classe",
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      ),
+    );
+    setIsSaving(false);
+  };
+
   const sameLevelClasses = selectedClasse
     ? classes.filter(
         (c) =>
@@ -434,6 +549,14 @@ const SubjectClasseManager = () => {
               onClick={handlePrint}
             >
               {t.printBtn}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              disabled={classes.length === 0}
+              onClick={handlePrintAll}
+            >
+              {t.printAllBtn}
             </button>
           </div>
 
