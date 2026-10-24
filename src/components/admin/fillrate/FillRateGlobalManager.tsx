@@ -16,10 +16,12 @@ import {
   pivotByTeacher,
   pivotByTerm,
   type FillRateCell,
+  type FillRateClasseRef,
   type FillRatePivotRow,
 } from "../../../utils/fillRateAggregation";
 import {
   buildTimestampedFilename,
+  capitalizeSectionName,
   exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
@@ -89,6 +91,7 @@ const FillRateGlobalManager = () => {
     Map<string, CourseAssignment[]>
   >(new Map());
   const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [allClasses, setAllClasses] = useState<FillRateClasseRef[]>([]);
 
   const [axis, setAxis] = useState<Axis>("classe");
   const [mode, setMode] = useState<Mode>("table");
@@ -114,6 +117,11 @@ const FillRateGlobalManager = () => {
         const isLevelApc = (level: number): boolean => levelMap.get(level) === true;
         return {
           section,
+          classes: classes.map((c) => ({
+            section,
+            classe_id: c.classe_id,
+            classe_name: c.classe_name,
+          })),
           attributions,
           cells: mergeToUnifiedCells(section, nonApcRows, apcRows, isLevelApc),
         };
@@ -124,6 +132,7 @@ const FillRateGlobalManager = () => {
     const usable = perSection.filter((s): s is NonNullable<typeof s> => s !== null);
     setHasAnyClasses(usable.length > 0);
     setCells(usable.flatMap((s) => s.cells));
+    setAllClasses(usable.flatMap((s) => s.classes));
     setAttributionsBySection(new Map(usable.map((s) => [s.section, s.attributions])));
     setIsLoading(false);
   };
@@ -158,7 +167,13 @@ const FillRateGlobalManager = () => {
 
   const pivotRows: FillRatePivotRow[] =
     axis === "classe"
-      ? pivotByClasse(termFilteredCells, sectionLabel)
+      ? pivotByClasse(
+          termFilteredCells,
+          sectionLabel,
+          sectionFilter === "all"
+            ? allClasses
+            : allClasses.filter((c) => c.section === sectionFilter),
+        )
       : axis === "subject"
         ? pivotBySubject(termFilteredCells, sectionLabel)
         : axis === "term"
@@ -210,7 +225,9 @@ const FillRateGlobalManager = () => {
 
   const handleExportPdf = async () => {
     await exportRowsToPdf(
-      t.exportPdfTitle,
+      `${t.exportPdfTitle} - Année scolaire ${schoolYear} - Section ${
+        sectionFilter === "all" ? "Toutes" : capitalizeSectionName(sectionFilter)
+      }`,
       buildTimestampedFilename(t.title, buildExportSegments(), "pdf"),
       exportColumns,
       sortedRows,

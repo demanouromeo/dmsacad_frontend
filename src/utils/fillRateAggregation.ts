@@ -151,16 +151,38 @@ const spansMultipleSections = (cells: FillRateCell[]): boolean =>
 
 // One row per classe (averaged across every subject/term present in `cells` - callers pre-filter
 // `cells` to a single term for a "per term" view, or pass every term for "annual").
+//
+// The backend aggregates only return classes that have at least one subject/competence assigned, so
+// `allClasses` (the full classe list, already filtered by the caller to the sections in view) is used
+// to still list every other classe, with a null rate ("no data") instead of silently dropping it.
+export interface FillRateClasseRef {
+  section: string;
+  classe_id: number;
+  classe_name: string;
+}
+
 export const pivotByClasse = (
   cells: FillRateCell[],
   sectionLabel: (section: string) => string,
+  allClasses: FillRateClasseRef[] = [],
 ): FillRatePivotRow[] => {
-  const mixedSections = spansMultipleSections(cells);
-  return groupAverage(
+  const mixedSections =
+    spansMultipleSections(cells) || new Set(allClasses.map((c) => c.section)).size > 1;
+  const labelOf = (section: string, name: string): string =>
+    mixedSections ? `${name} (${sectionLabel(section)})` : name;
+  const rows = groupAverage(
     cells,
     (c) => `${c.section}|${c.classe_id}`,
-    (c) => (mixedSections ? `${c.classe_name} (${sectionLabel(c.section)})` : c.classe_name),
+    (c) => labelOf(c.section, c.classe_name),
   );
+  const present = new Set(rows.map((r) => r.key));
+  allClasses.forEach((c) => {
+    const key = `${c.section}|${c.classe_id}`;
+    if (!present.has(key)) {
+      rows.push({ key, label: labelOf(c.section, c.classe_name), rate: null });
+    }
+  });
+  return rows;
 };
 
 // One row per subject (averaged across every classe/term present in `cells`).
