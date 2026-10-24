@@ -29,7 +29,8 @@ const NON_APC_COLUMNS = ["Note1", "Note2", "Note3", "Note4", "Note5", "Note6"];
 // trimestre/enseignant/matiere/coef block + separator rule, versus a continuation page of the same
 // classe which only needs room for the small "Page X/Y" indicator before the table (whose own
 // column-header row repeats automatically on every page via autoTable's `head` option).
-const FIRST_PAGE_TABLE_TOP = 40;
+// The separator rule is drawn at y=28 below, so 29 leaves a 1mm gap between it and the table.
+const FIRST_PAGE_TABLE_TOP = 29;
 const CONTINUATION_PAGE_TABLE_TOP = 16;
 
 export const exportMarkSheetsToPdf = async (
@@ -60,7 +61,7 @@ export const exportMarkSheetsToPdf = async (
         ...columns.map(() => ""),
       ]),
       theme: "grid",
-      styles: { fontSize: 9, cellPadding: 2, lineWidth: 0.1, lineColor: [190, 190, 190], textColor: [0, 0, 0] },
+      styles: { fontSize: 9, cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 }, lineWidth: 0.1, lineColor: [190, 190, 190], textColor: [0, 0, 0] },
       headStyles: { fillColor: [219, 234, 254], textColor: 0, lineWidth: 0.1, lineColor: [190, 190, 190] },
       bodyStyles: { fillColor: [255, 255, 255] },
     });
@@ -82,17 +83,29 @@ export const exportMarkSheetsToPdf = async (
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.text("FICHE DE REPORT DE NOTES", 14, 16);
-        doc.text(`Classe: ${classe.classeName}`, pageWidth / 2, 16, { align: "center" });
+        const classeText = `Classe: ${classe.classeName}`;
+        doc.text(classeText, pageWidth / 2, 16, { align: "center" });
+        // MATIERE starts under the left edge of the "Classe: ..." text above it.
+        const matiereX = pageWidth / 2 - doc.getTextWidth(classeText) / 2;
         doc.text("Trimestre: _______", pageWidth - 14, 16, { align: "right" });
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
-        doc.text("ENSEIGNANT: ______________________________", 14, 24);
-        doc.text("MATIERE: ___________________________________", pageWidth / 2, 24, {
-          align: "center",
-        });
+        // Rule (not underscores) so it stops just before MATIERE instead of running underneath it.
+        const enseignantLabel = "ENSEIGNANT:";
+        doc.text(enseignantLabel, 14, 24);
+        doc.setLineWidth(0.2);
+        doc.line(14 + doc.getTextWidth(enseignantLabel) + 1, 24, matiereX - 4, 24);
+        const matiereLabel = "MATIERE:";
+        doc.text(matiereLabel, matiereX, 24);
+        const matiereLineStartX = matiereX + doc.getTextWidth(matiereLabel) + 1;
         doc.setFont("helvetica", "italic");
-        doc.text("Coef.: _____", pageWidth - 14, 24, { align: "right" });
+        const coefText = "Coef.: _____";
+        doc.text(coefText, pageWidth - 14, 24, { align: "right" });
+        // Drawn as a rule (not underscores) so it always stops just before Coef., wherever MATIERE starts.
+        const coefStartX = pageWidth - 14 - doc.getTextWidth(coefText);
+        doc.setLineWidth(0.2);
+        doc.line(matiereLineStartX, 24, coefStartX - 4, 24);
 
         doc.setLineWidth(0.3);
         doc.line(14, 28, pageWidth - 14, 28);
