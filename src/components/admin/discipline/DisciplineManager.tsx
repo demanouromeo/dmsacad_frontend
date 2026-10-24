@@ -18,8 +18,10 @@ import {
   capitalizeSectionName,
   exportRowsToXlsx,
   exportRowsToPdf,
+  exportRowGroupsToPdf,
   type ExportColumn,
 } from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
@@ -94,6 +96,7 @@ const DisciplineManager = () => {
   const [entries, setEntries] = useState<Map<number, DisciplineEntry>>(new Map());
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingAll, setIsExportingAll] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -362,9 +365,70 @@ const DisciplineManager = () => {
     );
   };
 
+  // Same PDF as handleExportPdf but for every classe in `classes` (already role-filtered), one page
+  // each, for the currently selected term. Rosters and discipline rows are fetched through
+  // mapWithConcurrency to stay under the remote host's MySQL connection ceiling.
+  const handleExportAll = async () => {
+    setIsExportingAll(true);
+    const groups = (
+      await mapWithConcurrency(classes, DEFAULT_REPORT_CONCURRENCY, async (classe) => {
+        const [seedRows, disciplineRows] = await Promise.all([
+          DisciplineReader.fetchRosterForAbs(accessToken, connection, schoolYear, classe.classe_id),
+          DisciplineReader.fetchDisciplineOfClasse(
+            accessToken,
+            connection,
+            schoolYear,
+            selectedTerm,
+            classe.classe_id,
+          ),
+        ]);
+        const byStudId = new Map(disciplineRows.map((r) => [r.stud_id, r]));
+        return {
+          title: t.pdfTitle(classe.classe_name, selectedTerm),
+          rows: seedRows.map((s) => ({
+            name: `${s.name} ${s.surname ?? ""}`.trim(),
+            real: byStudId.get(s.stud_id),
+          })),
+        };
+      })
+    ).filter((g) => g.rows.length > 0);
+    setIsExportingAll(false);
+    if (groups.length === 0) {
+      showToast(t.exportAllEmpty, { type: "warning" });
+      return;
+    }
+    type AllRow = (typeof groups)[number]["rows"][number];
+    const columns: ExportColumn<AllRow>[] = [
+      { header: t.tableHeaderIndex, accessor: (_row, index) => index + 1 },
+      { header: t.tableHeaderName, accessor: (row) => row.name, cellWidth: 75 },
+      { header: t.tableHeaderAbsences, accessor: (row) => displayCount(row.real?.absunjust) },
+      { header: t.tableHeaderExclusion, accessor: (row) => displayCount(row.real?.nb_jour_exclusion) },
+      { header: t.tableHeaderLateness, accessor: (row) => displayCount(row.real?.lateness) },
+      { header: t.tableHeaderConsigne, accessor: (row) => displayCount(row.real?.consigne) },
+      { header: t.tableHeaderWarning, accessor: (row) => displayCount(row.real?.avertissement) },
+      {
+        header: t.tableHeaderDismiss,
+        accessor: (row) => (row.real?.exclusion_definitive === 1 ? t.dismissYes : t.dismissNo),
+      },
+      { header: t.tableHeaderComment, accessor: (row) => row.real?.commentOnDiscipline ?? "" },
+    ];
+    await exportRowGroupsToPdf(
+      buildTimestampedFilename(
+        `Discipline - Trimestre ${selectedTerm}`,
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      ),
+      columns,
+      groups,
+      schoolHeader,
+      `Année scolaire: ${schoolYear}   -   Section: ${capitalizeSectionName(section)}`,
+      "landscape",
+    );
+  };
+
   return (
     <div className="page-shell-wide pb-32">
-      {isSaving && <LoadingOverlay />}
+      {(isSaving || isExportingAll) && <LoadingOverlay />}
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
         <CloseButton />
@@ -450,6 +514,15 @@ const DisciplineManager = () => {
                 pdfLabel={t.exportPdfLabel}
                 disabled={roster.length === 0}
               />
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                title={t.exportAllTooltip}
+                disabled={classes.length === 0 || isExportingAll}
+                onClick={handleExportAll}
+              >
+                {t.exportAllLabel}
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 bg-base-200/50 rounded-xl px-4 py-3">

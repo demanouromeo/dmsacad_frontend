@@ -2326,6 +2326,9 @@ export const disciplineManagerTranslations = {
     noChangesToSave: "Aucune modification à enregistrer.",
     exportExcelLabel: "Excel",
     exportPdfLabel: "PDF",
+    exportAllLabel: "Exporter tout",
+    exportAllTooltip: "Exporter la discipline de toutes les classes dans un seul PDF",
+    exportAllEmpty: "Aucun élève à exporter dans les classes de cette section.",
     pdfTitle: (classeName: string, term: number) =>
       `Discipline - ${classeName} - Trimestre ${term}`,
   },
@@ -2370,6 +2373,9 @@ export const disciplineManagerTranslations = {
     noChangesToSave: "No changes to save.",
     exportExcelLabel: "Excel",
     exportPdfLabel: "PDF",
+    exportAllLabel: "Export all",
+    exportAllTooltip: "Export the discipline of every class into a single PDF",
+    exportAllEmpty: "No student to export in the classes of this section.",
     pdfTitle: (classeName: string, term: number) => `Discipline - ${classeName} - Term ${term}`,
   },
 };

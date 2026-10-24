@@ -1,3 +1,4 @@
+import type { UserOptions } from "jspdf-autotable";
 import {
   drawPdfFooters,
   drawPdfLetterhead,
@@ -117,6 +118,56 @@ export const exportRowsToXlsx = async <T>(
   await saveOrShareBlob(blob, filename);
 };
 
+// Shared look of every generic list table (header colors, grid borders, compact padding, column
+// widths) - used by exportRowsToPdf and exportRowGroupsToPdf so both stay identical.
+const buildListTableOptions = <T>(
+  columns: ExportColumn<T>[],
+  rows: T[],
+  compact: boolean,
+): UserOptions => ({
+  head: [columns.map((c) => c.header)],
+  body: rows.map((row, index) =>
+    columns.map((c) => {
+      const value = formatCellValue(c.accessor(row, index));
+      const color = c.textColor?.(row, index);
+      return color ? { content: value, styles: { textColor: color } } : value;
+    }),
+  ),
+  // jspdf-autotable's default "striped" theme renders body text in a dark gray, not pure black -
+  // force it explicitly, matching every other PDF exporter in the app (exportMyTimetablePdf,
+  // exportEffectifsToPdf, ...), which already set this the same way.
+  styles: compact
+    ? {
+        textColor: [0, 0, 0],
+        fontSize: 9,
+        cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+      }
+    : { textColor: [0, 0, 0] },
+  // The generic `styles.textColor` above is merged in *after* the theme's own head/foot color
+  // (see jspdf-autotable's cellStyles(): theme.table -> theme[section] -> styles.styles ->
+  // sectionStyles), so without this it silently overrides the theme's white head text to black
+  // too, leaving black-on-blue in the header row. Every other exporter in this app that uses the
+  // striped theme's blue head fill (exportMyTimetablePdf, exportTimetablePdf) already carves out
+  // this same headStyles exception - this generic exporter was missing it.
+  headStyles: { textColor: [255, 255, 255], fillColor: [41, 128, 185], lineWidth: 0 },
+  // "grid" theme (not the default "striped"): only the header row is colored; every body cell is
+  // white with a thin gray border and no zebra fill - same look as the student list PDF.
+  theme: "grid",
+  bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
+  columnStyles: columns.reduce<Record<number, { overflow?: "ellipsize"; cellWidth?: number }>>(
+    (acc, c, index) => {
+      if (c.overflow || c.cellWidth) {
+        acc[index] = {
+          ...(c.overflow ? { overflow: c.overflow } : {}),
+          ...(c.cellWidth ? { cellWidth: c.cellWidth } : {}),
+        };
+      }
+      return acc;
+    },
+    {},
+  ),
+});
+
 export const exportRowsToPdf = async <T>(
   title: string,
   filename: string,
@@ -147,55 +198,54 @@ export const exportRowsToPdf = async <T>(
     // Same baseline as the title, right-aligned to the page's right margin.
     doc.text(subtitle, doc.internal.pageSize.getWidth() - 14, y, { align: "right" });
   }
-  autoTable(doc, {
-    startY: y + 5,
-    head: [columns.map((c) => c.header)],
-    body: rows.map((row, index) =>
-      columns.map((c) => {
-        const value = formatCellValue(c.accessor(row, index));
-        const color = c.textColor?.(row, index);
-        return color ? { content: value, styles: { textColor: color } } : value;
-      }),
-    ),
-    // jspdf-autotable's default "striped" theme renders body text in a dark gray, not pure black -
-    // force it explicitly, matching every other PDF exporter in the app (exportMyTimetablePdf,
-    // exportEffectifsToPdf, ...), which already set this the same way.
-    styles: compact
-      ? {
-          textColor: [0, 0, 0],
-          fontSize: 9,
-          cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
-        }
-      : { textColor: [0, 0, 0] },
-    // The generic `styles.textColor` above is merged in *after* the theme's own head/foot color
-    // (see jspdf-autotable's cellStyles(): theme.table -> theme[section] -> styles.styles ->
-    // sectionStyles), so without this it silently overrides the theme's white head text to black
-    // too, leaving black-on-blue in the header row. Every other exporter in this app that uses the
-    // striped theme's blue head fill (exportMyTimetablePdf, exportTimetablePdf) already carves out
-    // this same headStyles exception - this generic exporter was missing it.
-    headStyles: { textColor: [255, 255, 255], fillColor: [41, 128, 185], lineWidth: 0 },
-    // "grid" theme (not the default "striped"): only the header row is colored; every body cell is
-    // white with a thin gray border and no zebra fill - same look as the student list PDF.
-    theme: "grid",
-    bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
-    columnStyles: columns.reduce<
-      Record<number, { overflow?: "ellipsize"; cellWidth?: number }>
-    >((acc, c, index) => {
-      if (c.overflow || c.cellWidth) {
-        acc[index] = {
-          ...(c.overflow ? { overflow: c.overflow } : {}),
-          ...(c.cellWidth ? { cellWidth: c.cellWidth } : {}),
-        };
-      }
-      return acc;
-    }, {}),
-  });
+  autoTable(doc, { startY: y + 5, ...buildListTableOptions(columns, rows, compact) });
   if (includeSignature && schoolHeader) {
     // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own
     // source, jspdf.plugin.autotable.js) - its published types don't expose this on the plain
     // jsPDF type this project imports, hence the cast.
     const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
       .lastAutoTable.finalY;
+    drawPdfSignature(doc, schoolHeader, finalY);
+  }
+  drawPdfFooters(doc, schoolHeader);
+  await saveOrShareBlob(doc.output("blob"), filename);
+};
+
+export interface PdfRowGroup<T> {
+  title: string;
+  rows: T[];
+}
+
+// One page per group (e.g. one classe each): letterhead, title (+ optional right-aligned subtitle) and
+// the same list table as exportRowsToPdf; a single signature block and footer pass at the very end.
+export const exportRowGroupsToPdf = async <T>(
+  filename: string,
+  columns: ExportColumn<T>[],
+  groups: PdfRowGroup<T>[],
+  schoolHeader?: SchoolHeader,
+  subtitle?: string,
+  orientation: "portrait" | "landscape" = "portrait",
+): Promise<void> => {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF({ orientation });
+  groups.forEach((group, index) => {
+    if (index > 0) {
+      doc.addPage();
+    }
+    const y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+    doc.setFontSize(14);
+    doc.text(group.title, 14, y);
+    if (subtitle) {
+      doc.setFontSize(10);
+      doc.text(subtitle, doc.internal.pageSize.getWidth() - 14, y, { align: "right" });
+    }
+    autoTable(doc, { startY: y + 5, ...buildListTableOptions(columns, group.rows, true) });
+  });
+  if (schoolHeader) {
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
     drawPdfSignature(doc, schoolHeader, finalY);
   }
   drawPdfFooters(doc, schoolHeader);
