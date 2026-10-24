@@ -69,6 +69,8 @@ export const exportTimetablesToPdf = async (
   classeExports: ClasseTimetableExport[],
   schoolHeader: SchoolHeader,
   filename: string,
+  schoolYear: string,
+  sectionLabel: string,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -87,6 +89,11 @@ export const exportTimetablesToPdf = async (
     doc.setFont("helvetica", "bold");
     doc.setFontSize(15);
     doc.text(`${title} - ${classe.classeName}`, centerX, y, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Année scolaire: ${schoolYear}   -   Section: ${sectionLabel}`, centerX, y + 6, {
+      align: "center",
+    });
 
     const numDays = classe.dayLabels.length;
     const dayColWidth = (pageWidth - TABLE_MARGIN * 2 - LABEL_COL_WIDTH) / numDays;
@@ -105,7 +112,7 @@ export const exportTimetablesToPdf = async (
     );
 
     autoTable(doc, {
-      startY: y + 6,
+      startY: y + 12,
       margin: { left: TABLE_MARGIN, right: TABLE_MARGIN },
       head: [["", ...classe.dayLabels]],
       body,

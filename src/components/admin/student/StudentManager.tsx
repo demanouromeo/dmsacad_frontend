@@ -644,12 +644,21 @@ const StudentManager = () => {
     const classeBlockX = pageWidth * 0.42;
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(t.printClasseLabel, classeBlockX, blockTop + 4);
+    doc.text(t.printClasseLabel, classeBlockX, blockTop);
     doc.setFont("helvetica", "bold");
     doc.text(
       classe.classe_name,
       classeBlockX + doc.getTextWidth(`${t.printClasseLabel} `),
-      blockTop + 4,
+      blockTop,
+    );
+
+    doc.setFont("helvetica", "normal");
+    doc.text(t.printSectionLabel, classeBlockX, blockTop + 8);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      capitalizeSectionName(section),
+      classeBlockX + doc.getTextWidth(`${t.printSectionLabel} `),
+      blockTop + 8,
     );
 
     autoTable(doc, {

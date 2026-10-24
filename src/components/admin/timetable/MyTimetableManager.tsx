@@ -121,6 +121,7 @@ const MyTimetableManager = () => {
       summaryTotalHeader: t.summaryTotalHeader,
       breakDurationSuffix: t.breakDurationSuffix,
       breakLabel: gridLabels.breakLabel,
+      schoolYearLine: `Année scolaire: ${schoolYear}`,
     };
     if (format === "pdf") {
       await exportMyTimetableToPdf(

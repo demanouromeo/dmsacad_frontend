@@ -39,6 +39,8 @@ export interface MyTimetablePdfLabels {
   summaryTotalHeader: string;
   breakDurationSuffix: string;
   breakLabel: string;
+  // Fully resolved line (e.g. "Année scolaire: 2025/2026") drawn under the document title.
+  schoolYearLine?: string;
 }
 
 // One staff member's already-resolved header + weekly grid + per-class summary, ready to be laid
@@ -84,6 +86,12 @@ export const drawStaffTimetablePage = (
   doc.setFontSize(15);
   doc.text(labels.documentTitle, centerX, y, { align: "center" });
   y += 9;
+  if (labels.schoolYearLine) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(labels.schoolYearLine, centerX, y - 2, { align: "center" });
+    y += 5;
+  }
 
   const drawField = (x: number, fieldY: number, label: string, value: string): void => {
     doc.setFont("helvetica", "bold");

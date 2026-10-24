@@ -306,6 +306,7 @@ const TimetableHub = () => {
       summaryTotalHeader: mt.summaryTotalHeader,
       breakDurationSuffix: mt.breakDurationSuffix,
       breakLabel: gridLabels.breakLabel,
+      schoolYearLine: `Année scolaire: ${schoolYear}`,
     };
   };
 
@@ -498,6 +499,8 @@ const TimetableHub = () => {
       data,
       schoolHeader,
       buildTimestampedFilename(t.title, [`Section ${capitalizeSectionName(section)}`], "pdf"),
+      schoolYear,
+      capitalizeSectionName(section),
     );
     setIsExportingTimetable(false);
   };
@@ -517,6 +520,8 @@ const TimetableHub = () => {
       data,
       schoolHeader,
       buildTimestampedFilename(t.title, [`Classe ${classe.classe_name}`], "pdf"),
+      schoolYear,
+      capitalizeSectionName(section),
     );
   };
 
