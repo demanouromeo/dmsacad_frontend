@@ -436,11 +436,18 @@ const CourseAssignmentManager = () => {
       import("jspdf-autotable"),
     ]);
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
     const drawPageTitle = (): number => {
       const top = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(t.printTitle, 14, top);
+      // Plain, right-aligned on the title's line (only the title and the classe name are bold).
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${t.printSchoolYearLabel} ${schoolYear}`, pageWidth - 14, top, {
+        align: "right",
+      });
       return top + 8;
     };
     let y = drawPageTitle();
@@ -468,9 +475,20 @@ const CourseAssignmentManager = () => {
         doc.addPage();
         y = 15;
       }
+      // Label plain, classe name bold.
       doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(t.printClasseLabel, 14, y);
+      const labelWidth = doc.getTextWidth(`${t.printClasseLabel} `);
       doc.setFont("helvetica", "bold");
-      doc.text(t.printClasseLabel(group.classe_name), 14, y);
+      doc.text(group.classe_name, 14 + labelWidth, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `${t.printSectionLabel} ${capitalizeSectionName(section)}`,
+        pageWidth - 14,
+        y,
+        { align: "right" },
+      );
       y += 4;
       autoTable(doc, {
         startY: y,

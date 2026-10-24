@@ -39,6 +39,13 @@ import {
   drawPdfSignature,
 } from "../../../utils/exportHeader";
 import { saveOrShareBlob } from "../../../utils/nativeFileSave";
+import {
+  mapWithConcurrency,
+  DEFAULT_REPORT_CONCURRENCY,
+} from "../../../utils/concurrency";
+import type { jsPDF } from "jspdf";
+
+type AutoTableFn = typeof import("jspdf-autotable").default;
 
 const MIN_NAME_LENGTH = 2;
 
@@ -157,8 +164,9 @@ const StudentManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, schoolYear, section]);
 
-  const loadStudents = async (classeId: number) => {
-    setIsLoadingStudents(true);
+  // Roster of one classe with the pivot's real repeating/cas_social merged in (see
+  // CLAUDE.md "Students"), sorted by name - shared by the on-screen list and "Print all".
+  const fetchMergedStudents = async (classeId: number): Promise<Student[]> => {
     const [studentRows, pivotRows] = await Promise.all([
       StudentReader.fetchStudentsOfClasse(
         accessToken,
@@ -174,7 +182,7 @@ const StudentManager = () => {
       ),
     ]);
     const pivotByStudId = new Map(pivotRows.map((p) => [p.stud_id, p]));
-    const merged = studentRows
+    return studentRows
       .map((s) => {
         const pivot = pivotByStudId.get(s.stud_id);
         return {
@@ -184,6 +192,11 @@ const StudentManager = () => {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  const loadStudents = async (classeId: number) => {
+    setIsLoadingStudents(true);
+    const merged = await fetchMergedStudents(classeId);
     setStudents(merged);
     setSelectedIds(new Set());
     setIsLoadingStudents(false);
@@ -598,15 +611,19 @@ const StudentManager = () => {
   // Custom layout instead of the generic exportRowsToPdf: this document needs a title block
   // (title left, "Année Scolaire"/"Classe" labels, a small G/F/T stats grid on the right) inserted
   // right after the letterhead, which the generic single-line title exporter can't produce.
-  const handleExportPdf = async () => {
-    if (!selectedClasse) {
-      return;
-    }
-    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
-      import("jspdf"),
-      import("jspdf-autotable"),
-    ]);
-    const doc = new jsPDF();
+  // Draws one classe's full list (letterhead, title block, G/F/T grid, table, signature) starting
+  // on the doc's current page - callers add a page first for every classe after the first.
+  const drawClassePage = (
+    doc: jsPDF,
+    autoTable: AutoTableFn,
+    classe: Classe,
+    rows: Student[],
+  ) => {
+    const classeStats = {
+      filles: rows.filter((s) => s.sexe === "F").length,
+      garcons: rows.length - rows.filter((s) => s.sexe === "F").length,
+      total: rows.length,
+    };
     const pageWidth = doc.internal.pageSize.getWidth();
     const blockTop = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
 
@@ -630,7 +647,7 @@ const StudentManager = () => {
     doc.text(t.printClasseLabel, classeBlockX, blockTop + 4);
     doc.setFont("helvetica", "bold");
     doc.text(
-      selectedClasse.classe_name,
+      classe.classe_name,
       classeBlockX + doc.getTextWidth(`${t.printClasseLabel} `),
       blockTop + 4,
     );
@@ -651,7 +668,11 @@ const StudentManager = () => {
       headStyles: { fontStyle: "bold" },
       head: [["G", "F", "T"]],
       body: [
-        [String(stats.garcons), String(stats.filles), String(stats.total)],
+        [
+          String(classeStats.garcons),
+          String(classeStats.filles),
+          String(classeStats.total),
+        ],
       ],
     });
     // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime - its published
@@ -664,7 +685,7 @@ const StudentManager = () => {
     autoTable(doc, {
       startY: listStartY,
       head: [pdfExportColumns.map((c) => c.header)],
-      body: students.map((row, index) =>
+      body: rows.map((row, index) =>
         pdfExportColumns.map((c) => String(c.accessor(row, index))),
       ),
       // Body text defaults to the "striped" theme's dark gray otherwise - force pure black, and
@@ -699,6 +720,23 @@ const StudentManager = () => {
     if (schoolHeader) {
       drawPdfSignature(doc, schoolHeader, finalY);
     }
+  };
+
+  const loadPdfLibs = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    return { jsPDF, autoTable };
+  };
+
+  const handleExportPdf = async () => {
+    if (!selectedClasse) {
+      return;
+    }
+    const { jsPDF, autoTable } = await loadPdfLibs();
+    const doc = new jsPDF();
+    drawClassePage(doc, autoTable, selectedClasse, students);
     drawPdfFooters(doc, schoolHeader);
 
     await saveOrShareBlob(
@@ -712,6 +750,48 @@ const StudentManager = () => {
         "pdf",
       ),
     );
+  };
+
+  // Every classe of the section (the role-visible `classes`) in one PDF, each starting on its own
+  // page with the same layout as the single-classe export. Rosters are fetched per classe through
+  // the bounded-concurrency helper (see CLAUDE.md on the remote MySQL connection ceiling).
+  const handlePrintAll = async () => {
+    if (classes.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    const rosters = await mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe) => ({
+        classe,
+        rows: await fetchMergedStudents(classe.classe_id),
+      }),
+    );
+    const nonEmpty = rosters.filter((r) => r.rows.length > 0);
+    if (nonEmpty.length === 0) {
+      setIsSaving(false);
+      showToast(t.printAllEmpty, { type: "warning" });
+      return;
+    }
+    const { jsPDF, autoTable } = await loadPdfLibs();
+    const doc = new jsPDF();
+    nonEmpty.forEach(({ classe, rows }, index) => {
+      if (index > 0) {
+        doc.addPage();
+      }
+      drawClassePage(doc, autoTable, classe, rows);
+    });
+    drawPdfFooters(doc, schoolHeader);
+    await saveOrShareBlob(
+      doc.output("blob"),
+      buildTimestampedFilename(
+        "Liste des élèves",
+        [`Section ${capitalizeSectionName(section)}`],
+        "pdf",
+      ),
+    );
+    setIsSaving(false);
   };
 
   return (
@@ -788,6 +868,14 @@ const StudentManager = () => {
                 pdfLabel={et.pdfBtn}
                 disabled={isLoadingStudents || students.length === 0}
               />
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                disabled={isLoadingStudents || classes.length === 0}
+                onClick={handlePrintAll}
+              >
+                {t.printAllBtn}
+              </button>
               <button
                 type="button"
                 className="btn btn-outline btn-sm gap-2"
