@@ -192,6 +192,11 @@ const ScholarshipManager = () => {
       exportColumns,
       boursiers,
       schoolHeader,
+      true,
+      true,
+      sectionSegment[0],
+      "portrait",
+      "below",
     );
   };
 
@@ -208,6 +213,11 @@ const ScholarshipManager = () => {
       exportColumns,
       boursieres,
       schoolHeader,
+      true,
+      true,
+      sectionSegment[0],
+      "portrait",
+      "below",
     );
   };
 

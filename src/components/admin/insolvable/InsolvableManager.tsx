@@ -9,6 +9,7 @@ import { StudentReader } from "../../../dbmanger/StudentReader";
 import type { Classe } from "../../../interfaces/Classe";
 import {
   buildTimestampedFilename,
+  capitalizeSectionName,
   exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
@@ -207,6 +208,11 @@ const InsolvableManager = () => {
       exportColumns,
       roster,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire: ${schoolYear}  -  Section: ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 

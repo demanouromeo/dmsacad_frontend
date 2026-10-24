@@ -182,8 +182,10 @@ export const exportRowsToPdf = async <T>(
   // On by default for every generic list PDF; pass false to opt out.
   compact = true,
   // Optional smaller text on the title's line, right-aligned (e.g. school year / section).
-  subtitle?: string,
+  subtitle?: string | string[],
   orientation: "portrait" | "landscape" = "portrait",
+  // "right" (default): subtitle on the title's line, right-aligned; "below": left-aligned under it.
+  subtitlePlacement: "right" | "below" = "right",
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -193,12 +195,27 @@ export const exportRowsToPdf = async <T>(
   const y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
   doc.setFontSize(14);
   doc.text(title, 14, y);
+  let tableStartY = y + 5;
   if (subtitle) {
+    // First entry: the main subtitle line. Any further entries are drawn as small (8pt) lines
+    // wrapped under it, e.g. a long competence text.
+    const [mainLine, ...fineLines] = Array.isArray(subtitle) ? subtitle : [subtitle];
+    const below = subtitlePlacement === "below";
+    const x = below ? 14 : doc.internal.pageSize.getWidth() - 14;
+    const align = below ? "left" : "right";
+    const mainY = below ? y + 5.5 : y;
     doc.setFontSize(10);
-    // Same baseline as the title, right-aligned to the page's right margin.
-    doc.text(subtitle, doc.internal.pageSize.getWidth() - 14, y, { align: "right" });
+    doc.text(mainLine, x, mainY, { align });
+    tableStartY = below ? mainY + 3 : tableStartY;
+    if (fineLines.length > 0) {
+      doc.setFontSize(8);
+      const wrapped: string[] = doc.splitTextToSize(fineLines.join(" "), below ? 170 : 110);
+      const fineY = mainY + 4.5;
+      doc.text(wrapped, x, fineY, { align, lineHeightFactor: 1.1 });
+      tableStartY = Math.max(tableStartY, fineY + wrapped.length * 3.2);
+    }
   }
-  autoTable(doc, { startY: y + 5, ...buildListTableOptions(columns, rows, compact) });
+  autoTable(doc, { startY: tableStartY, ...buildListTableOptions(columns, rows, compact) });
   if (includeSignature && schoolHeader) {
     // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own
     // source, jspdf.plugin.autotable.js) - its published types don't expose this on the plain

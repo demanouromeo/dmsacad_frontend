@@ -939,6 +939,16 @@ const MarkEntryManager = () => {
       ],
       subjects,
       schoolHeader,
+      true,
+      true,
+      [
+        `Année scolaire: ${schoolYear}  -  Section: ${capitalizeSectionName(section)}  -  Trimestre ${selectedTerm}${
+          isApc ? "" : `  -  Séquence ${selectedSequence}`
+        }`,
+        ...(isApc && selectedCompetence ? [`Compétence: ${selectedCompetence.competence_text}`] : []),
+      ],
+      "portrait",
+      "below",
     );
   };
 
