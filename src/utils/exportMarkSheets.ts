@@ -60,8 +60,9 @@ export const exportMarkSheetsToPdf = async (
         ...columns.map(() => ""),
       ]),
       theme: "grid",
-      styles: { fontSize: 9, cellPadding: 2, lineWidth: 0.1, lineColor: [0, 0, 0], textColor: [0, 0, 0] },
-      headStyles: { fillColor: [219, 234, 254], textColor: 0, lineWidth: 0.1, lineColor: [0, 0, 0] },
+      styles: { fontSize: 9, cellPadding: 2, lineWidth: 0.1, lineColor: [190, 190, 190], textColor: [0, 0, 0] },
+      headStyles: { fillColor: [219, 234, 254], textColor: 0, lineWidth: 0.1, lineColor: [190, 190, 190] },
+      bodyStyles: { fillColor: [255, 255, 255] },
     });
 
     // The final page count for this classe is only known once its table has finished paginating -

@@ -125,6 +125,9 @@ export const exportRowsToPdf = async <T>(
   // default - callers exporting a report card/bulletin/livret (which use their own print layout,
   // not this function) would pass false, but no such caller exists yet in this codebase.
   includeSignature = true,
+  // Tighter rows/font so more lines fit per page - same cell padding as the student list PDF.
+  // On by default for every generic list PDF; pass false to opt out.
+  compact = true,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -147,14 +150,24 @@ export const exportRowsToPdf = async <T>(
     // jspdf-autotable's default "striped" theme renders body text in a dark gray, not pure black -
     // force it explicitly, matching every other PDF exporter in the app (exportMyTimetablePdf,
     // exportEffectifsToPdf, ...), which already set this the same way.
-    styles: { textColor: [0, 0, 0] },
+    styles: compact
+      ? {
+          textColor: [0, 0, 0],
+          fontSize: 9,
+          cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+        }
+      : { textColor: [0, 0, 0] },
     // The generic `styles.textColor` above is merged in *after* the theme's own head/foot color
     // (see jspdf-autotable's cellStyles(): theme.table -> theme[section] -> styles.styles ->
     // sectionStyles), so without this it silently overrides the theme's white head text to black
     // too, leaving black-on-blue in the header row. Every other exporter in this app that uses the
     // striped theme's blue head fill (exportMyTimetablePdf, exportTimetablePdf) already carves out
     // this same headStyles exception - this generic exporter was missing it.
-    headStyles: { textColor: [255, 255, 255] },
+    headStyles: { textColor: [255, 255, 255], fillColor: [41, 128, 185], lineWidth: 0 },
+    // "grid" theme (not the default "striped"): only the header row is colored; every body cell is
+    // white with a thin gray border and no zebra fill - same look as the student list PDF.
+    theme: "grid",
+    bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
     columnStyles: columns.reduce<Record<number, { overflow: "ellipsize" }>>((acc, c, index) => {
       if (c.overflow) {
         acc[index] = { overflow: c.overflow };

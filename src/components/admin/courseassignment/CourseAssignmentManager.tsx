@@ -483,7 +483,9 @@ const CourseAssignmentManager = () => {
         // which the plain default already gets right and a bare `styles.textColor` would
         // otherwise flip to black too - see exportData.ts's exportRowsToPdf for the same fix).
         styles: { textColor: [0, 0, 0] },
-        headStyles: { textColor: [255, 255, 255] },
+        headStyles: { textColor: [255, 255, 255], fillColor: [41, 128, 185], lineWidth: 0 },
+        theme: "grid",
+        bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
       });
       // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own
       // source, jspdf.plugin.autotable.js) - its published types don't expose this on the plain

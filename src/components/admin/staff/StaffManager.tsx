@@ -514,7 +514,7 @@ const StaffManager = () => {
 
   const handleExportPdf = () => {
     exportRowsToPdf(
-      t.title,
+      `Liste du personnel - Année scolaire ${schoolYear}`,
       buildTimestampedFilename("Liste du personnel", [], "pdf"),
       pdfExportColumns,
       staffList,
