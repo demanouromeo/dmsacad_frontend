@@ -15,6 +15,7 @@ import {
 import { sanitizeSubjectTitle } from "../../../utils/subjectImport";
 import {
   buildTimestampedFilename,
+  capitalizeSectionName,
   exportRowsToXlsx,
   exportRowsToPdf,
   type ExportColumn,
@@ -324,7 +325,11 @@ const DisciplineManager = () => {
 
   const exportColumns: ExportColumn<RosterStudent>[] = [
     { header: t.tableHeaderIndex, accessor: (_row, index) => index + 1 },
-    { header: t.tableHeaderName, accessor: (row) => `${row.name} ${row.surname ?? ""}`.trim() },
+    {
+      header: t.tableHeaderName,
+      accessor: (row) => `${row.name} ${row.surname ?? ""}`.trim(),
+      cellWidth: 75,
+    },
     { header: t.tableHeaderAbsences, accessor: (row) => entries.get(row.stud_id)?.absences ?? "" },
     { header: t.tableHeaderExclusion, accessor: (row) => entries.get(row.stud_id)?.exclusion ?? "" },
     { header: t.tableHeaderLateness, accessor: (row) => entries.get(row.stud_id)?.lateness ?? "" },
@@ -350,6 +355,10 @@ const DisciplineManager = () => {
       exportColumns,
       roster,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire: ${schoolYear}   -   Section: ${capitalizeSectionName(section)}`,
+      "landscape",
     );
   };
 

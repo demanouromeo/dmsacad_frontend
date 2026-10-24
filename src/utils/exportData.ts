@@ -19,6 +19,8 @@ export interface ExportColumn<T> {
   // value still keeps every row to a single line. CSV/Excel ignore this - a spreadsheet cell has no
   // such limit.
   overflow?: "ellipsize";
+  // Optional fixed column width in mm for exportRowsToPdf only (other columns keep auto sizing).
+  cellWidth?: number;
 }
 
 const pad2 = (n: number): string => String(n).padStart(2, "0");
@@ -128,15 +130,23 @@ export const exportRowsToPdf = async <T>(
   // Tighter rows/font so more lines fit per page - same cell padding as the student list PDF.
   // On by default for every generic list PDF; pass false to opt out.
   compact = true,
+  // Optional smaller text on the title's line, right-aligned (e.g. school year / section).
+  subtitle?: string,
+  orientation: "portrait" | "landscape" = "portrait",
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
   ]);
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation });
   const y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
   doc.setFontSize(14);
   doc.text(title, 14, y);
+  if (subtitle) {
+    doc.setFontSize(10);
+    // Same baseline as the title, right-aligned to the page's right margin.
+    doc.text(subtitle, doc.internal.pageSize.getWidth() - 14, y, { align: "right" });
+  }
   autoTable(doc, {
     startY: y + 5,
     head: [columns.map((c) => c.header)],
@@ -168,9 +178,14 @@ export const exportRowsToPdf = async <T>(
     // white with a thin gray border and no zebra fill - same look as the student list PDF.
     theme: "grid",
     bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
-    columnStyles: columns.reduce<Record<number, { overflow: "ellipsize" }>>((acc, c, index) => {
-      if (c.overflow) {
-        acc[index] = { overflow: c.overflow };
+    columnStyles: columns.reduce<
+      Record<number, { overflow?: "ellipsize"; cellWidth?: number }>
+    >((acc, c, index) => {
+      if (c.overflow || c.cellWidth) {
+        acc[index] = {
+          ...(c.overflow ? { overflow: c.overflow } : {}),
+          ...(c.cellWidth ? { cellWidth: c.cellWidth } : {}),
+        };
       }
       return acc;
     }, {}),
