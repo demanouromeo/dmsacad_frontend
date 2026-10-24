@@ -59,6 +59,8 @@ const mapStaffImportErrorToMessage = (
 
 const FUNCTION_CODES = [0, 1, 2, 3, 4, 5] as const;
 
+const CIVILITIES: string[] = ["Mr", "Mme", "Mlle", "Dr"];
+
 const RANDOM_CREDENTIAL_CHARS =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const RANDOM_CREDENTIAL_LENGTH = 6;
@@ -739,15 +741,28 @@ const StaffManager = () => {
                       </td>
                       <td>
                         {isEditing ? (
-                          <input
-                            type="text"
-                            className="input input-sm w-full"
+                          <select
+                            className="select select-sm w-full"
                             title={t.civilityTooltip}
                             value={editingCivility}
                             onChange={(e) =>
                               setEditingCivility(e.target.value)
                             }
-                          />
+                          >
+                            <option value="">{t.tableHeaderCivility}</option>
+                            {/* Keep a legacy/imported value (e.g. "M.") selectable instead of silently blanking it on save. */}
+                            {editingCivility &&
+                              !CIVILITIES.includes(editingCivility) && (
+                                <option value={editingCivility}>
+                                  {editingCivility}
+                                </option>
+                              )}
+                            {CIVILITIES.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           staff.civility || ""
                         )}
@@ -931,14 +946,19 @@ const StaffManager = () => {
             <option value="M">{t.sexeMale}</option>
             <option value="F">{t.sexeFemale}</option>
           </select>
-          <input
-            type="text"
-            className="input"
-            placeholder={t.addPlaceholderCivility}
+          <select
+            className="select"
             title={t.civilityTooltip}
             value={newCivility}
             onChange={(e) => setNewCivility(e.target.value)}
-          />
+          >
+            <option value="">{t.tableHeaderCivility}</option>
+            {CIVILITIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
           <select
             className="select"
             title={t.functionTooltip}
