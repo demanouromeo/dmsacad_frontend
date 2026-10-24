@@ -671,11 +671,23 @@ const StudentManager = () => {
       // keep the head row's white text explicit too (a bare `styles.textColor` merges in after
       // the theme's own head color and would flip it to black-on-blue - see exportData.ts's
       // exportRowsToPdf for the same fix).
+      // "grid" theme (not the default "striped") so body cells get borders and no zebra fill:
+      // only the header row is colored, every cell below it is white with a thin gray border.
+      theme: "grid",
       styles: {
         textColor: [0, 0, 0],
         cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
       },
-      headStyles: { textColor: [255, 255, 255] },
+      headStyles: {
+        textColor: [255, 255, 255],
+        fillColor: [41, 128, 185],
+        lineWidth: 0,
+      },
+      bodyStyles: {
+        fillColor: [255, 255, 255],
+        lineColor: [190, 190, 190],
+        lineWidth: 0.1,
+      },
       // Nom/Prénom (column index 2) gets the freed-up room from merging Name+Surname into one
       // column - "ellipsize" truncates with "…" instead of wrapping to a second line if an
       // unusually long name still doesn't fit, so every row stays a single line.
