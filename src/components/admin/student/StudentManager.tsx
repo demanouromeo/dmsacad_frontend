@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
+import changeClasseIcon from "../../../assets/compo/eleve/change.png";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -20,6 +21,7 @@ import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
+import ChangeClasseDialog from "./ChangeClasseDialog";
 import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
   sanitizeStudentName,
@@ -71,6 +73,9 @@ const StudentManager = () => {
     useAuth();
   // Only ADMIN can add/delete/import students (SUBADMIN and CENSEUR cannot).
   const canAddOrDeleteStudents = authPayload?.role === "ADMIN";
+  // changeStudentClasse is in the backend's ADMIN group (SUBADMIN passes it too, CENSEUR doesn't).
+  const canChangeClasse =
+    authPayload?.role === "ADMIN" || authPayload?.role === "SUBADMIN";
   const showToast = useToast();
   const confirm = useConfirm();
   const location = useLocation();
@@ -110,6 +115,7 @@ const StudentManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [changeClasseStudent, setChangeClasseStudent] = useState<Student | null>(null);
   const [photoDialogStudent, setPhotoDialogStudent] = useState<Student | null>(
     null,
   );
@@ -404,6 +410,41 @@ const StudentManager = () => {
     }
   };
 
+  // Confirm, then move the student to the target classe for the current year (the backend deletes
+  // the old enrollment, creates the new one and copies marks of same-titled subjects).
+  const handleChangeClasse = async (targetClasseId: number) => {
+    const student = changeClasseStudent;
+    const from = classes.find((c) => c.classe_id === selectedClasseId);
+    const to = classes.find((c) => c.classe_id === targetClasseId);
+    if (!student || !from || !to) {
+      return;
+    }
+    const fullName = `${student.name} ${student.surname ?? ""}`.trim();
+    const confirmed = await confirm(
+      t.changeClasseConfirm(fullName, from.classe_name, to.classe_name),
+    );
+    if (!confirmed) {
+      return;
+    }
+    setIsSaving(true);
+    const result = await StudentReader.changeStudentClasse(
+      accessToken,
+      connection,
+      schoolYear,
+      student.stud_id,
+      from.classe_id,
+      to.classe_id,
+    );
+    setIsSaving(false);
+    showToast(result.status ? t.changeClasseSuccess : t.changeClasseFailure, {
+      type: result.status ? "info" : "danger",
+    });
+    if (result.status) {
+      setChangeClasseStudent(null);
+      loadStudents(from.classe_id);
+    }
+  };
+
   const persistImportedStudents = async (
     rows: {
       name: string;
@@ -673,6 +714,10 @@ const StudentManager = () => {
       theme: "grid",
       styles: {
         halign: "center",
+        valign: "middle",
+        // Compact stats grid: vertical padding is small (autotable default is 5, far too tall for
+        // this header block); symmetric top/bottom keeps the text centered with valign middle.
+        cellPadding: { top: 1.45, bottom: 1.45, left: 5, right: 5 },
         fontSize: 10,
         lineColor: [0, 0, 0],
         lineWidth: 0.2,
@@ -1243,13 +1288,27 @@ const StudentManager = () => {
                                 </button>
                               </>
                             ) : (
-                              <button
-                                type="button"
-                                className="btn btn-xs btn-ghost"
-                                onClick={() => startEdit(student)}
-                              >
-                                {t.editBtn}
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                {canChangeClasse && (
+                                  <div className="tooltip tooltip-left" data-tip={t.changeClasseTooltip}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-xs btn-ghost btn-square"
+                                      aria-label={t.changeClasseTooltip}
+                                      onClick={() => setChangeClasseStudent(student)}
+                                    >
+                                      <img src={changeClasseIcon} alt="" className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  onClick={() => startEdit(student)}
+                                >
+                                  {t.editBtn}
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1410,6 +1469,13 @@ const StudentManager = () => {
         student={photoDialogStudent}
         onClose={() => setPhotoDialogStudent(null)}
         onSaved={bumpPhotoVersion}
+      />
+      <ChangeClasseDialog
+        student={changeClasseStudent}
+        currentClasseId={selectedClasseId}
+        classes={classes}
+        onClose={() => setChangeClasseStudent(null)}
+        onValidate={handleChangeClasse}
       />
     </div>
   );

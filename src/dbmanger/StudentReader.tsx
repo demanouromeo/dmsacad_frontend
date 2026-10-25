@@ -336,6 +336,29 @@ export class StudentReader {
     );
   };
 
+  // Moves one student between classes of the same year (backend copies matching-subject marks).
+  public static changeStudentClasse = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+    studId: number,
+    classeIdOld: number,
+    classeIdNew: number,
+  ): Promise<ApiResult> => {
+    return StudentReader.postJson(
+      "api/students/changeStudentClasse",
+      accessToken,
+      {
+        connection,
+        year,
+        stud_id: studId,
+        classe_id_old: classeIdOld,
+        classe_id_new: classeIdNew,
+      },
+      "changeStudentClasse",
+    );
+  };
+
   // student.photo is a mediumblob (raw bytes, not a filesystem path like the school logo) - every
   // read has to go through this authenticated endpoint rather than a static <img src>. Mirrors
   // SchoolInfoReader.loadLogoImageForExport exactly: fetch the bytes as a Blob, turn them into a
