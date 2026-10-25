@@ -47,7 +47,7 @@ export interface DrawPdfLetterheadOptions {
 }
 
 // Vertical distance between letterhead text rows (mm), matched to the 8.5pt font.
-const LINE_STEP = 4.5;
+const LINE_STEP = 4.2;
 // Each side block is pushed this far (mm) away from the centered logo to widen the gaps.
 const BLOCK_GAP_SHIFT = 9;
 
@@ -152,7 +152,7 @@ export const drawPdfLetterhead = (
     }
   }
   if (config?.school_matricule) {
-    doc.setFontSize(6.5);
+    doc.setFontSize(7);
     doc.text(config.school_matricule, centerX, logoY + logoSize + 4, {
       align: "center",
     });
