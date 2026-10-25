@@ -46,6 +46,11 @@ export interface DrawPdfLetterheadOptions {
   startY?: number;
 }
 
+// Vertical distance between letterhead text rows (mm), matched to the 8.5pt font.
+const LINE_STEP = 4.5;
+// Each side block is pushed this far (mm) away from the centered logo to widen the gaps.
+const BLOCK_GAP_SHIFT = 9;
+
 // Draws the letterhead (both language columns, centered logo + matricule, separator rule) at the
 // top of the PDF and returns the Y coordinate the caller should start the title/table from. If
 // there's no config and no logo yet (still loading, or nothing configured for this school), this
@@ -69,21 +74,21 @@ export const drawPdfLetterhead = (
   const centerX = pageWidth / 2;
   // Each corner is its own text block, centered on its own midpoint - not left/right-aligned
   // against the page margins, which left the lines within a block ragged against each other.
-  const leftBlockCenterX = pageWidth * 0.25;
-  const rightBlockCenterX = pageWidth * 0.75;
+  const leftBlockCenterX = pageWidth * 0.25 - BLOCK_GAP_SHIFT;
+  const rightBlockCenterX = pageWidth * 0.75 + BLOCK_GAP_SHIFT;
   let y = startY;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
+  doc.setFontSize(8.5);
   doc.text(REPUBLIC_FR, leftBlockCenterX, y, { align: "center" });
   doc.text(REPUBLIC_EN, rightBlockCenterX, y, { align: "center" });
 
-  y += 5;
+  y += LINE_STEP;
   doc.setFont("helvetica", "italic");
   doc.text(MOTTO_FR, leftBlockCenterX, y, { align: "center" });
   doc.text(MOTTO_EN, rightBlockCenterX, y, { align: "center" });
 
-  y += 5;
+  y += LINE_STEP;
   doc.setFont("helvetica", "normal");
   if (config?.del_regionale_fr) {
     doc.text(config.del_regionale_fr, leftBlockCenterX, y, { align: "center" });
@@ -94,7 +99,7 @@ export const drawPdfLetterhead = (
     });
   }
 
-  y += 5;
+  y += LINE_STEP;
   if (config?.del_dept_fr) {
     doc.text(config.del_dept_fr, leftBlockCenterX, y, { align: "center" });
   }
@@ -102,7 +107,7 @@ export const drawPdfLetterhead = (
     doc.text(config.del_dept_en, rightBlockCenterX, y, { align: "center" });
   }
 
-  y += 5;
+  y += LINE_STEP;
   doc.setFont("helvetica", "bold");
   if (config?.name_fr) {
     doc.text(config.name_fr, leftBlockCenterX, y, { align: "center" });
@@ -115,7 +120,7 @@ export const drawPdfLetterhead = (
   // too, rather than leaving a blank gap above the separator rule, to keep the RC's own header
   // compact. Every other export keeps the reserved row so its layout is unaffected.
   if (includePhone) {
-    y += 5;
+    y += LINE_STEP;
     doc.setFont("helvetica", "normal");
     // The labels stay put even with no phone on file (rendering "Tel.:" / "Phone:" with nothing after
     // them) - the reserved row is drawn either way, so keeping them preserves the letterhead's fixed
@@ -147,7 +152,7 @@ export const drawPdfLetterhead = (
     }
   }
   if (config?.school_matricule) {
-    doc.setFontSize(7.5);
+    doc.setFontSize(6.5);
     doc.text(config.school_matricule, centerX, logoY + logoSize + 4, {
       align: "center",
     });

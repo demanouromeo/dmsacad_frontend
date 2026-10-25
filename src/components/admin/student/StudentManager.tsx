@@ -588,7 +588,7 @@ const StudentManager = () => {
     },
     { header: t.tableHeaderSexe, accessor: (s: Student) => s.sexe },
     {
-      header: t.tableHeaderRepeating,
+      header: "Red.",
       accessor: (s: Student) =>
         s.repeating === 1 ? t.repeatingYes : t.repeatingNo,
     },
