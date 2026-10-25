@@ -203,7 +203,7 @@ const VpManager = () => {
 
   const handleExportClassesPdf = async () => {
     await exportRowsToPdf(
-      `Liste des classes et censeurs - Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "Liste des classes et censeurs",
       buildTimestampedFilename(
         "Liste des classes et censeurs",
         [`Section ${capitalizeSectionName(section)}`],
@@ -212,6 +212,11 @@ const VpManager = () => {
       buildVpColumns(),
       classes,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 

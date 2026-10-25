@@ -582,7 +582,7 @@ const DisciplineManager = () => {
                 <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetsAllTooltip}>
                   <button
                     type="button"
-                    className="btn btn-outline btn-sm btn-square"
+                    className="btn btn-secondary btn-sm btn-square"
                     aria-label={t.attendanceSheetsAllTooltip}
                     disabled={classes.length === 0 || isExportingAll}
                     onClick={handleAttendanceSheetsAll}
