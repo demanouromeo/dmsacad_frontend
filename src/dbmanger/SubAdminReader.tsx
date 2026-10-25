@@ -65,6 +65,14 @@ export class SubAdminReader {
   ): Promise<ApiResult> =>
     SubAdminReader.postJson("save", accessToken, { connection, login, pwd }, "saveSubAdmin");
 
+  public static updateLogin = (
+    accessToken: string | null,
+    connection: string,
+    accId: number,
+    login: string,
+  ): Promise<ApiResult> =>
+    SubAdminReader.postJson("updateLogin", accessToken, { connection, acc_id: accId, login }, "updateLogin");
+
   public static updatePassword = (
     accessToken: string | null,
     connection: string,

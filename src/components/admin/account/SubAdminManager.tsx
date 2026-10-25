@@ -27,6 +27,8 @@ const SubAdminManager = () => {
   const [isSaving, setIsSaving] = useState(false);
   // Pending (unsaved) new password per row, keyed by acc_id.
   const [newPasswords, setNewPasswords] = useState<Record<number, string>>({});
+  // Pending (unsaved) login edit per row, keyed by acc_id - absent means "unchanged".
+  const [loginDrafts, setLoginDrafts] = useState<Record<number, string>>({});
 
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -37,6 +39,7 @@ const SubAdminManager = () => {
     setIsLoading(true);
     setSubAdmins(await SubAdminReader.fetchSubAdmins(accessToken, connection));
     setNewPasswords({});
+    setLoginDrafts({});
     setIsLoading(false);
   };
 
@@ -71,6 +74,35 @@ const SubAdminManager = () => {
       loadSubAdmins();
     } else {
       showToast(isDuplicateNameError(result.message) ? t.addDuplicate : t.addFailure, {
+        type: "danger",
+      });
+    }
+  };
+
+  const cancelLoginEdit = (accId: number) =>
+    setLoginDrafts((prev) => {
+      const next = { ...prev };
+      delete next[accId];
+      return next;
+    });
+
+  const handleSaveLogin = async (subAdmin: SubAdmin) => {
+    const newLogin = (loginDrafts[subAdmin.acc_id] ?? subAdmin.login).trim();
+    if (newLogin.length < MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH) {
+      showToast(t.loginTooShort(MIN_STAFF_LOGIN_OR_PASSWORD_LENGTH), { type: "warning" });
+      return;
+    }
+    setIsSaving(true);
+    const result = await SubAdminReader.updateLogin(accessToken, connection, subAdmin.acc_id, newLogin);
+    setIsSaving(false);
+    if (result.status) {
+      showToast(t.loginSuccess, { type: "info" });
+      setSubAdmins((prev) =>
+        prev.map((s) => (s.acc_id === subAdmin.acc_id ? { ...s, login: newLogin } : s)),
+      );
+      cancelLoginEdit(subAdmin.acc_id);
+    } else {
+      showToast(isDuplicateNameError(result.message) ? t.loginDuplicate : t.loginFailure, {
         type: "danger",
       });
     }
@@ -132,7 +164,43 @@ const SubAdminManager = () => {
                 {subAdmins.map((subAdmin, index) => (
                   <tr key={subAdmin.acc_id}>
                     <td>{index + 1}</td>
-                    <td>{subAdmin.login}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          className="input input-sm w-44"
+                          title={t.editLoginTooltip}
+                          autoComplete="off"
+                          value={loginDrafts[subAdmin.acc_id] ?? subAdmin.login}
+                          onChange={(e) =>
+                            setLoginDrafts((prev) => ({ ...prev, [subAdmin.acc_id]: e.target.value }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveLogin(subAdmin);
+                            if (e.key === "Escape") cancelLoginEdit(subAdmin.acc_id);
+                          }}
+                        />
+                        {loginDrafts[subAdmin.acc_id] !== undefined &&
+                          loginDrafts[subAdmin.acc_id] !== subAdmin.login && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-primary"
+                                onClick={() => handleSaveLogin(subAdmin)}
+                              >
+                                {t.saveLoginBtn}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => cancelLoginEdit(subAdmin.acc_id)}
+                              >
+                                {t.cancelLoginBtn}
+                              </button>
+                            </>
+                          )}
+                      </div>
+                    </td>
                     <td>
                       <div className="flex items-center gap-2">
                         <input
