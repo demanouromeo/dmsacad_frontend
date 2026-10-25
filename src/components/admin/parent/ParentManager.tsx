@@ -38,7 +38,7 @@ const randomCredentialString = (length: number): string =>
 // precedent - also creates a linked Account row). Not classe/section-scoped, unlike most other
 // admin managers - stud_parent has no year dimension, so it only reloads on `connection` change.
 const ParentManager = () => {
-  const { connection, accessToken } = useAuth();
+  const { connection, schoolYear, accessToken } = useAuth();
   const confirm = useConfirm();
   const showToast = useToast();
   const [language] = useLanguage();
@@ -325,6 +325,11 @@ const ParentManager = () => {
       pdfExportColumns,
       parentList,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear}`,
+      "portrait",
+      "below",
     );
   };
 

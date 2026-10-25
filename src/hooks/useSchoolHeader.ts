@@ -18,7 +18,7 @@ export const loadSchoolHeader = async (
   schoolYear: string,
 ): Promise<SchoolHeader> => {
   const [config, logoImage] = await Promise.all([
-    SchoolInfoReader.fetchSchoolConfigOfYear(accessToken, connection, schoolYear),
+    SchoolInfoReader.fetchSchoolConfigWithFallback(accessToken, connection, schoolYear),
     SchoolInfoReader.loadLogoImageForExport(accessToken, connection),
   ]);
   return { config, logoImage };
@@ -37,7 +37,7 @@ export const useSchoolHeader = (): SchoolHeader => {
         }
         return;
       }
-      const config = await SchoolInfoReader.fetchSchoolConfigOfYear(
+      const config = await SchoolInfoReader.fetchSchoolConfigWithFallback(
         accessToken,
         connection,
         schoolYear,

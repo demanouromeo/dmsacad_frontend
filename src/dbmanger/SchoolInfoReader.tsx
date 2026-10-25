@@ -1,4 +1,5 @@
 import { MyConstants } from "./MyConstants";
+import { MyReader } from "./MyReader";
 import type { SchoolConfig } from "../interfaces/SchoolConfig";
 import type { ApiResult } from "../interfaces/ApiResult";
 import type { SchoolHeaderConfig } from "../interfaces/SchoolHeaderConfig";
@@ -113,6 +114,35 @@ export class SchoolInfoReader {
       );
       return null;
     }
+  };
+
+  // basic_school_config is one row per school year, so a freshly created year (e.g. the next
+  // year's roster being prepared) has none yet and every export would print a letterhead stripped
+  // of the school name/region/department/matricule. Fall back to the most recent year that does
+  // have one - these identity fields rarely change between years. Used for export letterheads
+  // only; the school-info form itself still reads the exact year via fetchSchoolConfigOfYear.
+  public static fetchSchoolConfigWithFallback = async (
+    accessToken: string | null,
+    connection: string,
+    year: string,
+  ): Promise<SchoolHeaderConfig | null> => {
+    const exact = await SchoolInfoReader.fetchSchoolConfigOfYear(accessToken, connection, year);
+    if (exact) {
+      return exact;
+    }
+    const years = await MyReader.fetchSchoolYears(connection);
+    const otherYears = (years ?? [])
+      .map((y) => y.year)
+      .filter((y) => y !== year)
+      .sort()
+      .reverse();
+    for (const otherYear of otherYears) {
+      const config = await SchoolInfoReader.fetchSchoolConfigOfYear(accessToken, connection, otherYear);
+      if (config) {
+        return config;
+      }
+    }
+    return null;
   };
 
   // Unlike the other *Reader classes' JSON POSTs, this endpoint accepts the logo as an uploaded

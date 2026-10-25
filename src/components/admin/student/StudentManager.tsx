@@ -20,7 +20,7 @@ import SearchInput from "../../sharedcomp/SearchInput";
 import ExportButtons from "../../sharedcomp/ExportButtons";
 import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
-import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
   sanitizeStudentName,
   parseStudentImportFile,
@@ -37,6 +37,7 @@ import {
   drawPdfLetterhead,
   drawPdfFooters,
   drawPdfSignature,
+  type SchoolHeader,
 } from "../../../utils/exportHeader";
 import { exportAttendanceSheetsToPdf } from "../../../utils/exportAttendanceSheets";
 import { saveOrShareBlob } from "../../../utils/nativeFileSave";
@@ -621,6 +622,7 @@ const StudentManager = () => {
     autoTable: AutoTableFn,
     classe: Classe,
     rows: Student[],
+    header: SchoolHeader,
   ) => {
     const classeStats = {
       filles: rows.filter((s) => s.sexe === "F").length,
@@ -628,7 +630,7 @@ const StudentManager = () => {
       total: rows.length,
     };
     const pageWidth = doc.internal.pageSize.getWidth();
-    const blockTop = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+    const blockTop = drawPdfLetterhead(doc, header);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(15);
@@ -729,10 +731,15 @@ const StudentManager = () => {
     const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
       .lastAutoTable.finalY;
 
-    if (schoolHeader) {
-      drawPdfSignature(doc, schoolHeader, finalY);
-    }
+    drawPdfSignature(doc, header, finalY);
   };
+
+  // The hook's header can still be empty when an export is clicked (first fetch not resolved yet,
+  // or it failed transiently) - reload it right then rather than printing a PDF with no letterhead.
+  const resolveSchoolHeader = async (): Promise<SchoolHeader> =>
+    schoolHeader.config || schoolHeader.logoImage
+      ? schoolHeader
+      : await loadSchoolHeader(accessToken, connection, schoolYear);
 
   const loadPdfLibs = async () => {
     const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
@@ -747,9 +754,10 @@ const StudentManager = () => {
       return;
     }
     const { jsPDF, autoTable } = await loadPdfLibs();
+    const header = await resolveSchoolHeader();
     const doc = new jsPDF();
-    drawClassePage(doc, autoTable, selectedClasse, students);
-    drawPdfFooters(doc, schoolHeader);
+    drawClassePage(doc, autoTable, selectedClasse, students, header);
+    drawPdfFooters(doc, header);
 
     await saveOrShareBlob(
       doc.output("blob"),
@@ -787,14 +795,15 @@ const StudentManager = () => {
       return;
     }
     const { jsPDF, autoTable } = await loadPdfLibs();
+    const header = await resolveSchoolHeader();
     const doc = new jsPDF();
     nonEmpty.forEach(({ classe, rows }, index) => {
       if (index > 0) {
         doc.addPage();
       }
-      drawClassePage(doc, autoTable, classe, rows);
+      drawClassePage(doc, autoTable, classe, rows, header);
     });
-    drawPdfFooters(doc, schoolHeader);
+    drawPdfFooters(doc, header);
     await saveOrShareBlob(
       doc.output("blob"),
       buildTimestampedFilename(
