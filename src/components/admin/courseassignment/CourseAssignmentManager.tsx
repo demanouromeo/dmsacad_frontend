@@ -520,7 +520,7 @@ const CourseAssignmentManager = () => {
         },
         headStyles: { textColor: [255, 255, 255], fillColor: [41, 128, 185], lineWidth: 0 },
         theme: "grid",
-        bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
+        bodyStyles: { fillColor: [255, 255, 255], lineColor: [0, 0, 0], lineWidth: 0.05 },
       });
       // jspdf-autotable patches the doc instance with `lastAutoTable` at runtime (see its own
       // source, jspdf.plugin.autotable.js) - its published types don't expose this on the plain

@@ -720,8 +720,8 @@ const StudentManager = () => {
       },
       bodyStyles: {
         fillColor: [255, 255, 255],
-        lineColor: [190, 190, 190],
-        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.05,
       },
       // Nom/Prénom (column index 2) gets the freed-up room from merging Name+Surname into one
       // column - "ellipsize" truncates with "…" instead of wrapping to a second line if an

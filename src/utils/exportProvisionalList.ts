@@ -82,7 +82,7 @@ export const exportProvisionalListToPdf = async (
         cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
       },
       headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255], lineWidth: 0 },
-      bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
+      bodyStyles: { fillColor: [255, 255, 255], lineColor: [0, 0, 0], lineWidth: 0.05 },
       // Name+surname share one wider column (index 2) instead of two cramped ones - "ellipsize"
       // truncates with "…" rather than wrapping to a second line if it still doesn't fit, so every
       // row stays a single line even for an unusually long name.

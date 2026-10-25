@@ -153,7 +153,7 @@ const buildListTableOptions = <T>(
   // "grid" theme (not the default "striped"): only the header row is colored; every body cell is
   // white with a thin gray border and no zebra fill - same look as the student list PDF.
   theme: "grid",
-  bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
+  bodyStyles: { fillColor: [255, 255, 255], lineColor: [0, 0, 0], lineWidth: 0.05 },
   columnStyles: columns.reduce<Record<number, { overflow?: "ellipsize"; cellWidth?: number }>>(
     (acc, c, index) => {
       if (c.overflow || c.cellWidth) {

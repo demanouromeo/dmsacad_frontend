@@ -453,8 +453,8 @@ const SubjectCompetenceManager = () => {
         },
         bodyStyles: {
           fillColor: [255, 255, 255],
-          lineColor: [190, 190, 190],
-          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.05,
         },
         columnStyles: { 0: { cellWidth: 40, valign: "top" }, 1: { cellWidth: 12 } },
       });

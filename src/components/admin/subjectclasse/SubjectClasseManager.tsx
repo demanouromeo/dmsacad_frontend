@@ -403,8 +403,8 @@ const SubjectClasseManager = () => {
         },
         bodyStyles: {
           fillColor: [255, 255, 255],
-          lineColor: [190, 190, 190],
-          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.05,
         },
       });
       // jspdf-autotable patches `lastAutoTable` onto the doc at runtime; its types don't expose it.

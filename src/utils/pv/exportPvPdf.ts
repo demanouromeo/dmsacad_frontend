@@ -141,7 +141,7 @@ export const exportPvTermToPdf = async (
     theme: "grid",
     styles: { fontSize: 8, cellPadding: PV_CELL_PADDING },
     headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255], lineWidth: 0 },
-    bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
+    bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255], lineColor: [0, 0, 0], lineWidth: 0.05 },
   });
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
@@ -217,7 +217,7 @@ export const exportPvAnnualToPdf = async (
     theme: "grid",
     styles: { fontSize: 7.5, cellPadding: PV_CELL_PADDING },
     headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255], lineWidth: 0 },
-    bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
+    bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255], lineColor: [0, 0, 0], lineWidth: 0.05 },
   });
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 

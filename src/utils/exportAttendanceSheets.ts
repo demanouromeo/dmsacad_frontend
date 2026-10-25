@@ -103,12 +103,12 @@ export const exportAttendanceSheetsToPdf = async (
       styles: {
         fontSize: 8,
         cellPadding: { top: 0.6, bottom: 0.4, left: 0.4, right: 0.4 },
-        lineWidth: 0.1,
+        lineWidth: 0.05,
         lineColor: [0, 0, 0],
         textColor: [0, 0, 0],
         overflow: "ellipsize",
       },
-      headStyles: { fillColor: [255, 255, 255], textColor: 0, fontSize: 7.5, lineWidth: 0.1, lineColor: [0, 0, 0] },
+      headStyles: { fillColor: [255, 255, 255], textColor: 0, fontSize: 7.5, lineWidth: 0.05, lineColor: [0, 0, 0] },
       bodyStyles: { fillColor: [255, 255, 255] },
       columnStyles,
       didDrawCell: (data) => {

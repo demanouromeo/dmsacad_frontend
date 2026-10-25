@@ -61,8 +61,8 @@ export const exportMarkSheetsToPdf = async (
         ...columns.map(() => ""),
       ]),
       theme: "grid",
-      styles: { fontSize: 9, cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 }, lineWidth: 0.1, lineColor: [190, 190, 190], textColor: [0, 0, 0] },
-      headStyles: { fillColor: [219, 234, 254], textColor: 0, lineWidth: 0.1, lineColor: [190, 190, 190] },
+      styles: { fontSize: 9, cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 }, lineWidth: 0.05, lineColor: [0, 0, 0], textColor: [0, 0, 0] },
+      headStyles: { fillColor: [219, 234, 254], textColor: 0, lineWidth: 0.05, lineColor: [0, 0, 0] },
       bodyStyles: { fillColor: [255, 255, 255] },
     });
 
