@@ -190,6 +190,7 @@ const PvManager = () => {
           rows,
           schoolHeader,
           filename,
+          capitalizeSectionName(section),
         );
         showToast("PV généré avec succès.", { type: "info" });
       }
@@ -229,7 +230,7 @@ const PvManager = () => {
           [`Section ${capitalizeSectionName(section)}`],
           "pdf",
         );
-        await exportPvTermToPdf(selectedTerm, classe.classe_name, schoolYear, isApc, rows, schoolHeader, filename);
+        await exportPvTermToPdf(selectedTerm, classe.classe_name, schoolYear, isApc, rows, schoolHeader, filename, capitalizeSectionName(section));
       }
       showToast(
         anyPrinted ? "PV générés avec succès." : "Aucune classe avec des élèves cette année.",
@@ -258,7 +259,7 @@ const PvManager = () => {
           [`Section ${capitalizeSectionName(section)}`],
           "pdf",
         );
-        await exportPvAnnualToPdf(selectedClasse.classe_name, schoolYear, rows, schoolHeader, filename);
+        await exportPvAnnualToPdf(selectedClasse.classe_name, schoolYear, rows, schoolHeader, filename, capitalizeSectionName(section));
         showToast("PV annuel généré avec succès.", { type: "info" });
       }
     } catch (error) {
@@ -297,7 +298,7 @@ const PvManager = () => {
           [`Section ${capitalizeSectionName(section)}`],
           "pdf",
         );
-        await exportPvAnnualToPdf(classe.classe_name, schoolYear, rows, schoolHeader, filename);
+        await exportPvAnnualToPdf(classe.classe_name, schoolYear, rows, schoolHeader, filename, capitalizeSectionName(section));
       }
       showToast(
         anyPrinted ? "PV annuels générés avec succès." : "Aucune classe avec des élèves cette année.",

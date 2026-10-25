@@ -9,6 +9,10 @@ import { saveOrShareBlob } from "../nativeFileSave";
 // layout, not a fit for a class-list table). Both end with the same drawPdfSignature +
 // drawPdfFooters convention every PDF export in this app already uses.
 
+// Same compact "grid" look as the other list PDFs (see CLAUDE.md "PDF list exports"): colored header
+// only, white body with thin gray borders, tight cell padding.
+const PV_CELL_PADDING = { top: 0.75, bottom: 0.5, left: 1, right: 1 };
+
 const TERM_ORDINAL: Record<number, string> = { 1: "PREMIER", 2: "DEUXIÈME", 3: "TROISIÈME" };
 
 const fullName = (row: { name: string; surname: string }): string =>
@@ -20,12 +24,27 @@ const drawClasseHeaderLine = (
   y: number,
   classeName: string,
   schoolYear: string,
+  sectionLabel?: string,
 ): number => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text("CLASSE:", 20, y);
   doc.setFont("helvetica", "bold");
   doc.text(classeName, 20 + doc.getTextWidth("CLASSE: "), y);
+
+  if (sectionLabel) {
+    // Centered between the CLASSE (left) and ANNÉE SCOLAIRE (right) blocks.
+    const sectionText = "SECTION: ";
+    doc.setFont("helvetica", "normal");
+    const sectionWidth = doc.getTextWidth(sectionText);
+    doc.setFont("helvetica", "bold");
+    const valueWidth = doc.getTextWidth(sectionLabel);
+    const startX = pageWidth / 2 - (sectionWidth + valueWidth) / 2;
+    doc.setFont("helvetica", "normal");
+    doc.text(sectionText, startX, y);
+    doc.setFont("helvetica", "bold");
+    doc.text(sectionLabel, startX + sectionWidth, y);
+  }
 
   const anneeLabel = "ANNÉE SCOLAIRE:";
   const anneeX = pageWidth - 70;
@@ -34,7 +53,7 @@ const drawClasseHeaderLine = (
   doc.setFont("helvetica", "bold");
   doc.text(schoolYear, anneeX + doc.getTextWidth(`${anneeLabel} `), y);
 
-  return y + 8;
+  return y + 2;
 };
 
 export const exportPvTermToPdf = async (
@@ -45,6 +64,7 @@ export const exportPvTermToPdf = async (
   rows: PvTermRow[],
   schoolHeader: SchoolHeader,
   filename: string,
+  sectionLabel?: string,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -58,8 +78,8 @@ export const exportPvTermToPdf = async (
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text(`PROCÈS VERBAL DU ${TERM_ORDINAL[term] ?? term} TRIMESTRE`, centerX, y, { align: "center" });
-  y += 8;
-  y = drawClasseHeaderLine(doc, pageWidth, y, classeName, schoolYear);
+  y += 5;
+  y = drawClasseHeaderLine(doc, pageWidth, y, classeName, schoolYear, sectionLabel);
 
   const head = isApc
     ? ["N°", "Matricule", "Noms et Prénoms", "Date Naiss.", "Sexe", "Satut", "Abs.1", "Abs.2", "T Abs.", "Moy", "Cote", "Observations"]
@@ -118,9 +138,10 @@ export const exportPvTermToPdf = async (
     startY: y,
     head: [head],
     body,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [30, 64, 175] },
-    bodyStyles: { textColor: [0, 0, 0] },
+    theme: "grid",
+    styles: { fontSize: 8, cellPadding: PV_CELL_PADDING },
+    headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255], lineWidth: 0 },
+    bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
   });
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
@@ -135,6 +156,7 @@ export const exportPvAnnualToPdf = async (
   rows: PvAnnualRow[],
   schoolHeader: SchoolHeader,
   filename: string,
+  sectionLabel?: string,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -148,8 +170,8 @@ export const exportPvAnnualToPdf = async (
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text("PROCÈS VERBAL ANNUEL", centerX, y, { align: "center" });
-  y += 8;
-  y = drawClasseHeaderLine(doc, pageWidth, y, classeName, schoolYear);
+  y += 5;
+  y = drawClasseHeaderLine(doc, pageWidth, y, classeName, schoolYear, sectionLabel);
 
   const head = [
     [
@@ -192,9 +214,10 @@ export const exportPvAnnualToPdf = async (
     startY: y,
     head,
     body,
-    styles: { fontSize: 7.5 },
-    headStyles: { fillColor: [30, 64, 175] },
-    bodyStyles: { textColor: [0, 0, 0] },
+    theme: "grid",
+    styles: { fontSize: 7.5, cellPadding: PV_CELL_PADDING },
+    headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255], lineWidth: 0 },
+    bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
   });
   const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
