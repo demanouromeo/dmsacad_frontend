@@ -67,6 +67,8 @@ interface EditableFields {
 const StudentManager = () => {
   const { connection, schoolYear, section, accessToken, authPayload } =
     useAuth();
+  // Only ADMIN can add/delete/import students (SUBADMIN and CENSEUR cannot).
+  const canAddOrDeleteStudents = authPayload?.role === "ADMIN";
   const showToast = useToast();
   const confirm = useConfirm();
   const location = useLocation();
@@ -854,6 +856,8 @@ const StudentManager = () => {
             </div>
 
             <div className="flex flex-wrap gap-3">
+              {canAddOrDeleteStudents && (
+                <>
               <input
                 ref={importFileInputRef}
                 type="file"
@@ -870,6 +874,8 @@ const StudentManager = () => {
                 <Upload className="w-4 h-4" />
                 {t.importBtn}
               </button>
+                </>
+              )}
               <ExportButtons
                 onExportExcel={handleExportExcel}
                 onExportPdf={handleExportPdf}
@@ -934,6 +940,7 @@ const StudentManager = () => {
                   placeholder={t.searchPlaceholder}
                   className="input-sm w-full max-w-xs"
                 />
+                {canAddOrDeleteStudents && (
                 <button
                   type="button"
                   className="btn btn-error btn-sm"
@@ -942,6 +949,7 @@ const StudentManager = () => {
                 >
                   {t.deleteSelectionBtn(selectedIds.size)}
                 </button>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="table table-zebra data-table">
@@ -1202,6 +1210,7 @@ const StudentManager = () => {
             </div>
           )}
 
+          {canAddOrDeleteStudents && (
           <div className="surface-card p-4 md:p-5">
             <form
               onSubmit={handleAdd}
@@ -1328,6 +1337,7 @@ const StudentManager = () => {
               </button>
             </form>
           </div>
+          )}
         </>
       )}
 

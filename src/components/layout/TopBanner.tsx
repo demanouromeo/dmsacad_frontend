@@ -1,3 +1,4 @@
+import { isAdminRole } from "../../utils/roles";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
@@ -283,7 +284,7 @@ const TopBanner = () => {
                   {t.profileMenuCredentials}
                 </button>
               </li>
-              {authPayload?.role === "ADMIN" && (
+              {isAdminRole(authPayload?.role) && (
                 <li>
                   <button
                     type="button"

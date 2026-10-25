@@ -1,3 +1,4 @@
+import { isAdminRole } from "../../../utils/roles";
 import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
@@ -130,7 +131,7 @@ const MarkEntryManager = () => {
   // classes/subjects it can see.
   const isRestrictedToAssignments =
     authPayload?.role === "SG" || authPayload?.role === "TEACHER";
-  const canLockSequence = authPayload?.role === "ADMIN";
+  const canLockSequence = isAdminRole(authPayload?.role);
   const [assignedSubjectIdsByClasse, setAssignedSubjectIdsByClasse] = useState<
     Map<number, Set<number>>
   >(new Map());

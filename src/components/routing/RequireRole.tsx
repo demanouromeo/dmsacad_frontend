@@ -4,7 +4,7 @@ import { useAuth } from "../../auth/useAuth";
 const RequireRole = ({ allow }: { allow: string[] }) => {
   const { authPayload } = useAuth();
 
-  if (!authPayload || !allow.includes(authPayload.role)) {
+  if (!authPayload || !(allow.includes(authPayload.role) || (authPayload.role === "SUBADMIN" && allow.includes("ADMIN")))) {
     return <Navigate to="/dashboard" replace />;
   }
 

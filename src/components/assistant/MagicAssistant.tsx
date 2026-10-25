@@ -30,7 +30,8 @@ interface ChatMessage {
 // only guides them toward features/resources they actually have access to.
 const MagicAssistant = () => {
   const { authPayload, accessToken, connection, schoolYear, section } = useAuth();
-  const role = authPayload?.role ?? "";
+  // SUBADMIN is treated as ADMIN by the assistant (same rights minus student add/delete).
+  const role = authPayload?.role === "SUBADMIN" ? "ADMIN" : (authPayload?.role ?? "");
   const [language] = useLanguage();
   const t = magicAssistantTranslations[language];
   const navigate = useNavigate();

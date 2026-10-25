@@ -19,7 +19,7 @@ import { isDuplicateNameError } from "../../../utils/apiErrors";
 
 // account.type values selectable from this screen - see accountRoleLabels' own comment in
 // translations.ts for why PARENT(6)/STUDENT(7) are excluded.
-const ROLE_TYPES = [1, 2, 3, 4, 5, 8] as const;
+const ROLE_TYPES = [1, 9, 2, 3, 4, 5, 8] as const;
 
 const AccountManager = () => {
   const { connection, schoolYear, accessToken } = useAuth();

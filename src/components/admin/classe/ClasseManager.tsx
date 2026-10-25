@@ -1,3 +1,4 @@
+import { isAdminRole } from "../../../utils/roles";
 import { useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
@@ -63,7 +64,7 @@ const ClasseManager = () => {
   // the JWT's user_id) - same precedent as DisciplineManager's SG scoping - and, within those
   // classes, only row-level rename: structural actions (add, import, bulk delete, the APC toggle
   // which affects every classe at that level school-wide) stay ADMIN-only.
-  const isAdmin = authPayload?.role === "ADMIN";
+  const isAdmin = isAdminRole(authPayload?.role);
   const confirm = useConfirm();
   const showToast = useToast();
   const [language] = useLanguage();
