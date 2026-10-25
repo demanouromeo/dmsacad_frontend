@@ -11,6 +11,7 @@ import {
 } from "../../../i18n/translations";
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Staff } from "../../../interfaces/Staff";
+import { withCivility } from "../../../utils/staffName";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import StaffPhotoCell from "./StaffPhotoCell";
 import StaffPhotoDialog from "./StaffPhotoDialog";
@@ -29,7 +30,7 @@ import {
   exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
-import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
   parseStaffImportFile,
   generateImportCredentials,
@@ -475,11 +476,10 @@ const StaffManager = () => {
 
   // Never include `pwd` (or anything password-derived) in these columns.
   const exportColumns = [
-    { header: t.tableHeaderName, accessor: (s: Staff) => s.name },
+    { header: t.tableHeaderName, accessor: (s: Staff) => withCivility(s.civility, s.name) },
     { header: t.tableHeaderSurname, accessor: (s: Staff) => s.surname ?? "" },
     { header: t.tableHeaderPhone, accessor: (s: Staff) => s.phone1 ?? "" },
     { header: t.tableHeaderSexe, accessor: (s: Staff) => s.sexe },
-    { header: t.tableHeaderCivility, accessor: (s: Staff) => s.civility ?? "" },
     {
       header: t.tableHeaderFunction,
       accessor: (s: Staff) => functionLabel(s.function),
@@ -498,7 +498,8 @@ const StaffManager = () => {
     },
     {
       header: t.tableHeaderNameSurname,
-      accessor: (s: Staff) => `${s.name} ${s.surname ?? ""}`.trim(),
+      accessor: (s: Staff) =>
+        withCivility(s.civility, `${s.name} ${s.surname ?? ""}`.trim()),
       overflow: "ellipsize" as const,
     },
     ...exportColumns.slice(2),
@@ -512,13 +513,22 @@ const StaffManager = () => {
     );
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    const header =
+      schoolHeader.config || schoolHeader.logoImage
+        ? schoolHeader
+        : await loadSchoolHeader(accessToken, connection, schoolYear);
     exportRowsToPdf(
-      `Liste du personnel - Année scolaire ${schoolYear}`,
+      "Liste du personnel",
       buildTimestampedFilename("Liste du personnel", [], "pdf"),
       pdfExportColumns,
       staffList,
-      schoolHeader,
+      header,
+      true,
+      true,
+      `Année scolaire ${schoolYear}`,
+      "portrait",
+      "below",
     );
   };
 

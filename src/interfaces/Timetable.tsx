@@ -34,6 +34,7 @@ export interface ClasseSubjectSetting {
   staff_id: number | null;
   staff_name: string | null;
   staff_surname: string | null;
+  staff_civility?: string | null;
 }
 
 export interface ClasseCell {
@@ -44,6 +45,7 @@ export interface ClasseCell {
   staff_id: number | null;
   staff_name: string | null;
   staff_surname: string | null;
+  staff_civility?: string | null;
 }
 
 export interface StaffCell {
@@ -69,6 +71,7 @@ export interface StaffTimetableInfo {
   staff_id: number;
   name: string;
   surname: string | null;
+  civility?: string | null;
   function: number;
   status: number | null;
   grade: string | null;

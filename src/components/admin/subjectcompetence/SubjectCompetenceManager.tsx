@@ -418,6 +418,7 @@ const SubjectCompetenceManager = () => {
       doc.setFont("helvetica", "bold");
       doc.text(classe.classe_name, 14 + labelWidth, y);
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
       doc.text(`Section: ${capitalizeSectionName(section)}`, pageWidth - 14, y, {
         align: "right",
       });

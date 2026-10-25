@@ -17,6 +17,7 @@ import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { Speciality } from "../../../interfaces/Speciality";
 import type { StaffSummary } from "../../../interfaces/StaffSummary";
+import { withCivility } from "../../../utils/staffName";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import SearchInput from "../../sharedcomp/SearchInput";
@@ -33,7 +34,7 @@ import {
   exportRowsToXlsx,
   exportRowsToPdf,
 } from "../../../utils/exportData";
-import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
   parseImportFile,
   type ImportedClasse,
@@ -551,12 +552,15 @@ const ClasseManager = () => {
       header: t.tableHeaderClasseMaster,
       accessor: (c: Classe) =>
         c.classe_master_id
-          ? `${c.classe_master_name} (${c.classe_master_id})`
+          ? `${withCivility(c.classe_master_civility, c.classe_master_name)} (${c.classe_master_id})`
           : "",
     },
     {
       header: t.tableHeaderSg,
-      accessor: (c: Classe) => getSgLabel(c),
+      accessor: (c: Classe) => {
+        const sg = sgStaff.find((s) => s.staff_id === c.sg_id);
+        return sg ? `${withCivility(sg.civility, formatStaffLabel(sg, false))} (${sg.staff_id})` : "";
+      },
     },
     {
       header: t.tableHeaderApc,
@@ -570,20 +574,16 @@ const ClasseManager = () => {
     ...exportColumns.slice(0, -3),
     {
       header: t.tableHeaderClasseMaster,
-      accessor: (c: Classe) => {
-        if (!c.classe_master_id) return "";
-        const civility = classMasters
-          .find((s) => s.staff_id === c.classe_master_id)
-          ?.civility?.trim();
-        const name = c.classe_master_name ?? "";
-        return civility ? `${civility} ${name}` : name;
-      },
+      accessor: (c: Classe) =>
+        c.classe_master_id
+          ? withCivility(c.classe_master_civility, c.classe_master_name)
+          : "",
     },
     {
       header: t.tableHeaderSg,
       accessor: (c: Classe) => {
         const sg = sgStaff.find((s) => s.staff_id === c.sg_id);
-        return sg ? formatStaffLabel(sg, false) : "";
+        return sg ? withCivility(sg.civility, formatStaffLabel(sg, false)) : "";
       },
     },
     {
@@ -604,7 +604,11 @@ const ClasseManager = () => {
     );
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    const header =
+      schoolHeader.config || schoolHeader.logoImage
+        ? schoolHeader
+        : await loadSchoolHeader(accessToken, connection, schoolYear);
     exportRowsToPdf(
       "Liste des classes",
       buildTimestampedFilename(
@@ -614,7 +618,7 @@ const ClasseManager = () => {
       ),
       pdfExportColumns,
       classes,
-      schoolHeader,
+      header,
       true,
       true,
       `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,

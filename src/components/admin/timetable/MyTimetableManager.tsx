@@ -1,3 +1,4 @@
+import { withCivility } from "../../../utils/staffName";
 import { useEffect, useMemo, useState } from "react";
 import { FileSpreadsheet, FileText } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
@@ -70,7 +71,10 @@ const MyTimetableManager = () => {
     }
     const functionLabels = staffFunctionLabels[language];
     return {
-      staffFullName: `${staffInfo.name} ${staffInfo.surname ?? ""}`.trim(),
+      staffFullName: withCivility(
+        staffInfo.civility,
+        `${staffInfo.name} ${staffInfo.surname ?? ""}`.trim(),
+      ),
       functionLabel:
         functionLabels[staffInfo.function as keyof typeof functionLabels] ?? String(staffInfo.function),
       statut: displayOrDash(staffInfo.status),

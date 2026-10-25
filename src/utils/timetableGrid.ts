@@ -1,5 +1,6 @@
 import type { Jour, TtConfig, ClasseCell, StaffCell } from "../interfaces/Timetable";
 import { computeDayTimeline, type TimelineEntry } from "./timetableTime";
+import { withCivility } from "./staffName";
 
 export interface TimetableGridLabels {
   breakLabel: string;
@@ -67,7 +68,7 @@ export const buildClasseTimetableRows = (
         return labels.freeSlotLabel;
       }
       const teacher = cell.staff_id
-        ? `${cell.staff_name ?? ""} ${cell.staff_surname ?? ""}`.trim()
+        ? withCivility(cell.staff_civility, `${cell.staff_name ?? ""} ${cell.staff_surname ?? ""}`.trim())
         : labels.noTeacherLabel;
       return `${cell.subject_title}\n${teacher}`;
     });

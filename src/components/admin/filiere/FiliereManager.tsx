@@ -225,7 +225,7 @@ const FiliereManager = () => {
 
   const handleExportPdf = () => {
     exportRowsToPdf(
-      `Liste des Filières - Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "Liste des Filières",
       buildTimestampedFilename(
         "Liste des filière",
         [`Section ${capitalizeSectionName(section)}`],
@@ -234,6 +234,11 @@ const FiliereManager = () => {
       exportColumns,
       filieres,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 

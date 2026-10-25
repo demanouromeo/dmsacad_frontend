@@ -358,7 +358,7 @@ const SubjectManager = () => {
 
   const handleExportPdf = () => {
     exportRowsToPdf(
-      `Liste des Matières - Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "Liste des Matières",
       buildTimestampedFilename(
         "Liste des matières",
         [`Section ${capitalizeSectionName(section)}`],
@@ -367,6 +367,11 @@ const SubjectManager = () => {
       pdfExportColumns,
       subjects,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 

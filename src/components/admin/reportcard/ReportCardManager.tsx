@@ -32,6 +32,7 @@ import LoadingOverlay, {
   type LoadingOverlayProgress,
 } from "../../sharedcomp/LoadingOverlay";
 import CloseButton from "../../sharedcomp/CloseButton";
+import { withCivility } from "../../../utils/staffName";
 import SearchInput from "../../sharedcomp/SearchInput";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 
@@ -329,7 +330,11 @@ const ReportCardManager = () => {
   // by handlePrint (current classe/current selection) and handlePrintAllClasses below, which just
   // calls this once per classe of the section instead of once for the selected classe.
   const exportClasseReportCards = async (
-    classe: { classe_name: string; classe_master_name: string | null },
+    classe: {
+      classe_name: string;
+      classe_master_name: string | null;
+      classe_master_civility?: string | null;
+    },
     isApc: boolean,
     term: number,
     classeStats: ReportCardData["classeStats"],
@@ -344,7 +349,7 @@ const ReportCardManager = () => {
     const photosByStudId = await loadPhotosWithProgress(subset, onPhotoProgress);
     const classeArg = {
       classe_name: classe.classe_name,
-      classe_master_name: classe.classe_master_name,
+      classe_master_name: withCivility(classe.classe_master_civility, classe.classe_master_name),
     };
     if (isApc) {
       await exportReportCardsToPdf(
@@ -711,7 +716,10 @@ const ReportCardManager = () => {
       );
       const classeArg = {
         classe_name: selectedClasse.classe_name,
-        classe_master_name: selectedClasse.classe_master_name,
+        classe_master_name: withCivility(
+          selectedClasse.classe_master_civility,
+          selectedClasse.classe_master_name,
+        ),
       };
       if (isSelectedClasseApc) {
         const data = await loadAnnualApcReportCardDataForClasse(selectedClasse.classe_id);
@@ -788,7 +796,7 @@ const ReportCardManager = () => {
         const isApc = apcLevels.get(classe.level) === true;
         const classeArg = {
           classe_name: classe.classe_name,
-          classe_master_name: classe.classe_master_name,
+          classe_master_name: withCivility(classe.classe_master_civility, classe.classe_master_name),
         };
         const filename = buildTimestampedFilename(
           `Bulletin ANNUEL ${classe.classe_name}`,

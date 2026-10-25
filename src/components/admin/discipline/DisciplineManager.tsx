@@ -568,7 +568,7 @@ const DisciplineManager = () => {
                 {t.exportAllLabel}
               </button>
               <div className="ml-auto flex items-center gap-2">
-                <div className="tooltip" data-tip={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}>
+                <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}>
                   <button
                     type="button"
                     className="btn btn-outline btn-sm btn-square"
@@ -579,7 +579,7 @@ const DisciplineManager = () => {
                     <Printer className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="tooltip tooltip-left" data-tip={t.attendanceSheetsAllTooltip}>
+                <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetsAllTooltip}>
                   <button
                     type="button"
                     className="btn btn-outline btn-sm btn-square"

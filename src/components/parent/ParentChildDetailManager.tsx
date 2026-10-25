@@ -1,3 +1,4 @@
+import { withCivility } from "../../utils/staffName";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BarChart3, Download } from "lucide-react";
@@ -280,7 +281,7 @@ const ParentChildDetailManager = () => {
     }
     setIsExporting(true);
     try {
-      const classeInfo = { classe_name: classe.classe_name, classe_master_name: classe.classe_master_name };
+      const classeInfo = { classe_name: classe.classe_name, classe_master_name: withCivility(classe.classe_master_civility, classe.classe_master_name) };
       const photosByStudId = new Map([[child.stud_id, childPhoto]]);
 
       if (tab === "term") {

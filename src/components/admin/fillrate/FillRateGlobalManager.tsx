@@ -1,3 +1,4 @@
+import { withCivility } from "../../../utils/staffName";
 import { useEffect, useState } from "react";
 import { BarChart3, RefreshCw, Table2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
@@ -152,7 +153,9 @@ const FillRateGlobalManager = () => {
 
   const formatStaffLabel = (staffId: number): string => {
     const staff = staffList.find((s) => s.staff_id === staffId);
-    return staff ? `${staff.name}${staff.surname ? ` ${staff.surname}` : ""} (${staffId})` : String(staffId);
+    return staff
+      ? `${withCivility(staff.civility, `${staff.name}${staff.surname ? ` ${staff.surname}` : ""}`)} (${staffId})`
+      : String(staffId);
   };
 
   const sectionFilteredCells =

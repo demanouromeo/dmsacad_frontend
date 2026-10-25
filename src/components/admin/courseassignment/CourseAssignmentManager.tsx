@@ -30,6 +30,7 @@ import {
 } from "../../../utils/exportHeader";
 import { saveOrShareBlob } from "../../../utils/nativeFileSave";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import { withCivility } from "../../../utils/staffName";
 
 interface StaffLike {
   staff_id: number;
@@ -502,7 +503,10 @@ const CourseAssignmentManager = () => {
         body: group.rows.map((row, index) => [
           String(index + 1),
           row.subject_title,
-          row.name,
+          withCivility(
+            staffList.find((s) => s.staff_id === row.staff_id)?.civility,
+            row.name,
+          ),
         ]),
         // jspdf-autotable's default "striped" theme renders body text in dark gray, not pure
         // black - force it explicitly (and keep the head row's white text on the blue fill,

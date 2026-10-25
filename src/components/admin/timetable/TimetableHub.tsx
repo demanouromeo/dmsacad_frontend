@@ -1,3 +1,4 @@
+import { withCivility } from "../../../utils/staffName";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -263,7 +264,7 @@ const TimetableHub = () => {
       const { columns, rows } = buildStaffWeeklyGrid(jours, timeline, staffCells);
       return {
         header: {
-          staffFullName: `${info.name} ${info.surname ?? ""}`.trim(),
+          staffFullName: withCivility(info.civility, `${info.name} ${info.surname ?? ""}`.trim()),
           functionLabel:
             functionLabels[info.function as keyof typeof functionLabels] ?? String(info.function),
           statut: displayOrDash(info.status),

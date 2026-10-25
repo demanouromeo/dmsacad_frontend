@@ -1,3 +1,4 @@
+import { withCivility } from "../../../utils/staffName";
 import { useEffect, useState } from "react";
 import { FileSpreadsheet, Printer } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
@@ -180,7 +181,7 @@ const StatParClasseManager = () => {
         return {
           ...data,
           classeName: classe.classe_name,
-          profPrincipal: classe.classe_master_name ?? "",
+          profPrincipal: withCivility(classe.classe_master_civility, classe.classe_master_name),
           isApc,
           demographics: computeStatParClasseDemographics(data.rows, data.subjects),
         };

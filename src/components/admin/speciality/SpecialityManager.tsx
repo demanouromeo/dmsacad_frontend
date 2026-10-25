@@ -284,7 +284,7 @@ const SpecialityManager = () => {
 
   const handleExportPdf = () => {
     exportRowsToPdf(
-      `Liste des Spécialités - Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "Liste des Spécialités",
       buildTimestampedFilename(
         "Liste des specialités",
         [`Section ${capitalizeSectionName(section)}`],
@@ -293,6 +293,11 @@ const SpecialityManager = () => {
       exportColumns,
       specialities,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 

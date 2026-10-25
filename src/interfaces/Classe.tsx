@@ -6,6 +6,7 @@ export interface Classe {
   speciality_name: string | null;
   classe_master_id: number | null;
   classe_master_name: string | null;
+  classe_master_civility?: string | null;
   sg_id: number | null;
   vp_id: number | null;
   // End-of-year decision thresholds (classe_year) - used by the annual report card's

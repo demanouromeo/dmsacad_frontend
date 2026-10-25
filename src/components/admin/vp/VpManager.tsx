@@ -1,3 +1,4 @@
+import { withCivility } from "../../../utils/staffName";
 import { useEffect, useRef, useState } from "react";
 import { FileDown, FileText, Trash2, UserX } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
@@ -31,6 +32,7 @@ interface StaffLike {
   staff_id: number;
   name: string;
   surname: string | null;
+  civility?: string | null;
 }
 
 const formatStaffLabel = (staff: StaffLike): string =>
@@ -182,7 +184,7 @@ const VpManager = () => {
           r.vp_id !== null
             ? (staffList.find((s) => s.staff_id === r.vp_id) ?? null)
             : null;
-        return vp ? formatStaffLabel(vp) : "";
+        return vp ? withCivility(vp.civility, formatStaffLabel(vp)) : "";
       },
     },
   ];

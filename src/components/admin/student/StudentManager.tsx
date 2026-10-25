@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { RefreshCw, Upload, Wand2 } from "lucide-react";
+import { Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -38,6 +38,7 @@ import {
   drawPdfFooters,
   drawPdfSignature,
 } from "../../../utils/exportHeader";
+import { exportAttendanceSheetsToPdf } from "../../../utils/exportAttendanceSheets";
 import { saveOrShareBlob } from "../../../utils/nativeFileSave";
 import {
   mapWithConcurrency,
@@ -805,6 +806,37 @@ const StudentManager = () => {
     setIsSaving(false);
   };
 
+  // Blank weekly attendance sheets (see exportAttendanceSheets.ts): the selected classe only, or
+  // every classe of the section.
+  const handleAttendanceSheets = async (all: boolean) => {
+    const targets = all ? classes : selectedClasse ? [selectedClasse] : [];
+    if (targets.length === 0) {
+      return;
+    }
+    setIsSaving(true);
+    const rosters = await mapWithConcurrency(targets, DEFAULT_REPORT_CONCURRENCY, async (classe) => ({
+      classeName: classe.classe_name,
+      students: await fetchMergedStudents(classe.classe_id),
+    }));
+    const sheets = rosters.filter((r) => r.students.length > 0);
+    if (sheets.length === 0) {
+      setIsSaving(false);
+      showToast(t.printAllEmpty, { type: "warning" });
+      return;
+    }
+    await exportAttendanceSheetsToPdf(
+      sheets,
+      schoolYear,
+      schoolHeader,
+      buildTimestampedFilename(
+        "Fiche de presence",
+        [all ? `Section ${capitalizeSectionName(section)}` : `Classe ${targets[0].classe_name}`],
+        "pdf",
+      ),
+    );
+    setIsSaving(false);
+  };
+
   return (
     <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
@@ -902,6 +934,30 @@ const StudentManager = () => {
                 <RefreshCw className="w-4 h-4" />
                 {t.refreshBtn}
               </button>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm btn-square"
+                    aria-label={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}
+                    disabled={isLoadingStudents || selectedClasseId === null}
+                    onClick={() => handleAttendanceSheets(false)}
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetsAllTooltip}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm btn-square"
+                    aria-label={t.attendanceSheetsAllTooltip}
+                    disabled={isLoadingStudents || classes.length === 0}
+                    onClick={() => handleAttendanceSheets(true)}
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2 text-sm bg-base-200/50 rounded-xl px-4 py-3">

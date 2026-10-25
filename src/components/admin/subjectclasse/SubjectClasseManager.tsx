@@ -308,6 +308,11 @@ const SubjectClasseManager = () => {
       ],
       assigned,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 
@@ -349,8 +354,15 @@ const SubjectClasseManager = () => {
     let y = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text(`${t.printAllTitle} - ${schoolYear}`, 14, y);
-    y += 8;
+    doc.text(t.printAllTitle, 14, y);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Année scolaire: ${schoolYear} - Section: ${capitalizeSectionName(section)}`,
+      14,
+      y + 5.5,
+    );
+    y += 13;
 
     const pageHeight = doc.internal.pageSize.getHeight();
     for (const group of groups) {
