@@ -17,6 +17,7 @@ export const exportProvisionalListToPdf = async (
   schoolHeader: SchoolHeader,
   filename: string,
   columnHeaders: { matricule: string; nameSurname: string; sexe: string; repeating: string },
+  sectionLabel?: string,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -33,6 +34,9 @@ export const exportProvisionalListToPdf = async (
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   doc.text(`Année Scolaire: ${nextYear}`, centerX, coverY + 32, { align: "center" });
+  if (sectionLabel) {
+    doc.text(`Section: ${sectionLabel}`, centerX, coverY + 40, { align: "center" });
+  }
 
   blocks.forEach((block) => {
     doc.addPage();
@@ -69,8 +73,16 @@ export const exportProvisionalListToPdf = async (
       // keep the head row's white text explicit too (a bare `styles.textColor` merges in after
       // the theme's own head color and would flip it to black-on-blue - see exportData.ts's
       // exportRowsToPdf for the same fix).
-      styles: { fontSize: 9, textColor: [0, 0, 0] },
-      headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
+      // Same compact "grid" look as the student list / generic list PDFs (see CLAUDE.md "PDF list
+      // exports"): colored header only, white body with thin gray borders, tight cell padding.
+      theme: "grid",
+      styles: {
+        fontSize: 9,
+        textColor: [0, 0, 0],
+        cellPadding: { top: 0.75, bottom: 0.5, left: 1, right: 2 },
+      },
+      headStyles: { fillColor: [41, 128, 185], textColor: [255, 255, 255], lineWidth: 0 },
+      bodyStyles: { fillColor: [255, 255, 255], lineColor: [190, 190, 190], lineWidth: 0.1 },
       // Name+surname share one wider column (index 2) instead of two cramped ones - "ellipsize"
       // truncates with "…" rather than wrapping to a second line if it still doesn't fit, so every
       // row stays a single line even for an unusually long name.

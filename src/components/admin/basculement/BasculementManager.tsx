@@ -658,6 +658,7 @@ const BasculementManager = () => {
       schoolHeader,
       buildTimestampedFilename(t.printProvisoireTitle(nextYear), [`Section ${capitalizeSectionName(section)}`], "pdf"),
       { matricule: "Matricule", nameSurname: "Nom & Prénom", sexe: "Sexe", repeating: "Redouble" },
+      capitalizeSectionName(section),
     );
   };
 
@@ -679,7 +680,18 @@ const BasculementManager = () => {
       { header: "T. Abs", accessor: (r) => r.absTotal },
     ];
     const title = t.printExclusTitle(selectedLeftClasse.classe_name);
-    await exportRowsToPdf(title, buildTimestampedFilename(title, [], "pdf"), columns, exclus, schoolHeader);
+    await exportRowsToPdf(
+      title,
+      buildTimestampedFilename(title, [], "pdf"),
+      columns,
+      exclus,
+      schoolHeader,
+      true,
+      true,
+      `Année scolaire: ${schoolYear}  -  Section: ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
+    );
   };
 
   const nothingLoaded = isLoadingClasses && classes.length === 0;

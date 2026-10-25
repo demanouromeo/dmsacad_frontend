@@ -355,7 +355,7 @@ const PromotionManager = () => {
   });
 
   return (
-    <div className="page-shell">
+    <div className="page-shell-wide">
       {isSaving && <LoadingOverlay />}
       <div className="page-header">
         <div>
@@ -487,7 +487,7 @@ const PromotionManager = () => {
                     {filteredRows.map((row, index) => (
                       <tr key={row.studId}>
                         <td>{index + 1}</td>
-                        <td>
+                        <td className="whitespace-nowrap">
                           {row.name} {row.surname}
                         </td>
                         <td
@@ -503,7 +503,7 @@ const PromotionManager = () => {
                         <td>{row.exclusionJours}</td>
                         <td>
                           <select
-                            className="select select-sm"
+                            className="select select-sm w-28"
                             title={t.exclureTooltip}
                             value={row.isMannullalyDismissed}
                             onChange={(e) => handleExclureChange(row, Number(e.target.value))}
@@ -515,7 +515,7 @@ const PromotionManager = () => {
                         </td>
                         <td>
                           <select
-                            className="select select-sm"
+                            className="select select-sm w-28"
                             title={t.redoubleTooltip}
                             value={row.mustRepeat}
                             onChange={(e) =>
@@ -529,7 +529,7 @@ const PromotionManager = () => {
                         </td>
                         <td>
                           <select
-                            className="select select-sm"
+                            className="select select-sm w-36"
                             title={t.promuEnTooltip}
                             value={row.promuEn ?? ""}
                             onChange={(e) =>
@@ -548,7 +548,7 @@ const PromotionManager = () => {
                         </td>
                         <td>
                           <select
-                            className="select select-sm"
+                            className="select select-sm w-40"
                             title={t.classifiedTooltip}
                             value={row.isMannullalyClassified}
                             onChange={(e) =>
@@ -562,7 +562,7 @@ const PromotionManager = () => {
                         </td>
                         <td>
                           <select
-                            className="select select-sm"
+                            className="select select-sm w-44"
                             title={t.excluPourTooltip}
                             value={row.codeExclusion}
                             onChange={(e) =>
