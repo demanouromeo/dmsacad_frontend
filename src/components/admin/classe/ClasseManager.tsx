@@ -570,8 +570,14 @@ const ClasseManager = () => {
     ...exportColumns.slice(0, -3),
     {
       header: t.tableHeaderClasseMaster,
-      accessor: (c: Classe) =>
-        c.classe_master_id ? (c.classe_master_name ?? "") : "",
+      accessor: (c: Classe) => {
+        if (!c.classe_master_id) return "";
+        const civility = classMasters
+          .find((s) => s.staff_id === c.classe_master_id)
+          ?.civility?.trim();
+        const name = c.classe_master_name ?? "";
+        return civility ? `${civility} ${name}` : name;
+      },
     },
     {
       header: t.tableHeaderSg,
@@ -600,7 +606,7 @@ const ClasseManager = () => {
 
   const handleExportPdf = () => {
     exportRowsToPdf(
-      t.title,
+      "Liste des classes",
       buildTimestampedFilename(
         "Liste de classes",
         [`Section ${capitalizeSectionName(section)}`],
@@ -609,6 +615,11 @@ const ClasseManager = () => {
       pdfExportColumns,
       classes,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${capitalizeSectionName(section)}`,
+      "portrait",
+      "below",
     );
   };
 

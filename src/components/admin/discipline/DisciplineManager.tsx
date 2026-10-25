@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw, Save } from "lucide-react";
+import { Printer, RefreshCw, Save } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -22,6 +22,7 @@ import {
   type ExportColumn,
 } from "../../../utils/exportData";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
+import { exportAttendanceSheetsToPdf } from "../../../utils/exportAttendanceSheets";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
@@ -426,6 +427,49 @@ const DisciplineManager = () => {
     );
   };
 
+  // Blank weekly attendance sheet (see exportAttendanceSheets.ts) of the selected classe.
+  const handleAttendanceSheet = async () => {
+    if (!selectedClasse || roster.length === 0) {
+      showToast(t.attendanceSheetsEmpty, { type: "warning" });
+      return;
+    }
+    await exportAttendanceSheetsToPdf(
+      [{ classeName: selectedClasse.classe_name, students: roster }],
+      schoolYear,
+      schoolHeader,
+      buildTimestampedFilename("Fiche de presence", [`Classe ${selectedClasse.classe_name}`], "pdf"),
+    );
+  };
+
+  // Same sheet for every classe in `classes` (already role-filtered), one section per classe;
+  // rosters fetched through mapWithConcurrency like handleExportAll.
+  const handleAttendanceSheetsAll = async () => {
+    setIsExportingAll(true);
+    const sheets = (
+      await mapWithConcurrency(classes, DEFAULT_REPORT_CONCURRENCY, async (classe) => ({
+        classeName: classe.classe_name,
+        students: await DisciplineReader.fetchRosterForAbs(
+          accessToken,
+          connection,
+          schoolYear,
+          classe.classe_id,
+        ),
+      }))
+    ).filter((s) => s.students.length > 0);
+    if (sheets.length === 0) {
+      setIsExportingAll(false);
+      showToast(t.attendanceSheetsEmpty, { type: "warning" });
+      return;
+    }
+    await exportAttendanceSheetsToPdf(
+      sheets,
+      schoolYear,
+      schoolHeader,
+      buildTimestampedFilename("Fiche de presence", [`Section ${capitalizeSectionName(section)}`], "pdf"),
+    );
+    setIsExportingAll(false);
+  };
+
   return (
     <div className="page-shell-wide pb-32">
       {(isSaving || isExportingAll) && <LoadingOverlay />}
@@ -523,6 +567,30 @@ const DisciplineManager = () => {
               >
                 {t.exportAllLabel}
               </button>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="tooltip" data-tip={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm btn-square"
+                    aria-label={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}
+                    disabled={roster.length === 0 || isExportingAll}
+                    onClick={handleAttendanceSheet}
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="tooltip tooltip-left" data-tip={t.attendanceSheetsAllTooltip}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm btn-square"
+                    aria-label={t.attendanceSheetsAllTooltip}
+                    disabled={classes.length === 0 || isExportingAll}
+                    onClick={handleAttendanceSheetsAll}
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 bg-base-200/50 rounded-xl px-4 py-3">

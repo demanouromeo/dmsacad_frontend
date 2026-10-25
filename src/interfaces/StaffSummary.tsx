@@ -4,4 +4,6 @@ export interface StaffSummary {
   staff_id: number;
   name: string;
   surname: string | null;
+  // Only returned by allClassMastersOfYear (used to prefix the titulaire in the classes PDF).
+  civility?: string | null;
 }
