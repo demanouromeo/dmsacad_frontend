@@ -228,13 +228,18 @@ const FillRateGlobalManager = () => {
 
   const handleExportPdf = async () => {
     await exportRowsToPdf(
-      `${t.exportPdfTitle} - Année scolaire ${schoolYear} - Section ${
-        sectionFilter === "all" ? "Toutes" : capitalizeSectionName(sectionFilter)
-      }`,
+      t.exportPdfTitle,
       buildTimestampedFilename(t.title, buildExportSegments(), "pdf"),
       exportColumns,
       sortedRows,
       schoolHeader,
+      true,
+      true,
+      `Année scolaire ${schoolYear} - Section ${
+        sectionFilter === "all" ? "Toutes" : capitalizeSectionName(sectionFilter)
+      }`,
+      "portrait",
+      "below",
     );
   };
 

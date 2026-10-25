@@ -11,20 +11,47 @@ const API_OPTIONS = {
   },
 };
 
+const PRE_LOGIN_MAX_ATTEMPTS = 3;
+const PRE_LOGIN_RETRY_DELAY_MS = 700;
+const PRE_LOGIN_TIMEOUT_MS = 15000;
+
+// Pre-login reads have no caller-side retry, so a single transient failure (shared-host connection
+// refusal, brief network blip, slow cold start) would leave the login screen stuck with an error
+// toast. Retry a few times with a short backoff and a per-attempt timeout before giving up.
+const fetchJsonWithRetry = async (url: string) => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= PRE_LOGIN_MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PRE_LOGIN_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, { ...API_OPTIONS, signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt < PRE_LOGIN_MAX_ATTEMPTS) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, PRE_LOGIN_RETRY_DELAY_MS * attempt),
+        );
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastError;
+};
+
 export class MyReader {
   // Returns null on failure (network error or an API-level `Response: "False"`) so callers can
   // distinguish "failed to load" (toast) from "loaded, genuinely empty" ([]) - see LoginForm's
   // loadSchools/loadSchoolYears and TopBanner's openSchoolYearDialog for the toast side of this.
   public static fetchSchools = async (): Promise<string[] | null> => {
     try {
-      const response = await fetch(
+      const data = await fetchJsonWithRetry(
         `${MyConstants.getBaseUrl()}api/configs/allSchools`,
-        API_OPTIONS,
       );
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
       if (data.Response === "False") {
         console.error(
           `MyReader.fetchSchools(): ${data.Error || "Failed to fetch schools."}`,
@@ -45,11 +72,7 @@ export class MyReader {
   ): Promise<SchoolYear[] | null> => {
     const targetUrl = `${MyConstants.getBaseUrl()}api/configs/getSchoolYears?connection=${encodeURIComponent(connection)}`;
     try {
-      const response = await fetch(targetUrl, API_OPTIONS);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
+      const data = await fetchJsonWithRetry(targetUrl);
       if (data.Response === "False") {
         console.error(
           `MyReader.fetchSchoolYears(): ${data.Error || "Failed to fetch school years."}`,
