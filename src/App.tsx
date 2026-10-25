@@ -35,6 +35,7 @@ import FillRateClassManager from "./components/admin/fillrate/FillRateClassManag
 import DisciplineManager from "./components/admin/discipline/DisciplineManager";
 import AccountManager from "./components/admin/account/AccountManager";
 import AccountHub from "./components/admin/account/AccountHub";
+import SubAdminManager from "./components/admin/account/SubAdminManager";
 import SelfCredentialsManager from "./components/admin/account/SelfCredentialsManager";
 import SettingsHub from "./components/admin/settings/SettingsHub";
 import ClassifiedParamManager from "./components/admin/settings/ClassifiedParamManager";
@@ -154,6 +155,12 @@ function App() {
                   path="/admin/manage-accounts/all"
                   element={<AccountManager />}
                 />
+                <Route
+                  path="/admin/manage-accounts/subadmins"
+                  element={<RequireRole allow={["ADMIN", "!SUBADMIN"]} />}
+                >
+                  <Route index element={<SubAdminManager />} />
+                </Route>
                 <Route path="/admin/settings" element={<SettingsHub />} />
                 <Route
                   path="/admin/settings/classified-param"
