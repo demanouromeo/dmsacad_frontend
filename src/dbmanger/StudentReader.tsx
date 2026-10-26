@@ -21,6 +21,27 @@ const loadImageElement = (url: string): Promise<HTMLImageElement | null> =>
     img.src = url;
   });
 
+const PHOTO_MAX_CONCURRENT = 4;
+const PHOTO_MAX_ATTEMPTS = 3;
+const PHOTO_RETRY_DELAY_MS = 500;
+
+// Tiny FIFO limiter shared by every photo fetch of the page, so a 60-row list doesn't fire 60
+// simultaneous requests at the backend.
+let photoActive = 0;
+const photoWaiting: (() => void)[] = [];
+const runPhotoRequest = async <T,>(task: () => Promise<T>): Promise<T> => {
+  if (photoActive >= PHOTO_MAX_CONCURRENT) {
+    await new Promise<void>((resolve) => photoWaiting.push(resolve));
+  }
+  photoActive++;
+  try {
+    return await task();
+  } finally {
+    photoActive--;
+    photoWaiting.shift()?.();
+  }
+};
+
 export class StudentReader {
   // /api/students/allStudentsOfClasse - repeating/cas_social on these rows are always 0
   // (StudentController hardcodes them) - see fetchStudentClasseOfClasse for the real values.
@@ -375,21 +396,38 @@ export class StudentReader {
       `${MyConstants.getBaseUrl()}api/students/studentPhoto` +
       `?connection=${encodeURIComponent(connection)}` +
       `&stud_id=${studId}`;
-    try {
-      const response = await fetch(targetUrl, {
-        headers: {
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-      });
-      if (!response.ok) {
-        return null;
+    // Every row of the student list loads its own photo at the same time, so a transient failure
+    // (connection refused under that burst, a dropped response, an undecodable partial body) used
+    // to leave that row on the placeholder for good. Requests now go through a small shared queue
+    // (PHOTO_MAX_CONCURRENT in flight) and are retried with a short backoff - except a 404, which
+    // legitimately means "no photo yet" and is returned immediately.
+    for (let attempt = 1; attempt <= PHOTO_MAX_ATTEMPTS; attempt++) {
+      try {
+        const response = await runPhotoRequest(() =>
+          fetch(targetUrl, {
+            headers: {
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            },
+          }),
+        );
+        if (response.status === 404) {
+          return null;
+        }
+        if (response.ok) {
+          const blob = await response.blob();
+          const img = await loadImageElement(URL.createObjectURL(blob));
+          if (img) {
+            return img;
+          }
+        }
+      } catch (error) {
+        console.error(`StudentReader.loadStudentPhotoImage(): Error: ${error}`);
       }
-      const blob = await response.blob();
-      return loadImageElement(URL.createObjectURL(blob));
-    } catch (error) {
-      console.error(`StudentReader.loadStudentPhotoImage(): Error: ${error}`);
-      return null;
+      if (attempt < PHOTO_MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, PHOTO_RETRY_DELAY_MS * attempt));
+      }
     }
+    return null;
   };
 
   // Unlike every other write in this file, the body is multipart FormData (the photo is an uploaded
