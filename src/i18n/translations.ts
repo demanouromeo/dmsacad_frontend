@@ -739,6 +739,12 @@ export const studentManagerTranslations = {
     changeClasseDialogTitle: (name: string) => `Changement de classe de ${name}`,
     changeClasseTargetLabel: "Classe cible",
     changeClasseCancelBtn: "Annuler",
+    importPhotosTooltip: (classeName: string) => `Importer les photos des élèves de ${classeName}`,
+    importPhotosNoMatch: "Aucune photo trouvée dans le dossier sélectionné.",
+    importPhotosConfirm: (count: number, classeName: string) =>
+      `Importer ${count} photo(s) pour ${classeName} ? Les photos existantes de ces élèves seront remplacées.`,
+    importPhotosDone: (ok: number, noStudent: number, failed: number) =>
+      `Photos importées : ${ok}.${noStudent > 0 ? ` Sans élève correspondant : ${noStudent}.` : ""}${failed > 0 ? ` Échecs : ${failed}.` : ""}`,
     changeClasseValidateBtn: "Valider",
     changeClasseNoOtherClasse: "Aucune autre classe disponible dans cette section.",
     changeClasseConfirm: (name: string, from: string, to: string) =>
@@ -845,6 +851,12 @@ export const studentManagerTranslations = {
     changeClasseDialogTitle: (name: string) => `Change class of ${name}`,
     changeClasseTargetLabel: "Target class",
     changeClasseCancelBtn: "Cancel",
+    importPhotosTooltip: (classeName: string) => `Import photos of students of ${classeName}`,
+    importPhotosNoMatch: "No photo found in the selected folder.",
+    importPhotosConfirm: (count: number, classeName: string) =>
+      `Import ${count} photo(s) for ${classeName}? Existing photos of these students will be replaced.`,
+    importPhotosDone: (ok: number, noStudent: number, failed: number) =>
+      `Photos imported: ${ok}.${noStudent > 0 ? ` No matching student: ${noStudent}.` : ""}${failed > 0 ? ` Failed: ${failed}.` : ""}`,
     changeClasseValidateBtn: "Confirm",
     changeClasseNoOtherClasse: "No other class available in this section.",
     changeClasseConfirm: (name: string, from: string, to: string) =>

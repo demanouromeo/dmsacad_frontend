@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
+import { ImagePlus, Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
 import changeClasseIcon from "../../../assets/compo/eleve/change.png";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -22,6 +22,7 @@ import ExportButtons from "../../sharedcomp/ExportButtons";
 import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
 import ChangeClasseDialog from "./ChangeClasseDialog";
+import { parsePhotoFileNumber, preparePhotoForUpload } from "../../../utils/studentPhotoImport";
 import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
   sanitizeStudentName,
@@ -114,6 +115,7 @@ const StudentManager = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const photosFolderInputRef = useRef<HTMLInputElement>(null);
 
   const [changeClasseStudent, setChangeClasseStudent] = useState<Student | null>(null);
   const [photoDialogStudent, setPhotoDialogStudent] = useState<Student | null>(
@@ -443,6 +445,75 @@ const StudentManager = () => {
       setChangeClasseStudent(null);
       loadStudents(from.classe_id);
     }
+  };
+
+  // Folder import: file `k.<ext>` goes to the student numbered k in the current classe (the Nº
+  // column, i.e. position in the full roster, ignoring any active search). Every photo is first
+  // brought under the backend's 500 KB limit (see preparePhotoForUpload), then uploaded through the
+  // same endpoint as the single-photo dialog.
+  const handlePhotosFolderChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!selectedClasse) {
+      return;
+    }
+    // An empty folder, or one with no png/jpg/jpeg named `<number>.<ext>`, ends up here too.
+    if (files.length === 0) {
+      showToast(t.importPhotosNoMatch, { type: "warning" });
+      return;
+    }
+    const byNumber = new Map<number, File>();
+    files.forEach((file) => {
+      const n = parsePhotoFileNumber(file.name);
+      if (n !== null) {
+        byNumber.set(n, file);
+      }
+    });
+    if (byNumber.size === 0) {
+      showToast(t.importPhotosNoMatch, { type: "warning" });
+      return;
+    }
+    const jobs = Array.from(byNumber.entries())
+      .filter(([n]) => n <= students.length)
+      .map(([n, file]) => ({ student: students[n - 1], file }));
+    const noStudent = byNumber.size - jobs.length;
+    if (jobs.length === 0) {
+      showToast(t.importPhotosDone(0, noStudent, 0), { type: "warning" });
+      return;
+    }
+    const confirmed = await confirm(
+      t.importPhotosConfirm(jobs.length, selectedClasse.classe_name),
+    );
+    if (!confirmed) {
+      return;
+    }
+    setIsSaving(true);
+    const results = await mapWithConcurrency(
+      jobs,
+      DEFAULT_REPORT_CONCURRENCY,
+      async ({ student, file }) => {
+        const blob = await preparePhotoForUpload(file);
+        if (!blob) {
+          return false;
+        }
+        const result = await StudentReader.uploadStudentPhoto(
+          accessToken,
+          connection,
+          student.stud_id,
+          blob,
+        );
+        if (result.status) {
+          bumpPhotoVersion(student.stud_id);
+        }
+        return result.status;
+      },
+    );
+    setIsSaving(false);
+    const ok = results.filter(Boolean).length;
+    const failed = results.length - ok;
+    showToast(t.importPhotosDone(ok, noStudent, failed), {
+      type: failed > 0 || ok === 0 ? "warning" : "info",
+    });
   };
 
   const persistImportedStudents = async (
@@ -988,6 +1059,29 @@ const StudentManager = () => {
                 <RefreshCw className="w-4 h-4" />
                 {t.refreshBtn}
               </button>
+              <div
+                className="tooltip"
+                data-tip={t.importPhotosTooltip(selectedClasse?.classe_name ?? "")}
+              >
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm btn-square"
+                  aria-label={t.importPhotosTooltip(selectedClasse?.classe_name ?? "")}
+                  disabled={isLoadingStudents || selectedClasseId === null || students.length === 0}
+                  onClick={() => photosFolderInputRef.current?.click()}
+                >
+                  <ImagePlus className="w-4 h-4" />
+                </button>
+                <input
+                  ref={photosFolderInputRef}
+                  type="file"
+                  className="hidden"
+                  multiple
+                  // webkitdirectory makes the system picker choose a folder; it is not in React's typings.
+                  {...({ webkitdirectory: "" } as Record<string, string>)}
+                  onChange={handlePhotosFolderChosen}
+                />
+              </div>
               <div className="ml-auto flex items-center gap-2">
                 <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}>
                   <button
