@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { Eye, EyeOff, Search } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -8,6 +8,15 @@ import { StudentReader } from "../../../dbmanger/StudentReader";
 import type { StudentSearchResult } from "../../../interfaces/StudentSearchResult";
 import StudentPhotoCell from "./StudentPhotoCell";
 import { capitalizeSectionName } from "../../../utils/exportData";
+
+// Same cleanup StudentReader applies to its own rows: drop a "T00:00:00.000Z" time part.
+const formatBday = (bday: string | null): string => {
+  if (!bday) {
+    return "-";
+  }
+  const match = /^(d{4}-d{2}-d{2})T/.exec(bday);
+  return match ? match[1] : bday;
+};
 
 const MIN_QUERY_LENGTH = 2;
 const MAX_RESULTS = 200;
@@ -30,6 +39,19 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StudentSearchResult[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  // Row keys whose details line (sexe / lieu / date de naissance / redouble) is currently shown.
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (key: string) =>
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -37,8 +59,6 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
       return;
     }
     if (open) {
-      setQuery("");
-      setResults(null);
       if (!dialog.open) {
         dialog.showModal();
       }
@@ -46,6 +66,15 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
       dialog.close();
     }
   }, [open]);
+
+  // Every way of closing (button, Escape, backdrop) lands here: clear the previous search so the
+  // next opening starts blank, then tell the parent.
+  const handleClose = () => {
+    setQuery("");
+    setResults(null);
+    setExpandedKeys(new Set());
+    onClose();
+  };
 
   const handleSearch = async () => {
     const trimmed = query.trim();
@@ -61,10 +90,11 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
       return;
     }
     setResults(found);
+    setExpandedKeys(new Set());
   };
 
   return (
-    <dialog ref={dialogRef} className="modal" onClose={onClose}>
+    <dialog ref={dialogRef} className="modal" onClose={handleClose}>
       <div className="modal-box w-11/12 max-w-4xl">
         <h3 className="font-bold text-lg mb-4">{t.searchStudentDialogTitle}</h3>
 
@@ -106,11 +136,16 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
                   <th>{t.searchStudentColYear}</th>
                   <th>{t.searchStudentColSection}</th>
                   <th>{t.searchStudentColClasse}</th>
+                  <th>{t.searchStudentColMore}</th>
                 </tr>
               </thead>
               <tbody>
-                {results.map((r, index) => (
-                  <tr key={`${r.stud_id}-${r.year ?? ""}-${r.classe_name ?? ""}-${index}`}>
+                {results.map((r, index) => {
+                  const rowKey = `${r.stud_id}-${r.year ?? ""}-${r.classe_name ?? ""}-${index}`;
+                  const isOpen = expandedKeys.has(rowKey);
+                  return (
+                  <Fragment key={rowKey}>
+                  <tr>
                     <td>{index + 1}</td>
                     <td>
                       <StudentPhotoCell studId={r.stud_id} refreshVersion={0} onClick={() => {}} />
@@ -124,8 +159,44 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
                     <td>{r.year ?? "-"}</td>
                     <td>{r.section ? capitalizeSectionName(r.section) : "-"}</td>
                     <td>{r.classe_name ?? "-"}</td>
+                    <td>
+                      <div className="tooltip tooltip-left" data-tip={t.searchStudentMoreTooltip}>
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost btn-square"
+                          aria-label={t.searchStudentMoreTooltip}
+                          aria-expanded={isOpen}
+                          onClick={() => toggleExpanded(rowKey)}
+                        >
+                          {isOpen ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                  {isOpen && (
+                    <tr>
+                      <td colSpan={7} className="bg-base-200/50">
+                        <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                          <span>
+                            {t.tableHeaderSexe}: <b>{r.sexe ?? "-"}</b>
+                          </span>
+                          <span>
+                            {t.tableHeaderBplace}: <b>{r.bplace || "-"}</b>
+                          </span>
+                          <span>
+                            {t.tableHeaderBday}: <b>{formatBday(r.bday)}</b>
+                          </span>
+                          <span>
+                            {t.tableHeaderRepeating}:{" "}
+                            <b>{r.repeating === null ? "-" : r.repeating === 1 ? t.searchStudentYes : t.searchStudentNo}</b>
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -136,7 +207,7 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
         )}
 
         <div className="modal-action">
-          <button type="button" className="btn" onClick={onClose}>
+          <button type="button" className="btn" onClick={handleClose}>
             {t.searchStudentCloseBtn}
           </button>
         </div>
