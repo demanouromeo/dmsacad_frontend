@@ -8,3 +8,12 @@ export const useConfirm = () => {
   }
   return ctx.confirm;
 };
+
+// Three-way variant: resolves "yes" / "no" / "cancel" (third button, Escape or backdrop click).
+export const useConfirmChoice = () => {
+  const ctx = useContext(ConfirmContext);
+  if (!ctx) {
+    throw new Error("useConfirmChoice() must be used within a ConfirmProvider");
+  }
+  return ctx.confirmChoice;
+};

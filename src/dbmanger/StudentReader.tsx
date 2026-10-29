@@ -42,6 +42,16 @@ const runPhotoRequest = async <T,>(task: () => Promise<T>): Promise<T> => {
   }
 };
 
+// Some student rows store bday as a full ISO datetime ("2013-08-23T00:00:00.000Z") instead of a plain
+// date. Strip the time part once, here at the source, so every list, edit field, PDF and Excel
+// export built from these rows shows "2013-08-23". Anything that isn't an ISO datetime (including
+// the other free-form formats already in the data) is left untouched.
+const stripBdayTime = (students: Student[]): Student[] =>
+  students.map((s) => {
+    const match = typeof s.bday === "string" ? /^(d{4}-d{2}-d{2})T/.exec(s.bday) : null;
+    return match ? { ...s, bday: match[1] } : s;
+  });
+
 export class StudentReader {
   // /api/students/allStudentsOfClasse - repeating/cas_social on these rows are always 0
   // (StudentController hardcodes them) - see fetchStudentClasseOfClasse for the real values.
@@ -67,7 +77,7 @@ export class StudentReader {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return await response.json();
+      return stripBdayTime(await response.json());
     } catch (error) {
       console.error(
         `StudentReader.fetchStudentsOfClasse(): Error fetching students: ${error}`,
@@ -132,7 +142,7 @@ export class StudentReader {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return await response.json();
+      return stripBdayTime(await response.json());
     } catch (error) {
       console.error(
         `StudentReader.fetchAllStudentsOfYear(): Error fetching students: ${error}`,

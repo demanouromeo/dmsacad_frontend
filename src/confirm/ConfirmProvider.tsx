@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { ConfirmContext, type ConfirmOptions } from "./confirmContext";
+import { ConfirmContext, type ConfirmChoice, type ConfirmOptions } from "./confirmContext";
 import { confirmTranslations } from "../i18n/translations";
 import { useLanguage } from "../i18n/useLanguage";
 
@@ -17,18 +17,27 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
   const t = confirmTranslations[language];
 
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const resolveRef = useRef<((result: boolean) => void) | null>(null);
+  const resolveRef = useRef<((result: ConfirmChoice) => void) | null>(null);
+  // Result for a dismissal (Escape/backdrop): "cancel" for confirmChoice, plain false ("no") for confirm.
+  const dismissResultRef = useRef<ConfirmChoice>("no");
   // Counts dialog.close() calls made by settle() whose native "close" event hasn't fired yet - see
   // the persistent-listener effect below for why this is needed.
   const pendingProgrammaticClosesRef = useRef(0);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
 
-  const confirm = useCallback((message: string, options?: ConfirmOptions) => {
-    return new Promise<boolean>((resolve) => {
+  const confirmChoice = useCallback((message: string, options?: ConfirmOptions) => {
+    return new Promise<ConfirmChoice>((resolve) => {
       resolveRef.current = resolve;
+      dismissResultRef.current = options?.extraCancel ? "cancel" : "no";
       setRequest({ message, options: options ?? {} });
     });
   }, []);
+
+  const confirm = useCallback(
+    async (message: string, options?: ConfirmOptions) =>
+      (await confirmChoice(message, { ...options, extraCancel: false })) === "yes",
+    [confirmChoice],
+  );
 
   // A native <dialog>'s "close" event is deferred (queued as a task), not synchronous - calling
   // .close() imperatively (via settle(), below) hides the dialog immediately but the event itself
@@ -53,7 +62,7 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
         pendingProgrammaticClosesRef.current -= 1;
         return;
       }
-      resolveRef.current?.(false);
+      resolveRef.current?.(dismissResultRef.current);
       resolveRef.current = null;
       setRequest(null);
     };
@@ -70,7 +79,7 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
     dialog.showModal();
   }, [request]);
 
-  const settle = (result: boolean) => {
+  const settle = (result: ConfirmChoice) => {
     const resolve = resolveRef.current;
     resolveRef.current = null;
     const dialog = dialogRef.current;
@@ -83,7 +92,7 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
   };
 
   return (
-    <ConfirmContext.Provider value={{ confirm }}>
+    <ConfirmContext.Provider value={{ confirm, confirmChoice }}>
       {children}
       <dialog ref={dialogRef} className="modal">
         <div className="modal-box">
@@ -92,20 +101,25 @@ const ConfirmProvider = ({ children }: ConfirmProviderProps) => {
           </h3>
           <p className="whitespace-pre-line mb-6">{request?.message}</p>
           <div className="modal-action">
-            <button type="button" className="btn" onClick={() => settle(false)}>
+            {request?.options.extraCancel && (
+              <button type="button" className="btn btn-ghost" onClick={() => settle("cancel")}>
+                {t.cancelBtn}
+              </button>
+            )}
+            <button type="button" className="btn" onClick={() => settle("no")}>
               {request?.options.cancelLabel ?? t.cancelBtn}
             </button>
             <button
               type="button"
               className={`btn ${request?.options.danger ? "btn-error" : "btn-primary"}`}
-              onClick={() => settle(true)}
+              onClick={() => settle("yes")}
             >
               {request?.options.confirmLabel ?? t.confirmBtn}
             </button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop">
-          <button onClick={() => settle(false)}>{t.cancelBtn}</button>
+          <button onClick={() => settle(dismissResultRef.current)}>{t.cancelBtn}</button>
         </form>
       </dialog>
     </ConfirmContext.Provider>

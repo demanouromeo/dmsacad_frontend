@@ -4,7 +4,7 @@ import { ImagePlus, Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
 import changeClasseIcon from "../../../assets/compo/eleve/change.png";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
-import { useConfirm } from "../../../confirm/useConfirm";
+import { useConfirm, useConfirmChoice } from "../../../confirm/useConfirm";
 import { useLanguage } from "../../../i18n/useLanguage";
 import {
   studentManagerTranslations,
@@ -79,6 +79,7 @@ const StudentManager = () => {
     authPayload?.role === "ADMIN" || authPayload?.role === "SUBADMIN";
   const showToast = useToast();
   const confirm = useConfirm();
+  const confirmChoice = useConfirmChoice();
   const location = useLocation();
   const navigate = useNavigate();
   const [language] = useLanguage();
@@ -592,12 +593,17 @@ const StudentManager = () => {
       return;
     }
 
-    const wantsDelete = await confirm(t.importDeleteExistingQuestion, {
+    const choice = await confirmChoice(t.importDeleteExistingQuestion, {
       confirmLabel: t.importDeleteBtn,
       cancelLabel: t.importAddWithoutDeleteBtn,
+      extraCancel: true,
     });
+    // Third button (or Escape/backdrop): the user no longer wants to import - nothing is saved.
+    if (choice === "cancel") {
+      return;
+    }
 
-    if (wantsDelete) {
+    if (choice === "yes") {
       const reallyDelete = await confirm(t.importDeleteConfirmAgain, {
         danger: true,
         confirmLabel: t.importDeleteFinalBtn,
