@@ -3,6 +3,7 @@ import type { Student } from "../interfaces/Student";
 import type { StudentClasseInfo } from "../interfaces/StudentClasseInfo";
 import type { StudentSectionSummaryRow } from "../interfaces/StudentSectionSummaryRow";
 import type { ApiResult } from "../interfaces/ApiResult";
+import type { StudentSearchResult } from "../interfaces/StudentSearchResult";
 
 const NETWORK_ERROR_RESULT: ApiResult = {
   status: false,
@@ -365,6 +366,36 @@ export class StudentReader {
       },
       "deleteStudents",
     );
+  };
+
+  // Whole-school search by matricule/name across every section and school year (ADMIN-only
+  // endpoint). Resolves null on failure, [] when nothing matches.
+  public static searchStudents = async (
+    accessToken: string | null,
+    connection: string,
+    query: string,
+  ): Promise<StudentSearchResult[] | null> => {
+    const targetUrl =
+      `${MyConstants.getBaseUrl()}api/students/searchStudents` +
+      `?connection=${encodeURIComponent(connection)}` +
+      `&q=${encodeURIComponent(query)}`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : null;
+    } catch (error) {
+      console.error(`StudentReader.searchStudents(): Error: ${error}`);
+      return null;
+    }
   };
 
   // School-wide: strips the "T00:00:00.000Z" time part from stored birth dates. Resolves the

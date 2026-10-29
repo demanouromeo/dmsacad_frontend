@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Eraser, ImagePlus, Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
+import { Eraser, ImagePlus, Printer, Search, RefreshCw, Upload, Wand2 } from "lucide-react";
 import changeClasseIcon from "../../../assets/compo/eleve/change.png";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -22,6 +22,7 @@ import ExportButtons from "../../sharedcomp/ExportButtons";
 import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
 import ChangeClasseDialog from "./ChangeClasseDialog";
+import StudentSearchDialog from "./StudentSearchDialog";
 import { parsePhotoFileNumber, preparePhotoForUpload } from "../../../utils/studentPhotoImport";
 import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
@@ -118,6 +119,7 @@ const StudentManager = () => {
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const photosFolderInputRef = useRef<HTMLInputElement>(null);
 
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [changeClasseStudent, setChangeClasseStudent] = useState<Student | null>(null);
   const [photoDialogStudent, setPhotoDialogStudent] = useState<Student | null>(
     null,
@@ -1034,6 +1036,18 @@ const StudentManager = () => {
                   </option>
                 ))}
               </select>
+              {canChangeClasse && (
+                <div className="tooltip tooltip-left ml-auto" data-tip={t.searchStudentTooltip}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm btn-square"
+                    aria-label={t.searchStudentTooltip}
+                    onClick={() => setSearchDialogOpen(true)}
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -1604,6 +1618,7 @@ const StudentManager = () => {
         onClose={() => setPhotoDialogStudent(null)}
         onSaved={bumpPhotoVersion}
       />
+      <StudentSearchDialog open={searchDialogOpen} onClose={() => setSearchDialogOpen(false)} />
       <ChangeClasseDialog
         student={changeClasseStudent}
         currentClasseId={selectedClasseId}
