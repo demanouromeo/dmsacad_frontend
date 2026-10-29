@@ -367,6 +367,21 @@ export class StudentReader {
     );
   };
 
+  // School-wide: strips the "T00:00:00.000Z" time part from stored birth dates. Resolves the
+  // number of rows changed (0 when there was nothing to clean) or null on failure.
+  public static cleanBirthDates = async (
+    accessToken: string | null,
+    connection: string,
+  ): Promise<number | null> => {
+    const result = (await StudentReader.postJson(
+      "api/students/cleanBirthDates",
+      accessToken,
+      { connection },
+      "cleanBirthDates",
+    )) as ApiResult & { updated?: number };
+    return result.status ? (result.updated ?? 0) : null;
+  };
+
   // Moves one student between classes of the same year (backend copies matching-subject marks).
   public static changeStudentClasse = async (
     accessToken: string | null,

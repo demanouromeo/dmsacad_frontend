@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ImagePlus, Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
+import { Eraser, ImagePlus, Printer, RefreshCw, Upload, Wand2 } from "lucide-react";
 import changeClasseIcon from "../../../assets/compo/eleve/change.png";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -445,6 +445,24 @@ const StudentManager = () => {
     if (result.status) {
       setChangeClasseStudent(null);
       loadStudents(from.classe_id);
+    }
+  };
+
+  // School-wide database cleanup (confirm first), then reload the current roster to show the result.
+  const handleCleanBirthDates = async () => {
+    if (!(await confirm(t.cleanBirthDatesConfirm))) {
+      return;
+    }
+    setIsSaving(true);
+    const updated = await StudentReader.cleanBirthDates(accessToken, connection);
+    setIsSaving(false);
+    if (updated === null) {
+      showToast(t.cleanBirthDatesFailure, { type: "danger" });
+      return;
+    }
+    showToast(t.cleanBirthDatesDone(updated), { type: "info" });
+    if (selectedClasseId !== null) {
+      loadStudents(selectedClasseId);
     }
   };
 
@@ -1089,6 +1107,22 @@ const StudentManager = () => {
                 />
               </div>
               <div className="ml-auto flex items-center gap-2">
+                {canAddOrDeleteStudents && (
+                  <div
+                    className="tooltip tooltip-left before:w-56 before:max-w-56 before:whitespace-pre-line before:text-center"
+                    data-tip={t.cleanBirthDatesTooltip}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm btn-square"
+                      aria-label={t.cleanBirthDatesTooltip}
+                      disabled={isLoadingStudents}
+                      onClick={handleCleanBirthDates}
+                    >
+                      <Eraser className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 <div className="tooltip tooltip-left before:w-44 before:max-w-44 before:whitespace-normal before:text-center" data-tip={t.attendanceSheetTooltip(selectedClasse?.classe_name ?? "")}>
                   <button
                     type="button"

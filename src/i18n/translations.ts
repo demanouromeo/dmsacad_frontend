@@ -740,6 +740,11 @@ export const studentManagerTranslations = {
     changeClasseTargetLabel: "Classe cible",
     changeClasseCancelBtn: "Annuler",
     importPhotosTooltip: (classeName: string) => `Importer les photos des élèves de ${classeName}`,
+    cleanBirthDatesTooltip: "Nettoyer les date de naissance\nExemple: 2013-08-23T00:00:00.000Z deviendra 2013-08-23",
+    cleanBirthDatesConfirm: "Supprimer la partie horaire (ex. T00:00:00.000Z) des dates de naissance de tous les élèves de l'établissement dans la base de données ? Cette action modifie les données enregistrées.",
+    cleanBirthDatesDone: (count: number) =>
+      count > 0 ? `${count} date(s) de naissance nettoyée(s).` : "Aucune date de naissance à nettoyer.",
+    cleanBirthDatesFailure: "Échec du nettoyage des dates de naissance.",
     importPhotosNoMatch: "Aucune photo trouvée dans le dossier sélectionné.",
     importPhotosConfirm: (count: number, classeName: string) =>
       `Importer ${count} photo(s) pour ${classeName} ? Les photos existantes de ces élèves seront remplacées.`,
@@ -852,6 +857,11 @@ export const studentManagerTranslations = {
     changeClasseTargetLabel: "Target class",
     changeClasseCancelBtn: "Cancel",
     importPhotosTooltip: (classeName: string) => `Import photos of students of ${classeName}`,
+    cleanBirthDatesTooltip: "Clean birth dates\nExample: 2013-08-23T00:00:00.000Z becomes 2013-08-23",
+    cleanBirthDatesConfirm: "Remove the time part (e.g. T00:00:00.000Z) from the birth dates of every student of the school in the database? This changes stored data.",
+    cleanBirthDatesDone: (count: number) =>
+      count > 0 ? `${count} birth date(s) cleaned.` : "No birth date to clean.",
+    cleanBirthDatesFailure: "Failed to clean birth dates.",
     importPhotosNoMatch: "No photo found in the selected folder.",
     importPhotosConfirm: (count: number, classeName: string) =>
       `Import ${count} photo(s) for ${classeName}? Existing photos of these students will be replaced.`,
