@@ -1684,6 +1684,11 @@ export const markSheetManagerTranslations = {
     description:
       "Génère un document PDF contenant, pour chaque classe de la section actuelle, une fiche vierge (Enseignant/Matière/Trimestre/Coef. à remplir à la main) listant les élèves de la classe - à imprimer et distribuer aux enseignants pour la saisie manuelle des notes.",
     generateBtn: "Générer les fiches",
+    generateTooltip: "Générer les fiches de report de notes de toutes les classes",
+    singleDescription: "Génère uniquement la fiche vierge de report de notes de la classe choisie ci-dessous.",
+    classeLabel: "Classe :",
+    generateOneBtn: "Générer la fiche",
+    generateOneTooltip: "Générer la fiche de report de notes de la classe sélectionnée",
     emptyClasses: "Aucune classe pour cette section.",
     emptyRosters: "Aucun élève dans les classes de cette section.",
   },
@@ -1692,6 +1697,11 @@ export const markSheetManagerTranslations = {
     description:
       "Generates a PDF document containing, for every class of the current section, a blank sheet (Teacher/Subject/Term/Coef. left for hand-fill) listing the class's students - to print and hand out to teachers for manual mark collection.",
     generateBtn: "Generate the sheets",
+    generateTooltip: "Generate the mark transfer sheets of all classes",
+    singleDescription: "Generates only the blank mark sheet of the class chosen below.",
+    classeLabel: "Class:",
+    generateOneBtn: "Generate the sheet",
+    generateOneTooltip: "Generate the mark sheet of the selected class",
     emptyClasses: "No class for this section.",
     emptyRosters: "No student in this section's classes.",
   },

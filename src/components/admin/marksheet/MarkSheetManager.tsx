@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileText } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { markSheetManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
+import type { Classe } from "../../../interfaces/Classe";
 import { StudentReader } from "../../../dbmanger/StudentReader";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { exportMarkSheetsToPdf, type MarkSheetClasse } from "../../../utils/exportMarkSheets";
@@ -23,13 +24,41 @@ const MarkSheetManager = () => {
   const [language] = useLanguage();
   const t = markSheetManagerTranslations[language];
   const [isGenerating, setIsGenerating] = useState(false);
+  // Classes of the current section+year, backing the single-classe dropdown below.
+  const [classeOptions, setClasseOptions] = useState<Classe[]>([]);
+  const [selectedClasseId, setSelectedClasseId] = useState<number | null>(null);
 
-  const handleGenerate = async () => {
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const list = await ClasseReader.fetchClasses(accessToken, connection, schoolYear, section);
+      if (cancelled) {
+        return;
+      }
+      setClasseOptions(list);
+      setSelectedClasseId((prev) =>
+        prev !== null && list.some((c) => c.classe_id === prev) ? prev : (list[0]?.classe_id ?? null),
+      );
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [connection, schoolYear, section, accessToken]);
+
+  // Without `onlyClasseId`, one sheet per classe of the section; with it, just that classe's sheet.
+  const handleGenerate = async (onlyClasseId?: number) => {
     setIsGenerating(true);
-    const [classes, apcLevelList] = await Promise.all([
-      ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
+    // The dropdown already loaded the classes - reuse them instead of fetching again, so a single
+    // classe's sheet doesn't depend on a second (possibly failing) classes request.
+    const [allClasses, apcLevelList] = await Promise.all([
+      classeOptions.length > 0
+        ? Promise.resolve(classeOptions)
+        : ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
       ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),
     ]);
+    const classes =
+      onlyClasseId === undefined ? allClasses : allClasses.filter((c) => c.classe_id === onlyClasseId);
     if (classes.length === 0) {
       setIsGenerating(false);
       showToast(t.emptyClasses, { type: "warning" });
@@ -66,7 +95,11 @@ const MarkSheetManager = () => {
       markSheetClasses,
       buildTimestampedFilename(
         "Fiches de report de notes",
-        [`Section ${capitalizeSectionName(section)}`],
+        [
+          onlyClasseId === undefined
+            ? `Section ${capitalizeSectionName(section)}`
+            : `Classe ${classes[0].classe_name}`,
+        ],
         "pdf",
       ),
     );
@@ -85,12 +118,42 @@ const MarkSheetManager = () => {
         <button
           type="button"
           className="btn btn-primary gap-2"
+          title={t.generateTooltip}
           disabled={isGenerating}
-          onClick={handleGenerate}
+          onClick={() => handleGenerate()}
         >
           <FileText className="w-4 h-4" />
           {t.generateBtn}
         </button>
+      </div>
+
+      <div className="surface-card p-6 md:p-8 max-w-2xl mt-6">
+        <p className="text-base-content/70 mb-6">{t.singleDescription}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="font-medium">{t.classeLabel}</label>
+          <select
+            className="select w-56"
+            value={selectedClasseId ?? ""}
+            disabled={classeOptions.length === 0}
+            onChange={(e) => setSelectedClasseId(Number(e.target.value))}
+          >
+            {classeOptions.map((c) => (
+              <option key={c.classe_id} value={c.classe_id}>
+                {c.classe_name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn btn-primary gap-2"
+            title={t.generateOneTooltip}
+            disabled={isGenerating || selectedClasseId === null}
+            onClick={() => selectedClasseId !== null && handleGenerate(selectedClasseId)}
+          >
+            <FileText className="w-4 h-4" />
+            {t.generateOneBtn}
+          </button>
+        </div>
       </div>
     </div>
   );
