@@ -282,7 +282,15 @@ export class StudentReader {
       cas_social: boolean;
       matricule: string;
     }[],
-  ): Promise<ApiResult> => {
+    replace = false,
+  ): Promise<
+    ApiResult & {
+      code?: "MATRICULE_IN_USE" | "MATRICULE_OTHER_YEAR";
+      student_name?: string;
+      classe_name?: string;
+      year?: string;
+    }
+  > => {
     return StudentReader.postJson(
       "api/students/updateStudents",
       accessToken,
@@ -291,6 +299,7 @@ export class StudentReader {
         year,
         data: JSON.stringify(updates),
         data_size: updates.length,
+        replace: replace ? "1" : "0",
       },
       "updateStudents",
     );

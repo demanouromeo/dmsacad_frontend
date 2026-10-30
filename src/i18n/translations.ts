@@ -830,6 +830,15 @@ export const studentManagerTranslations = {
     addFailure: "Échec de l'ajout de l'élève.",
     updateSuccess: "Élève mis à jour avec succès.",
     updateFailure: "Échec de la modification de l'élève.",
+    matriculeInUse: (matricule: string, student: string, classe: string) =>
+      `Vous ne pouvez pas attribuer le matricule ${matricule} : il est déjà attribué à l'élève ${student} dans la classe ${classe} pour l'année en cours.`,
+    matriculeOtherYearConfirm: (
+      matricule: string,
+      student: string,
+      classe: string,
+      year: string,
+    ) =>
+      `Le matricule ${matricule} existe déjà pour l'élève ${student} (classe ${classe}, année(s) ${year}). Le matricule étant unique, voulez-vous supprimer l'élève actuel de l'année en cours et le remplacer par l'élève portant ce matricule ?`,
     importBtn: "Importer",
     importUnsupportedExtension: "Format de fichier non pris en charge. Utilisez un fichier .xlsx ou .csv.",
     importEmptyFile: "Le fichier est vide ou ne contient aucune ligne de données.",
@@ -964,6 +973,15 @@ export const studentManagerTranslations = {
     addFailure: "Failed to add the student.",
     updateSuccess: "Student successfully updated.",
     updateFailure: "Failed to update the student.",
+    matriculeInUse: (matricule: string, student: string, classe: string) =>
+      `You cannot assign matricule ${matricule}: it is already assigned to ${student} in class ${classe} for the current year.`,
+    matriculeOtherYearConfirm: (
+      matricule: string,
+      student: string,
+      classe: string,
+      year: string,
+    ) =>
+      `Matricule ${matricule} already belongs to ${student} (class ${classe}, year(s) ${year}). Since the matricule is unique, do you want to remove the current student from the current year and replace them with the student owning this matricule?`,
     importBtn: "Import",
     importUnsupportedExtension: "Unsupported file format. Use an .xlsx or .csv file.",
     importEmptyFile: "The file is empty or contains no data row.",

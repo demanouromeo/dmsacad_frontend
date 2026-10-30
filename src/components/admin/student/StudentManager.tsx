@@ -330,27 +330,63 @@ const StudentManager = () => {
       showToast(t.nameRequired, { type: "warning" });
       return;
     }
+    const newMatricule = editingMatricule.trim();
+    const payload = [
+      {
+        stud_id: student.stud_id,
+        name: trimmedName,
+        surname: editingFields.surname.trim(),
+        bday: editingFields.bday,
+        bplace: editingFields.bplace.trim(),
+        sexe: editingFields.sexe,
+        repeating: editingFields.repeating,
+        handicape: editingFields.handicape,
+        cas_social: student.cas_social === 1,
+        matricule: newMatricule,
+      },
+    ];
     setIsSaving(true);
-    const result = await StudentReader.updateStudents(
+    let result = await StudentReader.updateStudents(
       accessToken,
       connection,
       schoolYear,
-      [
-        {
-          stud_id: student.stud_id,
-          name: trimmedName,
-          surname: editingFields.surname.trim(),
-          bday: editingFields.bday,
-          bplace: editingFields.bplace.trim(),
-          sexe: editingFields.sexe,
-          repeating: editingFields.repeating,
-          handicape: editingFields.handicape,
-          cas_social: student.cas_social === 1,
-          matricule: editingMatricule.trim(),
-        },
-      ],
+      payload,
     );
     setIsSaving(false);
+    if (result.code === "MATRICULE_IN_USE") {
+      showToast(
+        t.matriculeInUse(
+          newMatricule,
+          result.student_name ?? "",
+          result.classe_name ?? "",
+        ),
+        { type: "warning" },
+      );
+      return;
+    }
+    if (result.code === "MATRICULE_OTHER_YEAR") {
+      const confirmed = await confirm(
+        t.matriculeOtherYearConfirm(
+          newMatricule,
+          result.student_name ?? "",
+          result.classe_name ?? "",
+          result.year ?? "",
+        ),
+        { danger: true },
+      );
+      if (!confirmed) {
+        return;
+      }
+      setIsSaving(true);
+      result = await StudentReader.updateStudents(
+        accessToken,
+        connection,
+        schoolYear,
+        payload,
+        true,
+      );
+      setIsSaving(false);
+    }
     showToast(result.status ? t.updateSuccess : t.updateFailure, {
       type: result.status ? "info" : "danger",
     });
