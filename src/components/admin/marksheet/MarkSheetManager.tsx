@@ -7,6 +7,7 @@ import { markSheetManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import type { Classe } from "../../../interfaces/Classe";
 import { StudentReader } from "../../../dbmanger/StudentReader";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { exportMarkSheetsToPdf, type MarkSheetClasse } from "../../../utils/exportMarkSheets";
 import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
@@ -18,6 +19,9 @@ import CloseButton from "../../sharedcomp/CloseButton";
 // classe of the current section+year plus each one's roster, then hands the whole batch to
 // exportMarkSheetsToPdf in one PDF (skipping classes with no students, same precedent as
 // AllMarksReportBlock in exportAllMarksReport.ts).
+const ROSTER_FETCH_ATTEMPTS = 3;
+const ROSTER_RETRY_DELAY_MS = 600;
+
 const MarkSheetManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
   const showToast = useToast();
@@ -66,14 +70,30 @@ const MarkSheetManager = () => {
     }
     const apcLevelMap = new Map(apcLevelList.map((entry) => [entry.level, entry.activated]));
 
-    const perClasse = await Promise.all(
-      classes.map(async (classe): Promise<MarkSheetClasse | null> => {
+    // Bounded concurrency (not a bare Promise.all over every classe): a whole section is dozens of
+    // rosters, and firing them all at once can exceed the remote host's MySQL connection ceiling,
+    // which makes StudentReader silently return [] - indistinguishable from a really empty classe.
+    // So an empty roster is retried a couple of times before the classe is treated as empty.
+    const fetchRoster = async (classeId: number) => {
+      for (let attempt = 0; attempt < ROSTER_FETCH_ATTEMPTS; attempt++) {
         const roster = await StudentReader.fetchStudentsOfClasse(
           accessToken,
           connection,
           schoolYear,
-          classe.classe_id,
+          classeId,
         );
+        if (roster.length > 0 || attempt === ROSTER_FETCH_ATTEMPTS - 1) {
+          return roster;
+        }
+        await new Promise((resolve) => setTimeout(resolve, ROSTER_RETRY_DELAY_MS * (attempt + 1)));
+      }
+      return [];
+    };
+    const perClasse = await mapWithConcurrency(
+      classes,
+      DEFAULT_REPORT_CONCURRENCY,
+      async (classe): Promise<MarkSheetClasse | null> => {
+        const roster = await fetchRoster(classe.classe_id);
         if (roster.length === 0) {
           return null;
         }
@@ -82,7 +102,7 @@ const MarkSheetManager = () => {
           isApc: apcLevelMap.get(classe.level) === true,
           students: roster.map((s) => ({ name: s.name, surname: s.surname })),
         };
-      }),
+      },
     );
     const markSheetClasses = perClasse.filter((c): c is MarkSheetClasse => c !== null);
     if (markSheetClasses.length === 0) {
@@ -91,19 +111,25 @@ const MarkSheetManager = () => {
       return;
     }
 
-    await exportMarkSheetsToPdf(
-      markSheetClasses,
-      buildTimestampedFilename(
-        "Fiches de report de notes",
-        [
-          onlyClasseId === undefined
-            ? `Section ${capitalizeSectionName(section)}`
-            : `Classe ${classes[0].classe_name}`,
-        ],
-        "pdf",
-      ),
-    );
-    setIsGenerating(false);
+    try {
+      await exportMarkSheetsToPdf(
+        markSheetClasses,
+        buildTimestampedFilename(
+          "Fiches de report de notes",
+          [
+            onlyClasseId === undefined
+              ? `Section ${capitalizeSectionName(section)}`
+              : `Classe ${classes[0].classe_name}`,
+          ],
+          "pdf",
+        ),
+      );
+    } catch (error) {
+      console.error(`MarkSheetManager.handleGenerate(): Error: ${error}`);
+      showToast(t.generateFailure, { type: "danger" });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (

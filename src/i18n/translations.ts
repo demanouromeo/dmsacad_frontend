@@ -1709,6 +1709,7 @@ export const markSheetManagerTranslations = {
     generateOneTooltip: "Générer la fiche de report de notes de la classe sélectionnée",
     emptyClasses: "Aucune classe pour cette section.",
     emptyRosters: "Aucun élève dans les classes de cette section.",
+    generateFailure: "La génération des fiches a échoué. Veuillez réessayer.",
   },
   en: {
     title: "Mark sheets",
@@ -1722,6 +1723,7 @@ export const markSheetManagerTranslations = {
     generateOneTooltip: "Generate the mark sheet of the selected class",
     emptyClasses: "No class for this section.",
     emptyRosters: "No student in this section's classes.",
+    generateFailure: "Generating the sheets failed. Please try again.",
   },
 };
 
