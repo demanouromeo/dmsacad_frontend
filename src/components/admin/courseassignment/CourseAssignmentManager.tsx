@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Eraser, FileSpreadsheet, Files, Printer, Save, Trash2 } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
@@ -548,7 +548,7 @@ const CourseAssignmentManager = () => {
   };
 
   return (
-    <div className="page-shell-wide">
+    <div className="page-shell-wide pb-28">
       {isSaving && <LoadingOverlay />}
       <div className="page-header">
         <div>
@@ -792,6 +792,65 @@ const CourseAssignmentManager = () => {
             >
               {t.deleteAllSectionBtn(schoolYear, section)}
             </button>
+          </div>
+          {/* Floating shortcuts (bottom-left, same baseline as the Lindsay assistant button on the
+              right) duplicating the toolbar buttons above - same handlers and enabled rules. */}
+          <div className="fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-[calc(1.5rem+var(--safe-left))] z-40 flex items-center gap-3">
+            <div className="tooltip tooltip-top before:w-36 before:whitespace-normal before:text-center" data-tip={t.saveTooltip}>
+              <button
+                type="button"
+                className="btn btn-circle shadow-lg btn-primary"
+                aria-label={t.saveTooltip}
+                disabled={leftSelectedClasseIds.size === 0}
+                onClick={handleSaveAssignments}
+              >
+                <Save className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="tooltip tooltip-top before:w-36 before:whitespace-normal before:text-center" data-tip={t.removeAllTooltip}>
+              <button
+                type="button"
+                className="btn btn-circle shadow-lg btn-error"
+                aria-label={t.removeAllTooltip}
+                disabled={rightPanelRows.length === 0}
+                onClick={handleRemoveAllOfStaff}
+              >
+                <Eraser className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="tooltip tooltip-top before:w-36 before:whitespace-normal before:text-center" data-tip={t.exportExcelTooltip}>
+              <button
+                type="button"
+                className="btn btn-circle shadow-lg btn-outline bg-base-100"
+                aria-label={t.exportExcelTooltip}
+                disabled={rightPanelRows.length === 0}
+                onClick={handleExportExcel}
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="tooltip tooltip-top before:w-36 before:whitespace-normal before:text-center" data-tip={t.printTooltip}>
+              <button
+                type="button"
+                className="btn btn-circle shadow-lg btn-neutral"
+                aria-label={t.printTooltip}
+                disabled={allAttributions.length === 0}
+                onClick={() => handlePrint()}
+              >
+                <Printer className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="tooltip tooltip-top before:w-36 before:whitespace-normal before:text-center" data-tip={t.printPerPageTooltip}>
+              <button
+                type="button"
+                className="btn btn-circle shadow-lg btn-neutral"
+                aria-label={t.printPerPageTooltip}
+                disabled={allAttributions.length === 0}
+                onClick={() => handlePrint(true)}
+              >
+                <Files className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </>
       )}

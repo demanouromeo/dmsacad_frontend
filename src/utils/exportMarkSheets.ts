@@ -36,6 +36,8 @@ const CONTINUATION_PAGE_TABLE_TOP = 16;
 export const exportMarkSheetsToPdf = async (
   classes: MarkSheetClasse[],
   filename: string,
+  // Printed top-left on every page, on the same line and in the same font/size as "Page X/Y".
+  schoolName?: string | null,
 ): Promise<void> => {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
@@ -78,6 +80,9 @@ export const exportMarkSheetsToPdf = async (
       doc.setFont("helvetica", "italic");
       doc.setFontSize(9);
       doc.text(`Page ${relativePage}/${totalPages}`, pageWidth - 14, 10, { align: "right" });
+      if (schoolName) {
+        doc.text(schoolName, 14, 10);
+      }
 
       if (relativePage === 1) {
         doc.setFont("helvetica", "bold");

@@ -1750,6 +1750,10 @@ export const courseAssignmentTranslations = {
     saveBtn: "Enregistrer",
     removeAllBtn: "Tout retirer",
     printBtn: "Imprimer",
+    saveTooltip: "Enregistrer les attributions des classes cochées à l'enseignant et à la matière sélectionnés",
+    removeAllTooltip: "Retirer tous les cours attribués à l'enseignant sélectionné",
+    exportExcelTooltip: "Exporter en Excel la liste des cours de l'enseignant sélectionné",
+    printTooltip: "Imprimer les attributions de toutes les classes de la section",
     deleteSelectionBtn: (count: number) => `Supprimer la sélection (${count})`,
     deleteAllSectionBtn: (year: string, section: string) =>
       `Effacer toutes les attributions de ${year} pour la section '${section}'`,
@@ -1804,6 +1808,10 @@ export const courseAssignmentTranslations = {
     saveBtn: "Save",
     removeAllBtn: "Remove all",
     printBtn: "Print",
+    saveTooltip: "Save the assignments of the ticked classes to the selected teacher and subject",
+    removeAllTooltip: "Remove every course assigned to the selected teacher",
+    exportExcelTooltip: "Export the selected teacher's course list to Excel",
+    printTooltip: "Print the assignments of every class of the section",
     deleteSelectionBtn: (count: number) => `Delete selection (${count})`,
     deleteAllSectionBtn: (year: string, section: string) =>
       `Clear all assignments of ${year} for section '${section}'`,

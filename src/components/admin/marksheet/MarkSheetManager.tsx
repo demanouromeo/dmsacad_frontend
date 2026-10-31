@@ -7,6 +7,7 @@ import { markSheetManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import type { Classe } from "../../../interfaces/Classe";
 import { StudentReader } from "../../../dbmanger/StudentReader";
+import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
 import { exportMarkSheetsToPdf, type MarkSheetClasse } from "../../../utils/exportMarkSheets";
@@ -27,6 +28,7 @@ const MarkSheetManager = () => {
   const showToast = useToast();
   const [language] = useLanguage();
   const t = markSheetManagerTranslations[language];
+  const schoolHeader = useSchoolHeader();
   const [isGenerating, setIsGenerating] = useState(false);
   // Classes of the current section+year, backing the single-classe dropdown below.
   const [classeOptions, setClasseOptions] = useState<Classe[]>([]);
@@ -112,6 +114,11 @@ const MarkSheetManager = () => {
     }
 
     try {
+      // Retry the header load right here if the hook's one isn't ready yet (see StaffManager).
+      const header =
+        schoolHeader.config || schoolHeader.logoImage
+          ? schoolHeader
+          : await loadSchoolHeader(accessToken, connection, schoolYear);
       await exportMarkSheetsToPdf(
         markSheetClasses,
         buildTimestampedFilename(
@@ -123,6 +130,7 @@ const MarkSheetManager = () => {
           ],
           "pdf",
         ),
+        header.config?.name_fr,
       );
     } catch (error) {
       console.error(`MarkSheetManager.handleGenerate(): Error: ${error}`);
