@@ -3,6 +3,7 @@ import { useToast } from "../toast/useToast";
 import { useLanguage } from "../i18n/useLanguage";
 import { connectivityTranslations } from "../i18n/translations";
 import { MyConstants } from "../dbmanger/MyConstants";
+import { SERVER_UNREACHABLE_TOAST_GROUP } from "../toast/toastGroups";
 
 // Timeout kept comfortably under the interval so a slow-but-alive check never overlaps the next
 // tick's fetch. Generous enough to survive a heavy screen's own burst of concurrent requests (e.g.
@@ -80,7 +81,7 @@ const ConnectivityMonitor = () => {
       failedChecksRef.current += 1;
       if (isReachableRef.current && failedChecksRef.current >= FAILED_CHECKS_BEFORE_ALERT) {
         isReachableRef.current = false;
-        showToast(t.serverUnavailable, { type: "danger" });
+        showToast(t.serverUnavailable, { type: "danger", group: SERVER_UNREACHABLE_TOAST_GROUP });
       }
     };
 

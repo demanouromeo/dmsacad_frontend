@@ -7,6 +7,7 @@ import { markSheetManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import type { Classe } from "../../../interfaces/Classe";
 import { StudentReader } from "../../../dbmanger/StudentReader";
+import { StaffReader } from "../../../dbmanger/StaffReader";
 import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 import { buildTimestampedFilename, capitalizeSectionName } from "../../../utils/exportData";
@@ -24,7 +25,7 @@ const ROSTER_FETCH_ATTEMPTS = 3;
 const ROSTER_RETRY_DELAY_MS = 600;
 
 const MarkSheetManager = () => {
-  const { connection, schoolYear, section, accessToken } = useAuth();
+  const { connection, schoolYear, section, accessToken, authPayload } = useAuth();
   const showToast = useToast();
   const [language] = useLanguage();
   const t = markSheetManagerTranslations[language];
@@ -33,14 +34,30 @@ const MarkSheetManager = () => {
   // Classes of the current section+year, backing the single-classe dropdown below.
   const [classeOptions, setClasseOptions] = useState<Classe[]>([]);
   const [selectedClasseId, setSelectedClasseId] = useState<number | null>(null);
+  // CENSEUR/SG/TEACHER only get the sheets of the classes they were assigned a course in (Course assignment,
+  // StaffController::AllAttributionsOfSection filtered to their own staff_id = the JWT's user_id);
+  // ADMIN (and SUBADMIN) get every classe of the section.
+  const isRestrictedToAssignments =
+    authPayload?.role === "CENSEUR" || authPayload?.role === "SG" || authPayload?.role === "TEACHER";
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const list = await ClasseReader.fetchClasses(accessToken, connection, schoolYear, section);
+      const [fetchedList, attributions] = await Promise.all([
+        ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
+        isRestrictedToAssignments
+          ? StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section)
+          : Promise.resolve([]),
+      ]);
       if (cancelled) {
         return;
       }
+      const ownClasseIds = new Set(
+        attributions.filter((a) => a.staff_id === authPayload?.user_id).map((a) => a.classe_id),
+      );
+      const list = isRestrictedToAssignments
+        ? fetchedList.filter((c) => ownClasseIds.has(c.classe_id))
+        : fetchedList;
       setClasseOptions(list);
       setSelectedClasseId((prev) =>
         prev !== null && list.some((c) => c.classe_id === prev) ? prev : (list[0]?.classe_id ?? null),
@@ -50,7 +67,7 @@ const MarkSheetManager = () => {
     return () => {
       cancelled = true;
     };
-  }, [connection, schoolYear, section, accessToken]);
+  }, [connection, schoolYear, section, accessToken, isRestrictedToAssignments, authPayload?.user_id]);
 
   // Without `onlyClasseId`, one sheet per classe of the section; with it, just that classe's sheet.
   const handleGenerate = async (onlyClasseId?: number) => {
@@ -58,7 +75,7 @@ const MarkSheetManager = () => {
     // The dropdown already loaded the classes - reuse them instead of fetching again, so a single
     // classe's sheet doesn't depend on a second (possibly failing) classes request.
     const [allClasses, apcLevelList] = await Promise.all([
-      classeOptions.length > 0
+      classeOptions.length > 0 || isRestrictedToAssignments
         ? Promise.resolve(classeOptions)
         : ClasseReader.fetchClasses(accessToken, connection, schoolYear, section),
       ClasseReader.fetchApcLevels(accessToken, connection, schoolYear, section),

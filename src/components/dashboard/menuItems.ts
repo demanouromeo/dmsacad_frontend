@@ -85,7 +85,14 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
 export const NON_ADMIN_MENU_ITEMS: Record<
   string,
   {
-    key: "discipline" | "marksEntry" | "classes" | "subjectsOfClasse" | "students" | "myTimetable";
+    key:
+      | "discipline"
+      | "marksEntry"
+      | "markSheet"
+      | "classes"
+      | "subjectsOfClasse"
+      | "students"
+      | "myTimetable";
     icon: string;
     to: string;
   }[]
@@ -93,14 +100,17 @@ export const NON_ADMIN_MENU_ITEMS: Record<
   SG: [
     { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
     { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
+    { key: "markSheet", icon: iconMarkSheet, to: "/admin/mark-sheet" },
     { key: "myTimetable", icon: iconTimetable, to: "/admin/my-timetable" },
   ],
   TEACHER: [
     { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
+    { key: "markSheet", icon: iconMarkSheet, to: "/admin/mark-sheet" },
     { key: "myTimetable", icon: iconTimetable, to: "/admin/my-timetable" },
   ],
   CENSEUR: [
     { key: "marksEntry", icon: iconMarksEntry, to: "/admin/mark-entry" },
+    { key: "markSheet", icon: iconMarkSheet, to: "/admin/mark-sheet" },
     { key: "discipline", icon: iconDiscipline, to: "/admin/discipline" },
     { key: "classes", icon: iconClasses, to: "/admin/classes" },
     { key: "subjectsOfClasse", icon: iconSubjects, to: "/admin/subjects/matieres-classes" },

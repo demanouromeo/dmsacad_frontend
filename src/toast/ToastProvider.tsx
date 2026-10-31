@@ -23,8 +23,20 @@ const ToastProvider = ({ children }: ToastProviderProps) => {
   const showToast = useCallback((message: string, options?: ToastOptions) => {
     const type = options?.type ?? "info";
     const durationMs = options?.durationMs ?? DEFAULT_DURATION_MS[type];
+    const group = options?.group;
     const id = nextId.current++;
-    setToasts((prev) => [...prev, { id, message, type, durationMs }]);
+    // An identical toast (same message and type) already on screen is replaced instead of stacked:
+    // several components failing the same way at once (e.g. the login screen's school list, school
+    // years and connectivity monitor when the server is down) would otherwise pile up copies. The
+    // replacement is re-added last, so it also restarts its display time.
+    setToasts((prev) => [
+      ...prev.filter(
+        (toast) =>
+          !(toast.message === message && toast.type === type) &&
+          !(group !== undefined && toast.group === group),
+      ),
+      { id, message, type, durationMs, group },
+    ]);
   }, []);
 
   return (

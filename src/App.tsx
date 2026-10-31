@@ -137,10 +137,6 @@ function App() {
                   path="/admin/effectifs/stat-par-classe"
                   element={<StatParClasseManager />}
                 />
-                <Route
-                  path="/admin/mark-sheet"
-                  element={<MarkSheetManager />}
-                />
                 <Route path="/admin/fill-rate" element={<FillRateHub />} />
                 <Route
                   path="/admin/fill-rate/global"
@@ -257,6 +253,11 @@ function App() {
                   path="/admin/mark-entry"
                   element={<MarkEntryManager />}
                 />
+              </Route>
+              {/* Blank mark transfer sheets: ADMIN gets every classe of the section; CENSEUR/SG/TEACHER only
+                  the classes they were assigned a course in (filtered client-side in MarkSheetManager). */}
+              <Route element={<RequireRole allow={["ADMIN", "SG", "CENSEUR", "TEACHER"]} />}>
+                <Route path="/admin/mark-sheet" element={<MarkSheetManager />} />
               </Route>
               {/* My time table: TEACHER/SG/CENSEUR viewing their own individual schedule, scoped
                   server-side to auth_payload.user_id (see TimetableController::getMyCells) - not

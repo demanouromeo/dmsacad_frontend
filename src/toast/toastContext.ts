@@ -5,6 +5,9 @@ export type ToastType = "info" | "warning" | "danger";
 export interface ToastOptions {
   type?: ToastType;
   durationMs?: number;
+  // Toasts sharing a group replace one another (at most one on screen per group) even when their
+  // texts differ - used to fold several symptoms of one cause, e.g. "server unreachable", into one.
+  group?: string;
 }
 
 export interface ToastItem {
@@ -12,6 +15,7 @@ export interface ToastItem {
   message: string;
   type: ToastType;
   durationMs: number;
+  group?: string;
 }
 
 export interface ToastContextValue {

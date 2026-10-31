@@ -26,6 +26,7 @@ import { useLanguage } from "../../i18n/useLanguage";
 import { useTheme } from "../../theme/useTheme";
 import { useAuth } from "../../auth/useAuth";
 import { useToast } from "../../toast/useToast";
+import { SERVER_UNREACHABLE_TOAST_GROUP } from "../../toast/toastGroups";
 
 // Packaged Android/iOS builds, and a browser window narrowed to phone width, only ever talk to
 // the remote backend - the "Local" target (http://localhost/dmsacad_backend_dev/) points at the
@@ -106,7 +107,7 @@ const LoginForm = () => {
   const loadSchools = async () => {
     const list = await MyReader.fetchSchools();
     if (list === null) {
-      showToast(t.fetchSchoolsError, { type: "danger" });
+      showToast(t.fetchSchoolsError, { type: "danger", group: SERVER_UNREACHABLE_TOAST_GROUP });
       setSchoolList([]);
     } else {
       setSchoolList(list);
@@ -117,7 +118,7 @@ const LoginForm = () => {
   const loadSchoolYears = async (connection = "") => {
     const list = await MyReader.fetchSchoolYears(connection);
     if (list === null) {
-      showToast(t.fetchSchoolYearsError, { type: "danger" });
+      showToast(t.fetchSchoolYearsError, { type: "danger", group: SERVER_UNREACHABLE_TOAST_GROUP });
       setSchoolYearList([]);
     } else {
       setSchoolYearList(list);
