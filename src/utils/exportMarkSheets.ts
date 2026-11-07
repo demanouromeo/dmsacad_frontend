@@ -92,7 +92,10 @@ export const exportMarkSheetsToPdf = async (
         doc.text(classeText, pageWidth / 2, 16, { align: "center" });
         // MATIERE starts under the left edge of the "Classe: ..." text above it.
         const matiereX = pageWidth / 2 - doc.getTextWidth(classeText) / 2;
-        doc.text("Trimestre: _______", pageWidth - 14, 16, { align: "right" });
+        // Non-APC sheets are per sequence, not per term, so only APC sheets carry the Trimestre blank.
+        if (classe.isApc) {
+          doc.text("Trimestre: _______", pageWidth - 14, 16, { align: "right" });
+        }
 
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);

@@ -4200,3 +4200,78 @@ export const subAdminManagerTranslations = {
     deleteFailure: "Failed to delete the sub-administrator.",
   },
 };
+
+export const markScanTranslations = {
+  fr: {
+    scanTooltip:
+      "Scanner une fiche de report de notes manuscrite (photo) et importer les notes de la matière courante",
+    chooseComps: "Cochez les compétences à importer :",
+    competenceLabel: (n: number, text: string) => `Compétence ${n}${text ? ` - ${text}` : ""}`,
+    noCompetenceOnSheet: "Cette matière n'a aucune compétence pour ce trimestre.",
+    confirmApc: (subject: string, comps: string, classe: string, term: number) =>
+      `L'importation va REMPLACER les notes existantes du trimestre ${term} de l'année en cours de la matière '${subject}' dans la classe '${classe}' pour : ${comps}, par celles de la fiche. Les élèves sans note valide sur la fiche ne sont pas modifiés. Cette action est irréversible. Continuer ?`,
+    progressLoading: "Chargement du module de reconnaissance...",
+    progressLayout: "Analyse de la fiche...",
+    progressCells: (done: number, total: number) => `Lecture des notes (${done}/${total})`,
+    errorUnreadableImage: "Impossible de lire cette image.",
+    errorNoHeaders:
+      "Colonnes Note1..Note6 introuvables. Photographiez la fiche entière, bien à plat et nette.",
+    errorNoRows:
+      "Noms des élèves introuvables. Vérifiez que la fiche est celle de cette classe et bien lisible.",
+    errorGeneric: "Échec de la reconnaissance de la fiche.",
+    nothingDetected: "Aucune note manuscrite détectée sur cette fiche.",
+    dialogTitle: (subject: string) => `Notes détectées - ${subject}`,
+    detectedIntro: (seqs: string) => `Des notes ont été détectées pour : ${seqs}.`,
+    emptySeqs: (seqs: string) => `Aucune note pour : ${seqs}.`,
+    chooseSeqs: "Cochez les séquences à importer :",
+    sequenceLabel: (n: number) => `Séquence ${n}`,
+    sequenceSummary: (valid: number, issues: number) =>
+      `${valid} note(s) valide(s)${issues > 0 ? `, ${issues} à vérifier` : ""}`,
+    lockedSeq: "verrouillée",
+    issuesTitle: "Notes illisibles ou invalides (corrigez-les, sinon elles sont ignorées) :",
+    issueUnreadable: "illisible",
+    issueInvalid: "invalide (hors de [0, 20])",
+    cancelBtn: "Annuler",
+    validateBtn: "Valider",
+    confirm: (subject: string, seqs: string, classe: string) =>
+      `L'importation va REMPLACER les notes existantes de l'année en cours de la matière '${subject}' dans la classe '${classe}' pour : ${seqs}, par celles de la fiche. Les élèves sans note valide sur la fiche ne sont pas modifiés. Cette action est irréversible. Continuer ?`,
+    confirmBtn: "Importer",
+    success: (count: number) => `${count} note(s) importée(s) avec succès.`,
+    failure: "Échec de l'importation des notes.",
+  },
+  en: {
+    scanTooltip: "Scan a handwritten mark sheet (photo) and import the marks of the current subject",
+    chooseComps: "Tick the competences to import:",
+    competenceLabel: (n: number, text: string) => `Competence ${n}${text ? ` - ${text}` : ""}`,
+    noCompetenceOnSheet: "This subject has no competence for this term.",
+    confirmApc: (subject: string, comps: string, classe: string, term: number) =>
+      `The import will REPLACE the existing marks of term ${term} of the current year for subject '${subject}' in class '${classe}' for: ${comps}, with those of the sheet. Students without a valid mark on the sheet are left unchanged. This cannot be undone. Continue?`,
+    progressLoading: "Loading the recognition module...",
+    progressLayout: "Analyzing the sheet...",
+    progressCells: (done: number, total: number) => `Reading marks (${done}/${total})`,
+    errorUnreadableImage: "This image could not be read.",
+    errorNoHeaders: "Note1..Note6 columns not found. Photograph the whole sheet, flat and sharp.",
+    errorNoRows:
+      "Student names not found. Check that this is this class's sheet and that it is legible.",
+    errorGeneric: "Sheet recognition failed.",
+    nothingDetected: "No handwritten mark detected on this sheet.",
+    dialogTitle: (subject: string) => `Detected marks - ${subject}`,
+    detectedIntro: (seqs: string) => `Marks were detected for: ${seqs}.`,
+    emptySeqs: (seqs: string) => `No marks for: ${seqs}.`,
+    chooseSeqs: "Tick the sequences to import:",
+    sequenceLabel: (n: number) => `Sequence ${n}`,
+    sequenceSummary: (valid: number, issues: number) =>
+      `${valid} valid mark(s)${issues > 0 ? `, ${issues} to check` : ""}`,
+    lockedSeq: "locked",
+    issuesTitle: "Unreadable or invalid marks (fix them, otherwise they are skipped):",
+    issueUnreadable: "unreadable",
+    issueInvalid: "invalid (outside [0, 20])",
+    cancelBtn: "Cancel",
+    validateBtn: "Validate",
+    confirm: (subject: string, seqs: string, classe: string) =>
+      `The import will REPLACE the existing marks of the current year for subject '${subject}' in class '${classe}' for: ${seqs}, with those of the sheet. Students without a valid mark on the sheet are left unchanged. This cannot be undone. Continue?`,
+    confirmBtn: "Import",
+    success: (count: number) => `${count} mark(s) imported successfully.`,
+    failure: "Failed to import the marks.",
+  },
+};

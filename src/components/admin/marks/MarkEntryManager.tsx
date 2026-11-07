@@ -1,6 +1,7 @@
 import { isAdminRole } from "../../../utils/roles";
 import { useEffect, useRef, useState } from "react";
 import {
+  Camera,
   BarChart3,
   Download,
   Eraser,
@@ -14,11 +15,12 @@ import {
   Unlock,
   Upload,
 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useConfirm } from "../../../confirm/useConfirm";
 import { useLanguage } from "../../../i18n/useLanguage";
-import { markEntryManagerTranslations } from "../../../i18n/translations";
+import { markEntryManagerTranslations, markScanTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import { StudentReader } from "../../../dbmanger/StudentReader";
@@ -53,11 +55,22 @@ import {
 } from "../../../utils/exportAllMarksReport";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import FillRateChartDialog from "./FillRateChartDialog";
+import MarkSheetScanDialog, { type ScanImportRow } from "./MarkSheetScanDialog";
+import {
+  APC_OCR_COLUMNS,
+  MarkSheetOcrError,
+  NON_APC_OCR_COLUMNS,
+  recognizeMarkSheet,
+  type OcrCellsBySequence,
+} from "../../../utils/markSheetOcr";
 import VoiceMarkToolbox from "./VoiceMarkToolbox";
 import { computeDbSequence } from "../../../utils/markSequence";
 import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
 
 const TERMS = [1, 2, 3];
+
+const isTouchDevice =
+  Capacitor.isNativePlatform() || (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
 const SEQUENCES = [1, 2];
 
 // Column headers for a non-APC classe's block in the "all classes" PDF report - the term's two
@@ -88,6 +101,7 @@ const MarkEntryManager = () => {
   const confirm = useConfirm();
   const [language] = useLanguage();
   const t = markEntryManagerTranslations[language];
+  const scanT = markScanTranslations[language];
   const schoolHeader = useSchoolHeader();
   const [isChartDialogOpen, setIsChartDialogOpen] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
@@ -141,6 +155,12 @@ const MarkEntryManager = () => {
   // input's own ref callback as filteredRoster (search) changes which rows are actually mounted.
   const markInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const scanFileInputRef = useRef<HTMLInputElement>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState<LoadingOverlayProgress | null>(null);
+  const [scanResult, setScanResult] = useState<OcrCellsBySequence | null>(null);
+  const [scanKey, setScanKey] = useState(0);
+  const [isScanDialogOpen, setIsScanDialogOpen] = useState(false);
 
   const isLevelApc = (level: number): boolean => apcLevels.get(level) === true;
   const selectedClasse = classes.find((c) => c.classe_id === selectedClasseId) ?? null;
@@ -667,6 +687,104 @@ const MarkEntryManager = () => {
     }
   };
 
+  // "Scan a handwritten sheet" (non-APC only): step 1 runs the OCR on the photo and opens
+  // MarkSheetScanDialog; step 2 (handleScanValidate) imports the ticked sequences. Note1..Note6 on the
+  // paper sheet are dbsequence 1..6, so a column index is used as the dbsequence directly.
+  const handleScanFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || selectedSubjectId === null) {
+      return;
+    }
+    if (isApc && competences.length === 0) {
+      showToast(scanT.noCompetenceOnSheet, { type: "warning" });
+      return;
+    }
+    setIsScanning(true);
+    try {
+      const result = await recognizeMarkSheet(
+        file,
+        roster.map((s) => ({ stud_id: s.stud_id, label: `${s.name} ${s.surname ?? ""}`.trim() })),
+        isApc ? APC_OCR_COLUMNS : NON_APC_OCR_COLUMNS,
+        (progress) =>
+          setScanProgress(
+            progress.phase === "cells"
+              ? { current: progress.done, total: progress.total, label: scanT.progressCells(progress.done, progress.total) }
+              : { current: 0, total: 0, label: progress.phase === "loading" ? scanT.progressLoading : scanT.progressLayout },
+          ),
+      );
+      if (result.size === 0) {
+        showToast(scanT.nothingDetected, { type: "warning" });
+        return;
+      }
+      setScanResult(result);
+      setScanKey((k) => k + 1);
+      setIsScanDialogOpen(true);
+    } catch (error) {
+      console.error(`MarkEntryManager.handleScanFileChange(): Error: ${error}`);
+      const message =
+        error instanceof MarkSheetOcrError
+          ? { unreadableImage: scanT.errorUnreadableImage, noHeaders: scanT.errorNoHeaders, noRows: scanT.errorNoRows }[error.code]
+          : scanT.errorGeneric;
+      showToast(message, { type: "danger" });
+    } finally {
+      setIsScanning(false);
+      setScanProgress(null);
+    }
+  };
+
+  const handleScanValidate = async (rowsBySeq: Map<number, ScanImportRow[]>) => {
+    setIsScanDialogOpen(false);
+    if (selectedSubjectId === null || rowsBySeq.size === 0) {
+      return;
+    }
+    const seqLabels = [...rowsBySeq.keys()]
+      .map((n) => (isApc ? scanT.competenceLabel(n, competences[n - 1]?.competence_text ?? "") : scanT.sequenceLabel(n)))
+      .join(", ");
+    const confirmed = await confirm(
+      isApc
+        ? scanT.confirmApc(selectedSubject?.subject_title ?? "", seqLabels, selectedClasse?.classe_name ?? "", selectedTerm)
+        : scanT.confirm(selectedSubject?.subject_title ?? "", seqLabels, selectedClasse?.classe_name ?? ""),
+      { danger: true, confirmLabel: scanT.confirmBtn },
+    );
+    if (!confirmed) {
+      return;
+    }
+    setIsSaving(true);
+    let imported = 0;
+    let failed = false;
+    for (const [column, rows] of rowsBySeq) {
+      const markRows = rows.map((r) => ({ stud_id: r.stud_id, mark: r.mark, isEmpty: 0 }));
+      // Column n of an APC sheet is the n-th competence of the subject this term (same order as the dropdown).
+      const competence = isApc ? competences[column - 1] : null;
+      if (isApc && !competence) {
+        continue;
+      }
+      const result = competence
+        ? await MarkReader.saveCompMarks(
+            accessToken,
+            connection,
+            schoolYear,
+            selectedSubjectId,
+            selectedTerm,
+            competence.subject_competence_id,
+            markRows,
+          )
+        : await MarkReader.saveSeqMarks(accessToken, connection, schoolYear, selectedSubjectId, column, markRows);
+      if (result.status) {
+        imported += rows.length;
+      } else {
+        failed = true;
+      }
+    }
+    setIsSaving(false);
+    showToast(failed ? scanT.failure : scanT.success(imported), { type: failed ? "danger" : "info" });
+    if (imported > 0) {
+      await loadMarks();
+      loadFillRates();
+    }
+  };
+
   // "All marks" toolbox - one workbook, one sheet per subject (non-APC, current term+sequence) or
   // per (subject, competence) pair (APC, current term - APC marks have no sequence axis, but do
   // still need a competence to be a valid key, so "current term" alone isn't enough to address a
@@ -955,6 +1073,7 @@ const MarkEntryManager = () => {
 
   return (
     <div className="page-shell-wide pb-32">
+      {isScanning && <LoadingOverlay progress={scanProgress} />}
       {(isSaving || isExportingAll || isExportingReport) && (
         <LoadingOverlay progress={isExportingAll || isExportingReport ? exportProgress : null} />
       )}
@@ -1168,6 +1287,35 @@ const MarkEntryManager = () => {
                   <Upload className="w-4 h-4" />
                 </button>
               </div>
+              {(
+                <>
+                  <input
+                    ref={scanFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    // Phone/tablet (native app or touch browser): open the camera straight away to scan the sheet;
+                    // on a desktop the attribute is omitted so the user picks an image file.
+                    capture={isTouchDevice ? "environment" : undefined}
+                    className="hidden"
+                    onChange={handleScanFileChange}
+                  />
+                  <div className="tooltip" data-tip={scanT.scanTooltip}>
+                    <button
+                      type="button"
+                      className="btn btn-neutral btn-sm gap-2"
+                      disabled={
+                        selectedSubjectId === null ||
+                        roster.length === 0 ||
+                        isScanning ||
+                        (isApc && competences.length === 0)
+                      }
+                      onClick={() => scanFileInputRef.current?.click()}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
+              )}
               <button
                 type="button"
                 className="btn btn-neutral btn-sm gap-2"
@@ -1399,6 +1547,26 @@ const MarkEntryManager = () => {
             </>
           )}
         </>
+      )}
+
+      {scanResult && (
+        <MarkSheetScanDialog
+          key={scanKey}
+          isOpen={isScanDialogOpen}
+          onClose={() => setIsScanDialogOpen(false)}
+          subjectTitle={selectedSubject?.subject_title ?? ""}
+          result={scanResult}
+          roster={roster}
+          columns={Array.from({ length: isApc ? Math.min(APC_OCR_COLUMNS, competences.length) : NON_APC_OCR_COLUMNS }, (_, i) => i + 1)}
+          isApc={isApc}
+          competenceTexts={competences.map((c) => c.competence_text)}
+          lockedSeqs={
+            isApc
+              ? new Set(locks.get(selectedTerm) === true ? [1, 2, 3] : [])
+              : new Set([1, 2, 3, 4, 5, 6].filter((seq) => locks.get(seq) === true))
+          }
+          onValidate={handleScanValidate}
+        />
       )}
 
       <FillRateChartDialog
