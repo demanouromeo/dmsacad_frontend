@@ -514,6 +514,11 @@ const StaffManager = () => {
   };
 
   const handleExportPdf = async () => {
+    // Asked on every export: plain-text passwords only ever end up in a PDF when the admin says so right now.
+    const includePasswords = await confirm(t.pdfPasswordQuestion, {
+      confirmLabel: t.pdfPasswordYes,
+      cancelLabel: t.pdfPasswordNo,
+    });
     const header =
       schoolHeader.config || schoolHeader.logoImage
         ? schoolHeader
@@ -521,7 +526,9 @@ const StaffManager = () => {
     exportRowsToPdf(
       "Liste du personnel",
       buildTimestampedFilename("Liste du personnel", [], "pdf"),
-      pdfExportColumns,
+      includePasswords
+        ? [...pdfExportColumns, { header: t.tableHeaderPassword, accessor: (s: Staff) => s.pwd ?? "" }]
+        : pdfExportColumns,
       staffList,
       header,
       true,

@@ -500,6 +500,10 @@ export const staffManagerTranslations = {
     tableHeaderFunction: "Fonction",
     tableHeaderLogin: "Login",
     tableHeaderPassword: "Mot de passe",
+    pdfPasswordQuestion:
+      "Souhaitez-vous inclure la colonne « Mot de passe » (mots de passe en clair) dans le PDF ?",
+    pdfPasswordYes: "Oui",
+    pdfPasswordNo: "Non",
     tableHeaderNewPassword: "Nouveau mot de passe",
     emptyList: "Aucun membre du personnel.",
     searchPlaceholder: "Rechercher un membre du personnel…",
@@ -618,6 +622,10 @@ export const staffManagerTranslations = {
     tableHeaderFunction: "Role",
     tableHeaderLogin: "Login",
     tableHeaderPassword: "Password",
+    pdfPasswordQuestion:
+      "Do you want to include the Password column (plain-text passwords) in the PDF?",
+    pdfPasswordYes: "Yes",
+    pdfPasswordNo: "No",
     tableHeaderNewPassword: "New password",
     emptyList: "No staff members.",
     searchPlaceholder: "Search a staff member…",
