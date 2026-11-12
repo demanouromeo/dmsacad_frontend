@@ -371,7 +371,12 @@ const BasculementManager = () => {
 
   const handleExclureChange = async (row: LeftRow, value: 0 | 1) => {
     const fullName = `${row.name} ${row.surname}`.trim();
-    const message = value === 1 ? t.exclureConfirmOui(fullName) : t.exclureConfirmNon(fullName);
+    const classeName = selectedLeftClasse?.classe_name ?? "";
+    // Only when next year really exists in the DB (computeNextSchoolYear alone just derives the label).
+    const enrollNextYear = Boolean(nextYear) && nextYearExists === true;
+    const confirmYear = enrollNextYear ? nextYear : null;
+    const message =
+      value === 1 ? t.exclureConfirmOui(fullName, classeName, confirmYear) : t.exclureConfirmNon(fullName, classeName, confirmYear);
     const confirmed = await confirm(message, { danger: value === 1 });
     if (!confirmed || !selectedLeftClasseId) {
       return;
@@ -388,12 +393,39 @@ const BasculementManager = () => {
         codeExclusion: row.codeExclusion,
       },
     ]);
+    // Keep next year in step with the new status (only when next year exists in the DB):
+    //  - not dismissed => repeats the same classe next year (the call Init uses for every non-dismissed
+    //    student; a no-op server-side if that next-year row already exists),
+    //  - dismissed => the student is removed from that same classe next year (the call Init uses for dismissed ones).
+    const nextYearResult = !(result.status && enrollNextYear)
+      ? null
+      : value === 0
+        ? await ClasseReader.processRedoublants(accessToken, connection, schoolYear, nextYear as string, selectedLeftClasseId, [
+            { stud_id: row.studId, cas_social: row.casSocial },
+          ])
+        : await ClasseReader.clearExclus(accessToken, connection, nextYear as string, [
+            { stud_id: row.studId, classe_id: selectedLeftClasseId },
+          ]);
     setIsSaving(false);
-    showToast(result.status ? t.exclureSuccess : t.exclureFailure, {
-      type: result.status ? "info" : "danger",
-    });
-    if (result.status) {
-      setLeftReloadToken((n) => n + 1);
+    if (!result.status) {
+      showToast(t.exclureFailure, { type: "danger" });
+      return;
+    }
+    if (nextYearResult === null) {
+      showToast(t.exclureSuccess, { type: "info" });
+    } else if (nextYearResult.status) {
+      showToast(
+        value === 0
+          ? t.exclureRedoublantSuccess(fullName, classeName, nextYear as string)
+          : t.exclureRemovedSuccess(fullName, classeName, nextYear as string),
+        { type: "info" },
+      );
+    } else {
+      showToast(value === 0 ? t.exclureRedoublantFailure : t.exclureRemovedFailure, { type: "danger" });
+    }
+    setLeftReloadToken((n) => n + 1);
+    if (nextYearResult !== null) {
+      setRightReloadToken((n) => n + 1);
     }
   };
 

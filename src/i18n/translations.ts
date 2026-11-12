@@ -2996,9 +2996,23 @@ export const basculementManagerTranslations = {
     helpTitle: "Aide - Basculement",
     helpText:
       "1) Initialisez le basculement pour préinscrire tous les élèves comme redoublants. 2) Sélectionnez des élèves à gauche puis cliquez sur 'Basculer' pour les promouvoir dans la classe choisie à droite. 3) Sélectionnez des élèves à droite puis cliquez sur la flèche rouge pour annuler leur basculement. 4) Changez la classe d'un élève déjà basculé via le menu déroulant 'Classe' à droite.",
-    exclureConfirmOui: (name: string) => `Confirmer l'exclusion de ${name} ?`,
-    exclureConfirmNon: (name: string) => `Confirmer que ${name} n'est pas exclu(e) ?`,
+    exclureConfirmOui: (name: string, classeName: string, nextYear: string | null) =>
+      nextYear
+        ? `Confirmer l'exclusion de ${name} ? Il/elle sera retiré(e) de ${classeName} en ${nextYear}.`
+        : `Confirmer l'exclusion de ${name} ?`,
+    exclureRemovedSuccess: (name: string, classeName: string, nextYear: string) =>
+      `${name} est exclu(e) et a été retiré(e) de ${classeName} en ${nextYear}.`,
+    exclureRemovedFailure:
+      "Statut mis à jour, mais le retrait de l'année prochaine a échoué.",
+    exclureConfirmNon: (name: string, classeName: string, nextYear: string | null) =>
+      nextYear
+        ? `Confirmer que ${name} n'est pas exclu(e) ? Il/elle sera inscrit(e) en ${classeName} en ${nextYear} comme redoublant(e).`
+        : `Confirmer que ${name} n'est pas exclu(e) ?`,
     exclureSuccess: "Statut d'exclusion mis à jour avec succès.",
+    exclureRedoublantSuccess: (name: string, classeName: string, nextYear: string) =>
+      `${name} est maintenant inscrit(e) en ${classeName} en ${nextYear} comme redoublant(e).`,
+    exclureRedoublantFailure:
+      "Statut mis à jour, mais l'inscription comme redoublant(e) l'année prochaine a échoué.",
     exclureFailure: "Échec de la mise à jour du statut d'exclusion.",
     classeChangeConfirmMessage: (name: string, classeName: string) =>
       `Changer la classe de ${name} vers '${classeName}' ?`,
@@ -3087,9 +3101,22 @@ export const basculementManagerTranslations = {
     helpTitle: "Help - Basculement",
     helpText:
       "1) Initialize basculement to pre-register every student as a repeater. 2) Select students on the left then click 'Transfer' to promote them into the chosen classe on the right. 3) Select students on the right then click the red arrow to undo their basculement. 4) Change an already-transferred student's classe via the right panel's 'Classe' dropdown.",
-    exclureConfirmOui: (name: string) => `Confirm dismissing ${name}?`,
-    exclureConfirmNon: (name: string) => `Confirm that ${name} is not dismissed?`,
+    exclureConfirmOui: (name: string, classeName: string, nextYear: string | null) =>
+      nextYear
+        ? `Confirm dismissing ${name}? They will be removed from ${classeName} in ${nextYear}.`
+        : `Confirm dismissing ${name}?`,
+    exclureRemovedSuccess: (name: string, classeName: string, nextYear: string) =>
+      `${name} is dismissed and was removed from ${classeName} in ${nextYear}.`,
+    exclureRemovedFailure: "Status updated, but removing from next year failed.",
+    exclureConfirmNon: (name: string, classeName: string, nextYear: string | null) =>
+      nextYear
+        ? `Confirm that ${name} is not dismissed? They will be enrolled in ${classeName} in ${nextYear} as a repeater.`
+        : `Confirm that ${name} is not dismissed?`,
     exclureSuccess: "Dismissal status updated successfully.",
+    exclureRedoublantSuccess: (name: string, classeName: string, nextYear: string) =>
+      `${name} is now enrolled in ${classeName} in ${nextYear} as a repeater.`,
+    exclureRedoublantFailure:
+      "Status updated, but enrolling as a repeater next year failed.",
     exclureFailure: "Failed to update the dismissal status.",
     classeChangeConfirmMessage: (name: string, classeName: string) =>
       `Change ${name}'s classe to '${classeName}'?`,
