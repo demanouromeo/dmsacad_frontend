@@ -151,14 +151,23 @@ export const drawPdfLetterhead = (
       console.error("drawPdfLetterhead(): failed to embed logo image", error);
     }
   }
+  // The matricule sits directly under the logo (0.5mm gap between the logo's bottom edge and the
+  // top of the digits, ~1.8mm cap height at 7pt) and must never touch the separator rule below.
+  let matriculeBaselineY = 0;
   if (config?.school_matricule) {
     doc.setFontSize(7);
-    doc.text(config.school_matricule, centerX, logoY + logoSize + 4, {
+    matriculeBaselineY = logoY + logoSize + 0.5 + 1.8;
+    doc.text(config.school_matricule, centerX, matriculeBaselineY, {
       align: "center",
     });
   }
 
   y += 2;
+  // Report cards (no phone row) put the rule very close to the logo's bottom: push it down just
+  // enough to clear the matricule by 1mm.
+  if (matriculeBaselineY > 0) {
+    y = Math.max(y, matriculeBaselineY + 1.5);
+  }
   if (includeLine) {
     doc.setDrawColor(0);
     doc.setLineWidth(0.5);

@@ -262,7 +262,10 @@ const LoginForm = () => {
         className="pointer-events-none absolute top-1/3 right-1/4 w-72 h-72 rounded-full bg-secondary/10 blur-3xl"
       />
 
-      <div className="relative z-10 flex justify-end items-center gap-2 mb-2">
+      {/* Keeps the flow space the toolbar used to take, now that the toolbar itself is fixed. */}
+      <div aria-hidden="true" className="h-6 mb-2 shrink-0" />
+      {/* Fixed (does not scroll with the page) and pushed below the Android status bar by --safe-top. */}
+      <div className="fixed z-30 right-[calc(0.75rem+var(--safe-right))] top-[calc(0.5rem+var(--safe-top))] flex justify-end items-center gap-2 rounded-full bg-base-100/70 backdrop-blur px-2 py-1">
         <button
           type="button"
           aria-label={theme === "dark" ? t.themeHintToLight : t.themeHintToDark}
