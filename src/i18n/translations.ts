@@ -834,6 +834,8 @@ export const studentManagerTranslations = {
     generateMatriculeBtn: "Générer le matricule",
     addBtn: "Ajouter",
     nameRequired: "Le nom est requis (lettres, espaces et tirets uniquement, 2 caractères min.).",
+    matriculeExistsInYear: (matricule: string, classeName: string) =>
+      `Ajout rejeté : un élève ayant le matricule ${matricule} existe déjà dans la même année scolaire (classe : ${classeName}).`,
     addSuccess: "Élève enregistré avec succès.",
     addFailure: "Échec de l'ajout de l'élève.",
     updateSuccess: "Élève mis à jour avec succès.",
@@ -977,6 +979,8 @@ export const studentManagerTranslations = {
     generateMatriculeBtn: "Generate matricule",
     addBtn: "Add",
     nameRequired: "Name is required (letters, spaces and hyphens only, 2 characters min.).",
+    matriculeExistsInYear: (matricule: string, classeName: string) =>
+      `Add rejected: a student with matricule ${matricule} already exists in the same school year (class: ${classeName}).`,
     addSuccess: "Student saved successfully.",
     addFailure: "Failed to add the student.",
     updateSuccess: "Student successfully updated.",
