@@ -293,9 +293,13 @@ const StudentManager = () => {
     );
     setIsSaving(false);
     // 409 from saveAStudent: the matricule already belongs to a student enrolled this school year.
-    const duplicate = result as typeof result & { code?: string; classe_name?: string };
+    const duplicate = result as typeof result & { code?: string; classe_name?: string; student_name?: string };
     if (!result.status && duplicate.code === "matricule_exists") {
-      showToast(t.matriculeExistsInYear(newMatricule.trim(), duplicate.classe_name ?? ""), {
+      showToast(t.matriculeExistsInYear(
+          newMatricule.trim(),
+          duplicate.classe_name ?? "",
+          duplicate.student_name ?? "",
+        ), {
         type: "danger",
       });
       return;
