@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BarChart3, Download, RefreshCw } from "lucide-react";
+import { BarChart3, Download, Printer, RefreshCw } from "lucide-react";
 import { useAuth } from "../../../auth/useAuth";
 import { useLanguage } from "../../../i18n/useLanguage";
 import { fillRateClassManagerTranslations } from "../../../i18n/translations";
@@ -9,7 +9,15 @@ import { MarkReader } from "../../../dbmanger/MarkReader";
 import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import { mergeToUnifiedCells, type FillRateCell } from "../../../utils/fillRateAggregation";
-import { buildTimestampedFilename, exportRowsToPdf } from "../../../utils/exportData";
+import {
+  buildTimestampedFilename,
+  exportLabeledTablesToPdf,
+  exportRowsToPdf,
+  type PdfRowGroup,
+} from "../../../utils/exportData";
+import { DEFAULT_REPORT_CONCURRENCY, mapWithConcurrency } from "../../../utils/concurrency";
+import { useToast } from "../../../toast/useToast";
+import LoadingOverlay from "../../sharedcomp/LoadingOverlay";
 import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import TableSkeleton from "../../sharedcomp/skeletons/TableSkeleton";
 import CloseButton from "../../sharedcomp/CloseButton";
@@ -31,6 +39,8 @@ const FillRateClassManager = () => {
   const [language] = useLanguage();
   const t = fillRateClassManagerTranslations[language];
   const schoolHeader = useSchoolHeader();
+  const showToast = useToast();
+  const [isPrintingAll, setIsPrintingAll] = useState(false);
 
   const [classes, setClasses] = useState<Classe[]>([]);
   const [apcLevels, setApcLevels] = useState<Map<number, boolean>>(new Map());
@@ -132,8 +142,67 @@ const FillRateClassManager = () => {
     );
   };
 
+  // "Imprimer tout" - same per-subject rates as the single-classe PDF, for every classe of the
+  // section at once, for the selected term and sequence (APC classes ignore the sequence, like the
+  // on-screen list). Rates come from the already-fetched whole-section `cells`; only each classe's
+  // subject list needs fetching, with bounded concurrency (see CLAUDE.md on the remote DB limit).
+  const handlePrintAll = async () => {
+    setIsPrintingAll(true);
+    const subjectsPerClasse = await mapWithConcurrency(classes, DEFAULT_REPORT_CONCURRENCY, (classe) =>
+      SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classe.classe_id),
+    );
+    interface PrintRow {
+      subject: string;
+      rate: string;
+    }
+    // One table per classe, each preceded by a "Classe: <name>" label.
+    const groups: PdfRowGroup<PrintRow>[] = [];
+    classes.forEach((classe, i) => {
+      const apc = isLevelApc(classe.level);
+      const rates = new Map<number, number | null>(
+        cells
+          .filter(
+            (c) =>
+              c.classe_id === classe.classe_id &&
+              c.term === selectedTerm &&
+              (apc || c.sequence === selectedSequence),
+          )
+          .map((c) => [c.subject_id, c.rate]),
+      );
+      const rows = subjectsPerClasse[i].map((subject) => {
+        const rate = rates.get(subject.subject_id);
+        return {
+          subject: subject.subject_title,
+          rate: rate === null || rate === undefined ? "…" : rate.toFixed(1),
+        };
+      });
+      if (rows.length > 0) {
+        groups.push({ title: `${t.pdfColClasse}: ${classe.classe_name}`, rows });
+      }
+    });
+    if (groups.length === 0) {
+      setIsPrintingAll(false);
+      showToast(t.printAllEmpty, { type: "warning" });
+      return;
+    }
+    const title = t.printAllTitle(selectedTerm, selectedSequence);
+    await exportLabeledTablesToPdf(
+      title,
+      buildTimestampedFilename(title, [], "pdf"),
+      [
+        { header: t.pdfColIndex, accessor: (_row: PrintRow, index: number) => index + 1 },
+        { header: t.pdfColSubject, accessor: (row: PrintRow) => row.subject },
+        { header: t.pdfColRate, accessor: (row: PrintRow) => row.rate },
+      ],
+      groups,
+      schoolHeader,
+    );
+    setIsPrintingAll(false);
+  };
+
   return (
     <div className="page-shell">
+      {isPrintingAll && <LoadingOverlay />}
       <div className="page-header">
         <h1 className="page-title">{t.title}</h1>
         <CloseButton />
@@ -196,6 +265,13 @@ const FillRateClassManager = () => {
               <RefreshCw className="w-4 h-4" />
               {t.refreshBtn}
             </button>
+
+            <div className="tooltip" data-tip={t.printAllTooltip}>
+              <button type="button" className="btn btn-neutral btn-sm gap-2" onClick={handlePrintAll}>
+                <Printer className="w-4 h-4" />
+                {t.printAllBtn}
+              </button>
+            </div>
           </div>
 
           {!isLoadingSubjects && subjects.length === 0 && (

@@ -233,6 +233,44 @@ export interface PdfRowGroup<T> {
   rows: T[];
 }
 
+// One letterhead + title, then one table per group flowing down the pages, each preceded by a bold
+// label line (e.g. "Classe: 6ème A"). A group never starts with its label stranded at the page bottom.
+export const exportLabeledTablesToPdf = async <T>(
+  title: string,
+  filename: string,
+  columns: ExportColumn<T>[],
+  groups: PdfRowGroup<T>[],
+  schoolHeader?: SchoolHeader,
+): Promise<void> => {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const y0 = schoolHeader ? drawPdfLetterhead(doc, schoolHeader) : 15;
+  doc.setFontSize(14);
+  doc.text(title, 14, y0);
+  let y = y0 + 9;
+  groups.forEach((group) => {
+    if (y > pageHeight - 40) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(group.title, 14, y);
+    autoTable(doc, { startY: y + 2, ...buildListTableOptions(columns, group.rows, true) });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  });
+  if (schoolHeader) {
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
+    drawPdfSignature(doc, schoolHeader, finalY);
+  }
+  drawPdfFooters(doc, schoolHeader);
+  await saveOrShareBlob(doc.output("blob"), filename);
+};
+
 // One page per group (e.g. one classe each): letterhead, title (+ optional right-aligned subtitle) and
 // the same list table as exportRowsToPdf; a single signature block and footer pass at the very end.
 export const exportRowGroupsToPdf = async <T>(
