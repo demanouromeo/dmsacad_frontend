@@ -207,6 +207,8 @@ export class StudentReader {
       cas_social: boolean;
       matricule: string;
     },
+    // Answer to the "matricule already known from another school year" dialog (see StudentManager).
+    existingAction?: "use" | "update",
   ): Promise<ApiResult> => {
     return StudentReader.postJson(
       "api/students/saveAStudent",
@@ -224,6 +226,7 @@ export class StudentReader {
         handicape: fields.handicape,
         cas_social: fields.cas_social,
         matricule: fields.matricule || null,
+        ...(existingAction ? { existing_action: existingAction } : {}),
       },
       "saveAStudent",
     );

@@ -764,6 +764,8 @@ export const studentManagerTranslations = {
     searchStudentYes: "Oui",
     searchStudentNo: "Non",
     searchStudentMoreTooltip: "Voir les détails",
+    searchStudentPrintJourney: "Imprimer le parcours de l'élève",
+    searchStudentPrintJourneyFailure: "Échec de la génération du parcours de l'élève.",
     searchStudentTruncated: "Résultats limités aux 200 premiers : précisez votre recherche.",
     cleanBirthDatesTooltip: "Nettoyer les date de naissance\nExemple: 2013-08-23T00:00:00.000Z deviendra 2013-08-23",
     cleanBirthDatesConfirm: "Supprimer la partie horaire (ex. T00:00:00.000Z) des dates de naissance de tous les élèves de l'établissement dans la base de données ? Cette action modifie les données enregistrées.",
@@ -834,6 +836,17 @@ export const studentManagerTranslations = {
     generateMatriculeBtn: "Générer le matricule",
     addBtn: "Ajouter",
     nameRequired: "Le nom est requis (lettres, espaces et tirets uniquement, 2 caractères min.).",
+    existingStudentTitle: "Élève déjà existant",
+    existingStudentIntro: (name: string, matricule: string) =>
+      `Un élève nommé « ${name} » existe déjà dans le système avec le matricule ${matricule} (inscrit lors d'une autre année scolaire).`,
+    existingStudentBday: "Date de naissance",
+    existingStudentBplace: "Lieu de naissance",
+    existingStudentSexe: "Sexe",
+    existingStudentQuestion: (classeName: string) =>
+      `Que faire ? « Enregistrer » inscrit l'élève existant en ${classeName} cette année avec toutes ses informations actuelles. « Mettre à jour et Enregistrer » remplace d'abord ses informations par celles que vous avez saisies.`,
+    existingStudentUse: "Enregistrer",
+    existingStudentUpdate: "Mettre à jour et Enregistrer",
+    existingStudentCancel: "Annuler",
     matriculeExistsInYear: (matricule: string, classeName: string, studentName: string) =>
       `Ajout rejeté : un élève ayant le matricule ${matricule} existe déjà dans la même année scolaire en ${classeName} sous le nom de "${studentName}".`,
     addSuccess: "Élève enregistré avec succès.",
@@ -909,6 +922,8 @@ export const studentManagerTranslations = {
     searchStudentYes: "Yes",
     searchStudentNo: "No",
     searchStudentMoreTooltip: "View details",
+    searchStudentPrintJourney: "Print the student's school history",
+    searchStudentPrintJourneyFailure: "Failed to generate the student's school history.",
     searchStudentTruncated: "Results limited to the first 200: refine your search.",
     cleanBirthDatesTooltip: "Clean birth dates\nExample: 2013-08-23T00:00:00.000Z becomes 2013-08-23",
     cleanBirthDatesConfirm: "Remove the time part (e.g. T00:00:00.000Z) from the birth dates of every student of the school in the database? This changes stored data.",
@@ -979,6 +994,17 @@ export const studentManagerTranslations = {
     generateMatriculeBtn: "Generate matricule",
     addBtn: "Add",
     nameRequired: "Name is required (letters, spaces and hyphens only, 2 characters min.).",
+    existingStudentTitle: "Student already exists",
+    existingStudentIntro: (name: string, matricule: string) =>
+      `A student named "${name}" already exists in the system with matricule ${matricule} (enrolled in another school year).`,
+    existingStudentBday: "Date of birth",
+    existingStudentBplace: "Place of birth",
+    existingStudentSexe: "Sex",
+    existingStudentQuestion: (classeName: string) =>
+      `What now? "Save" enrols the existing student in ${classeName} this year with all of his current information. "Update and Save" first replaces his information with what you typed.`,
+    existingStudentUse: "Save",
+    existingStudentUpdate: "Update and Save",
+    existingStudentCancel: "Cancel",
     matriculeExistsInYear: (matricule: string, classeName: string, studentName: string) =>
       `Add rejected: a student with matricule ${matricule} already exists in the same school year in ${classeName} under the name "${studentName}".`,
     addSuccess: "Student saved successfully.",

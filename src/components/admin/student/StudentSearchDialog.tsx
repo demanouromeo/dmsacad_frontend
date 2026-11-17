@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Search } from "lucide-react";
+import { Eye, EyeOff, Printer, Search } from "lucide-react";
+import { useSchoolHeader } from "../../../hooks/useSchoolHeader";
+import { exportStudentJourneyToPdf, loadStudentJourney } from "../../../utils/studentJourney";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
 import { useLanguage } from "../../../i18n/useLanguage";
@@ -39,6 +41,8 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StudentSearchResult[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isPrintingJourney, setIsPrintingJourney] = useState(false);
+  const schoolHeader = useSchoolHeader();
   // Row keys whose details line (sexe / lieu / date de naissance / redouble) is currently shown.
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
@@ -91,6 +95,51 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
     }
     setResults(found);
     setExpandedKeys(new Set());
+  };
+
+  // The student whose journey can be printed: the one holding the exact matricule typed, or - for
+  // any other query - the only student the results are about. Null when it's ambiguous or empty.
+  const journeyTarget = (() => {
+    if (!results || results.length === 0) {
+      return null;
+    }
+    const typed = query.trim().toLowerCase();
+    const byMatricule = results.find((r) => r.matricule && r.matricule.toLowerCase() === typed);
+    const studId = byMatricule
+      ? byMatricule.stud_id
+      : new Set(results.map((r) => r.stud_id)).size === 1
+        ? results[0].stud_id
+        : null;
+    return studId === null ? null : results.filter((r) => r.stud_id === studId);
+  })();
+
+  const handlePrintJourney = async () => {
+    if (!journeyTarget) {
+      return;
+    }
+    setIsPrintingJourney(true);
+    try {
+      const rows = await loadStudentJourney(
+        { accessToken, connection, schoolHeader, language },
+        journeyTarget,
+      );
+      const s = journeyTarget[0];
+      await exportStudentJourneyToPdf(
+        {
+          name: s.name,
+          surname: s.surname,
+          sexe: s.sexe,
+          bplace: s.bplace,
+          bday: s.bday ? formatBday(s.bday) : "",
+        },
+        rows,
+        schoolHeader,
+      );
+    } catch (error) {
+      console.error(`StudentSearchDialog.handlePrintJourney(): Error: ${error}`);
+      showToast(t.searchStudentPrintJourneyFailure, { type: "danger" });
+    }
+    setIsPrintingJourney(false);
   };
 
   return (
@@ -207,6 +256,23 @@ const StudentSearchDialog = ({ open, onClose }: StudentSearchDialogProps) => {
         )}
 
         <div className="modal-action">
+          {journeyTarget && (
+            <div className="tooltip" data-tip={t.searchStudentPrintJourney}>
+              <button
+                type="button"
+                className="btn btn-square"
+                aria-label={t.searchStudentPrintJourney}
+                disabled={isPrintingJourney}
+                onClick={handlePrintJourney}
+              >
+                {isPrintingJourney ? (
+                  <span className="loading loading-spinner loading-sm" />
+                ) : (
+                  <Printer className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          )}
           <button type="button" className="btn" onClick={handleClose}>
             {t.searchStudentCloseBtn}
           </button>

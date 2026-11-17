@@ -23,6 +23,10 @@ import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
 import ChangeClasseDialog from "./ChangeClasseDialog";
 import StudentSearchDialog from "./StudentSearchDialog";
+import ExistingStudentDialog, {
+  type ExistingStudentChoice,
+  type ExistingStudentInfo,
+} from "./ExistingStudentDialog";
 import { parsePhotoFileNumber, preparePhotoForUpload } from "../../../utils/studentPhotoImport";
 import { loadSchoolHeader, useSchoolHeader } from "../../../hooks/useSchoolHeader";
 import {
@@ -95,6 +99,9 @@ const StudentManager = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // Set when the typed matricule belongs to a student known from another school year: drives the
+  // three-button dialog (enrol as is / update then enrol / cancel).
+  const [existingStudentPrompt, setExistingStudentPrompt] = useState<ExistingStudentInfo | null>(null);
 
   const [newFields, setNewFields] = useState<EditableFields>({
     name: "",
@@ -273,6 +280,21 @@ const StudentManager = () => {
       showToast(t.nameRequired, { type: "warning" });
       return;
     }
+    await submitAdd(trimmedName);
+  };
+
+  const handleExistingStudentChoice = async (choice: ExistingStudentChoice) => {
+    setExistingStudentPrompt(null);
+    if (choice === "cancel") {
+      return;
+    }
+    await submitAdd(newFields.name.trim(), choice);
+  };
+
+  const submitAdd = async (trimmedName: string, existingAction?: "use" | "update") => {
+    if (selectedClasseId === null) {
+      return;
+    }
     setIsSaving(true);
     const result = await StudentReader.saveAStudent(
       accessToken,
@@ -290,8 +312,15 @@ const StudentManager = () => {
         cas_social: false,
         matricule: newMatricule.trim(),
       },
+      existingAction,
     );
     setIsSaving(false);
+    // The matricule is known from another school year: ask what to do with that existing student.
+    const known = result as typeof result & { code?: string; existing?: ExistingStudentInfo };
+    if (!result.status && known.code === "matricule_exists_other_year" && known.existing) {
+      setExistingStudentPrompt(known.existing);
+      return;
+    }
     // 409 from saveAStudent: the matricule already belongs to a student enrolled this school year.
     const duplicate = result as typeof result & { code?: string; classe_name?: string; student_name?: string };
     if (!result.status && duplicate.code === "matricule_exists") {
@@ -1665,6 +1694,13 @@ const StudentManager = () => {
         student={photoDialogStudent}
         onClose={() => setPhotoDialogStudent(null)}
         onSaved={bumpPhotoVersion}
+      />
+      <ExistingStudentDialog
+        open={existingStudentPrompt !== null}
+        matricule={newMatricule.trim()}
+        classeName={selectedClasse?.classe_name ?? ""}
+        existing={existingStudentPrompt}
+        onChoose={handleExistingStudentChoice}
       />
       <StudentSearchDialog open={searchDialogOpen} onClose={() => setSearchDialogOpen(false)} />
       <ChangeClasseDialog

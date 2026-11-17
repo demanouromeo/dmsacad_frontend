@@ -13,4 +13,5 @@ export interface StudentSearchResult {
   year: string | null;
   section: string | null;
   classe_name: string | null;
+  classe_id: number | null;
 }
