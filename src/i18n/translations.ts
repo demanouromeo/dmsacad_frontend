@@ -834,6 +834,17 @@ export const studentManagerTranslations = {
     generateMatriculeBtn: "Générer le matricule",
     addBtn: "Ajouter",
     nameRequired: "Le nom est requis (lettres, espaces et tirets uniquement, 2 caractères min.).",
+    existingStudentTitle: "Élève déjà existant",
+    existingStudentIntro: (name: string, matricule: string) =>
+      `Un élève nommé « ${name} » existe déjà dans le système avec le matricule ${matricule} (inscrit lors d'une autre année scolaire).`,
+    existingStudentBday: "Date de naissance",
+    existingStudentBplace: "Lieu de naissance",
+    existingStudentSexe: "Sexe",
+    existingStudentQuestion: (classeName: string) =>
+      `Que faire ? « Enregistrer » inscrit l'élève existant en ${classeName} cette année avec toutes ses informations actuelles. « Mettre à jour et Enregistrer » remplace d'abord ses informations par celles que vous avez saisies.`,
+    existingStudentUse: "Enregistrer",
+    existingStudentUpdate: "Mettre à jour et Enregistrer",
+    existingStudentCancel: "Annuler",
     matriculeExistsInYear: (matricule: string, classeName: string, studentName: string) =>
       `Ajout rejeté : un élève ayant le matricule ${matricule} existe déjà dans la même année scolaire en ${classeName} sous le nom de "${studentName}".`,
     addSuccess: "Élève enregistré avec succès.",
@@ -979,6 +990,17 @@ export const studentManagerTranslations = {
     generateMatriculeBtn: "Generate matricule",
     addBtn: "Add",
     nameRequired: "Name is required (letters, spaces and hyphens only, 2 characters min.).",
+    existingStudentTitle: "Student already exists",
+    existingStudentIntro: (name: string, matricule: string) =>
+      `A student named "${name}" already exists in the system with matricule ${matricule} (enrolled in another school year).`,
+    existingStudentBday: "Date of birth",
+    existingStudentBplace: "Place of birth",
+    existingStudentSexe: "Sex",
+    existingStudentQuestion: (classeName: string) =>
+      `What now? "Save" enrols the existing student in ${classeName} this year with all of his current information. "Update and Save" first replaces his information with what you typed.`,
+    existingStudentUse: "Save",
+    existingStudentUpdate: "Update and Save",
+    existingStudentCancel: "Cancel",
     matriculeExistsInYear: (matricule: string, classeName: string, studentName: string) =>
       `Add rejected: a student with matricule ${matricule} already exists in the same school year in ${classeName} under the name "${studentName}".`,
     addSuccess: "Student saved successfully.",
