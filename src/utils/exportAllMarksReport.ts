@@ -58,20 +58,30 @@ export const exportAllMarksReportToPdf = async (
   blocks.forEach((block) => {
     doc.addPage();
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(`Classe: ${block.classeName}`, 14, 16);
-    doc.text(`Matière: ${block.subjectTitle}`, pageWidth - 14, 16, { align: "right" });
+    doc.setFontSize(9);
+    doc.text(`Classe: ${block.classeName}`, 14, 14);
+    doc.text(`Matière: ${block.subjectTitle}`, pageWidth - 14, 14, { align: "right" });
     doc.setFont("helvetica", "normal");
 
     autoTable(doc, {
-      startY: 20,
+      startY: 17,
       head: [["NO.", "NOM ET PRÉNOM", ...block.columnHeaders]],
       body: block.rows.map((row, index) => [index + 1, row.name, ...row.values]),
       // Body text defaults to the "striped" theme's dark gray otherwise - force pure black, and
       // keep the head row's white text explicit too (a bare `styles.textColor` merges in after
       // the theme's own head color and would flip it to black-on-blue - see exportData.ts's
       // exportRowsToPdf for the same fix).
-      styles: { fontSize: 9, textColor: [0, 0, 0] },
+      // ~20% smaller than the previous 9pt / default padding (2): font 7.2 and tight cell padding
+      // so a full-section report needs roughly 20% fewer pages.
+      // "grid" theme + black lines = black borders around every cell, header included.
+      theme: "grid",
+      styles: {
+        fontSize: 7.2,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.1,
+        textColor: [0, 0, 0],
+        cellPadding: { top: 0.6, bottom: 0.4, left: 1, right: 1.6 },
+      },
       headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255] },
     });
   });

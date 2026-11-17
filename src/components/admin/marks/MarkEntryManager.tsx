@@ -1266,7 +1266,7 @@ const MarkEntryManager = () => {
               <div className="tooltip" data-tip={t.exportAllClassesMarksTooltip}>
                 <button
                   type="button"
-                  className="btn btn-neutral btn-sm gap-2"
+                  className="btn btn-secondary btn-sm gap-2"
                   disabled={classes.length === 0 || isExportingReport}
                   onClick={handleExportAllClassesMarks}
                 >
