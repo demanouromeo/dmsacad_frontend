@@ -222,7 +222,7 @@ const FillRateClassManager = () => {
           ? withCivility(classe.classe_master_civility, classe.classe_master_name)
           : "";
         groups.push({
-          title: `${t.pdfColClasse}: ${classe.classe_name}${master ? ` (pp. ${master})` : ""}`,
+          title: `${t.pdfColClasse}: ${classe.classe_name}${master ? ` (Prof. P. ${master})` : ""}`,
           rows,
         });
       }
