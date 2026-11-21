@@ -6,6 +6,9 @@ import { fillRateClassManagerTranslations } from "../../../i18n/translations";
 import { ClasseReader } from "../../../dbmanger/ClasseReader";
 import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import { MarkReader } from "../../../dbmanger/MarkReader";
+import { StaffReader } from "../../../dbmanger/StaffReader";
+import type { CourseAssignment } from "../../../interfaces/CourseAssignment";
+import type { Staff } from "../../../interfaces/Staff";
 import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
 import { mergeToUnifiedCells, type FillRateCell } from "../../../utils/fillRateAggregation";
@@ -34,6 +37,26 @@ const SEQUENCES = [1, 2];
 // already-open classe), this reuses the same whole-section aggregate endpoints/merge logic as
 // FillRateGlobalManager (fillRateNonApc/fillRateApc + mergeToUnifiedCells) and simply filters down to
 // the selected classe/term/sequence - one pair of network calls covers every classe switch.
+// Teacher(s) a subject is assigned to in a classe, as "Civility Name Surname" (several teachers joined by
+// " / "); "" when nobody is assigned. Surname comes from the staff list (the attribution row only
+// carries staff.name).
+const teachersOf = (
+  attributions: CourseAssignment[],
+  staffById: Map<number, Staff>,
+  classeId: number,
+  subjectId: number,
+): string =>
+  attributions
+    .filter((a) => a.classe_id === classeId && a.subject_id === subjectId)
+    .map((a) => {
+      const staff = staffById.get(a.staff_id);
+      if (!staff) {
+        return a.name;
+      }
+      return [staff.civility?.trim(), staff.name, staff.surname?.trim()].filter(Boolean).join(" ");
+    })
+    .join(" / ");
+
 const FillRateClassManager = () => {
   const { connection, schoolYear, section, accessToken } = useAuth();
   const [language] = useLanguage();
@@ -123,12 +146,22 @@ const FillRateClassManager = () => {
 
   const handleExportPdf = async () => {
     const classeName = selectedClasse?.classe_name ?? "";
+    const [attributions, staffList] = await Promise.all([
+      StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
+      StaffReader.fetchStaff(accessToken, connection, schoolYear),
+    ]);
+    const staffById = new Map(staffList.map((st) => [st.staff_id, st]));
     await exportRowsToPdf(
       t.pdfTitle(classeName),
       buildTimestampedFilename(t.pdfTitle(classeName), [], "pdf"),
       [
         { header: t.pdfColIndex, accessor: (_row: SubjectClasseRow, index: number) => index + 1 },
         { header: t.pdfColSubject, accessor: (row: SubjectClasseRow) => row.subject_title },
+        {
+          header: t.pdfColTeacher,
+          accessor: (row: SubjectClasseRow) =>
+            teachersOf(attributions, staffById, selectedClasseId ?? 0, row.subject_id),
+        },
         {
           header: t.pdfColRate,
           accessor: (row: SubjectClasseRow) => {
@@ -148,11 +181,17 @@ const FillRateClassManager = () => {
   // subject list needs fetching, with bounded concurrency (see CLAUDE.md on the remote DB limit).
   const handlePrintAll = async () => {
     setIsPrintingAll(true);
+    const [attributions, staffList] = await Promise.all([
+      StaffReader.fetchAllAttributionsOfSection(accessToken, connection, schoolYear, section),
+      StaffReader.fetchStaff(accessToken, connection, schoolYear),
+    ]);
+    const staffById = new Map(staffList.map((st) => [st.staff_id, st]));
     const subjectsPerClasse = await mapWithConcurrency(classes, DEFAULT_REPORT_CONCURRENCY, (classe) =>
       SubjectReader.fetchSubjectsOfClasse(accessToken, connection, schoolYear, section, classe.classe_id),
     );
     interface PrintRow {
       subject: string;
+      teacher: string;
       rate: string;
     }
     // One table per classe, each preceded by a "Classe: <name>" label.
@@ -173,6 +212,7 @@ const FillRateClassManager = () => {
         const rate = rates.get(subject.subject_id);
         return {
           subject: subject.subject_title,
+          teacher: teachersOf(attributions, staffById, classe.classe_id, subject.subject_id),
           rate: rate === null || rate === undefined ? "…" : rate.toFixed(1),
         };
       });
@@ -192,6 +232,7 @@ const FillRateClassManager = () => {
       [
         { header: t.pdfColIndex, accessor: (_row: PrintRow, index: number) => index + 1 },
         { header: t.pdfColSubject, accessor: (row: PrintRow) => row.subject },
+        { header: t.pdfColTeacher, accessor: (row: PrintRow) => row.teacher },
         { header: t.pdfColRate, accessor: (row: PrintRow) => row.rate },
       ],
       groups,

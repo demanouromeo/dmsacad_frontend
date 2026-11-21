@@ -60,12 +60,14 @@ import ParentManager from "./components/admin/parent/ParentManager";
 import ParentDashboard from "./components/parent/ParentDashboard";
 import ParentChildDetailManager from "./components/parent/ParentChildDetailManager";
 import { useCookies } from "react-cookie";
+import AndroidBackButton from "./components/routing/AndroidBackButton";
 
 function App() {
   //const [count, setCount] = useState(0)
   const [cookies] = useCookies(["schoolName"]);
   return (
     <BrowserRouter>
+      <AndroidBackButton />
       <div className="min-h-screen flex flex-col">
         <div className="flex-1">
           <Routes>
