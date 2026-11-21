@@ -93,6 +93,8 @@ const FillRateGlobalManager = () => {
   >(new Map());
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [allClasses, setAllClasses] = useState<FillRateClasseRef[]>([]);
+  // "<section>|<classe_id>" (same key as the classe axis rows) -> class master with civility.
+  const [masterByKey, setMasterByKey] = useState<Map<string, string>>(new Map());
 
   const [axis, setAxis] = useState<Axis>("classe");
   const [mode, setMode] = useState<Mode>("table");
@@ -123,6 +125,12 @@ const FillRateGlobalManager = () => {
             classe_id: c.classe_id,
             classe_name: c.classe_name,
           })),
+          masters: classes.map(
+            (c): [string, string] => [
+              `${section}|${c.classe_id}`,
+              c.classe_master_name ? withCivility(c.classe_master_civility, c.classe_master_name) : "",
+            ],
+          ),
           attributions,
           cells: mergeToUnifiedCells(section, nonApcRows, apcRows, isLevelApc),
         };
@@ -134,6 +142,7 @@ const FillRateGlobalManager = () => {
     setHasAnyClasses(usable.length > 0);
     setCells(usable.flatMap((s) => s.cells));
     setAllClasses(usable.flatMap((s) => s.classes));
+    setMasterByKey(new Map(usable.flatMap((s) => s.masters)));
     setAttributionsBySection(new Map(usable.map((s) => [s.section, s.attributions])));
     setIsLoading(false);
   };
@@ -193,6 +202,9 @@ const FillRateGlobalManager = () => {
   const exportColumns: ExportColumn<FillRatePivotRow>[] = [
     { header: t.tableHeaderIndex, accessor: (_row, index) => index + 1 },
     { header: t.tableHeaderLabel, accessor: (row) => row.label },
+    ...(axis === "classe"
+      ? [{ header: t.tableHeaderMaster, accessor: (row: FillRatePivotRow) => masterByKey.get(row.key) ?? "" }]
+      : []),
     { header: t.tableHeaderRate, accessor: (row) => (row.rate === null ? "" : row.rate.toFixed(1)) },
   ];
 
@@ -353,6 +365,7 @@ const FillRateGlobalManager = () => {
                     <tr>
                       <th>{t.tableHeaderIndex}</th>
                       <th>{t.tableHeaderLabel}</th>
+                      {axis === "classe" && <th>{t.tableHeaderMaster}</th>}
                       <th>{t.tableHeaderRate}</th>
                     </tr>
                   </thead>
@@ -361,6 +374,7 @@ const FillRateGlobalManager = () => {
                       <tr key={row.key}>
                         <td>{index + 1}</td>
                         <td>{row.label}</td>
+                        {axis === "classe" && <td>{masterByKey.get(row.key) ?? ""}</td>}
                         <td className={`font-semibold ${rateColorClass(row.rate)}`}>
                           {row.rate === null ? "…" : row.rate.toFixed(1)}
                         </td>
@@ -368,14 +382,14 @@ const FillRateGlobalManager = () => {
                     ))}
                     {sortedRows.length === 0 && (
                       <tr>
-                        <td colSpan={3}>
+                        <td colSpan={axis === "classe" ? 4 : 3}>
                           <p className="empty-state">{t.emptyClasses}</p>
                         </td>
                       </tr>
                     )}
                     {sortedRows.length > 0 && filteredRows.length === 0 && (
                       <tr>
-                        <td colSpan={3}>
+                        <td colSpan={axis === "classe" ? 4 : 3}>
                           <p className="empty-state">{t.noSearchResults}</p>
                         </td>
                       </tr>
