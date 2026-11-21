@@ -23,6 +23,7 @@ import StudentPhotoCell from "./StudentPhotoCell";
 import StudentPhotoDialog from "./StudentPhotoDialog";
 import ChangeClasseDialog from "./ChangeClasseDialog";
 import StudentSearchDialog from "./StudentSearchDialog";
+import ImportDuplicatesDialog, { type IgnoredDuplicate } from "./ImportDuplicatesDialog";
 import ExistingStudentDialog, {
   type ExistingStudentChoice,
   type ExistingStudentInfo,
@@ -101,6 +102,11 @@ const StudentManager = () => {
   const [isSaving, setIsSaving] = useState(false);
   // Set when the typed matricule belongs to a student known from another school year: drives the
   // three-button dialog (enrol as is / update then enrol / cancel).
+  const [duplicatesSummary, setDuplicatesSummary] = useState<{
+    imported: number;
+    saved: number;
+    duplicates: IgnoredDuplicate[];
+  } | null>(null);
   const [existingStudentPrompt, setExistingStudentPrompt] = useState<ExistingStudentInfo | null>(null);
 
   const [newFields, setNewFields] = useState<EditableFields>({
@@ -629,6 +635,21 @@ const StudentManager = () => {
     if (selectedClasseId === null) {
       return;
     }
+    // A student is one row per matricule server-side, so a matricule listed twice in the file would
+    // be saved once while the toast claimed both - keep the first occurrence and report the rest.
+    const seenMatricules = new Set<string>();
+    const uniqueRows = rows.filter((row) => {
+      const key = row.matricule.trim().toLowerCase();
+      if (!key) {
+        return true;
+      }
+      if (seenMatricules.has(key)) {
+        return false;
+      }
+      seenMatricules.add(key);
+      return true;
+    });
+    const ignoredRows = rows.filter((row) => !uniqueRows.includes(row));
     setIsSaving(true);
     const result = await StudentReader.saveManyStudents(
       accessToken,
@@ -636,7 +657,7 @@ const StudentManager = () => {
       schoolYear,
       selectedClasseId,
       override,
-      rows.map((row) => ({
+      uniqueRows.map((row) => ({
         name: row.name,
         surname: row.surname,
         bday: row.bday,
@@ -650,7 +671,19 @@ const StudentManager = () => {
     );
     setIsSaving(false);
     if (result.status) {
-      showToast(t.importSuccess(rows.length), { type: "info" });
+      if (ignoredRows.length > 0) {
+        setDuplicatesSummary({
+          imported: rows.length,
+          saved: uniqueRows.length,
+          duplicates: ignoredRows.map((r) => ({
+            matricule: r.matricule,
+            name: r.name,
+            surname: r.surname,
+          })),
+        });
+      } else {
+        showToast(t.importSuccess(uniqueRows.length), { type: "info" });
+      }
       loadStudents(selectedClasseId);
     } else {
       const detail = stripHtmlTags(result.message);
@@ -1695,6 +1728,7 @@ const StudentManager = () => {
         onClose={() => setPhotoDialogStudent(null)}
         onSaved={bumpPhotoVersion}
       />
+      <ImportDuplicatesDialog summary={duplicatesSummary} onClose={() => setDuplicatesSummary(null)} />
       <ExistingStudentDialog
         open={existingStudentPrompt !== null}
         matricule={newMatricule.trim()}

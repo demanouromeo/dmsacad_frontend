@@ -877,6 +877,11 @@ export const studentManagerTranslations = {
       "Cette action supprimera définitivement tous les élèves existants de cette classe. Confirmez-vous ?",
     importDeleteFinalBtn: "Oui, supprimer",
     importSuccess: (count: number) => `${count} élève(s) importé(s) avec succès.`,
+    importDuplicatesTitle: "Doublons détectés",
+    importDuplicatesMessage: (imported: number, saved: number) =>
+      `${imported} élèves importés mais seulement ${saved} sauvegardés à cause des doublons.`,
+    importDuplicatesView: "Voir les doublons",
+    importDuplicatesClose: "Fermer",
     importFailure: "Échec de l'import des élèves.",
     importFailureDetail: (detail: string) =>
       `Échec de l'import des élèves. Détails : ${detail}`,
@@ -1035,6 +1040,11 @@ export const studentManagerTranslations = {
       "This will permanently delete all existing students of this class. Do you confirm?",
     importDeleteFinalBtn: "Yes, delete",
     importSuccess: (count: number) => `${count} student(s) successfully imported.`,
+    importDuplicatesTitle: "Duplicates detected",
+    importDuplicatesMessage: (imported: number, saved: number) =>
+      `${imported} students imported but only ${saved} saved because of duplicates.`,
+    importDuplicatesView: "View duplicates",
+    importDuplicatesClose: "Close",
     importFailure: "Failed to import the students.",
     importFailureDetail: (detail: string) =>
       `Failed to import the students. Details: ${detail}`,
