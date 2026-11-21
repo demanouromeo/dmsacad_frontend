@@ -8,6 +8,7 @@ import { SubjectReader } from "../../../dbmanger/SubjectReader";
 import { MarkReader } from "../../../dbmanger/MarkReader";
 import { StaffReader } from "../../../dbmanger/StaffReader";
 import type { CourseAssignment } from "../../../interfaces/CourseAssignment";
+import { withCivility } from "../../../utils/staffName";
 import type { Staff } from "../../../interfaces/Staff";
 import type { Classe } from "../../../interfaces/Classe";
 import type { SubjectClasseRow } from "../../../interfaces/SubjectClasseRow";
@@ -217,7 +218,13 @@ const FillRateClassManager = () => {
         };
       });
       if (rows.length > 0) {
-        groups.push({ title: `${t.pdfColClasse}: ${classe.classe_name}`, rows });
+        const master = classe.classe_master_name
+          ? withCivility(classe.classe_master_civility, classe.classe_master_name)
+          : "";
+        groups.push({
+          title: `${t.pdfColClasse}: ${classe.classe_name}${master ? ` (pp. ${master})` : ""}`,
+          rows,
+        });
       }
     });
     if (groups.length === 0) {
